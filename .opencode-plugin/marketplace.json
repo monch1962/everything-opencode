@@ -1,0 +1,50 @@
+{
+  "name": "everything-opencode",
+  "owner": {
+    "name": "Adapted from Affaan Mustafa's everything-claude-code",
+    "email": "opencode@example.com"
+  },
+  "metadata": {
+    "description": "Battle-tested opencode configurations adapted from everything-claude-code with opencode-specific optimizations"
+  },
+  "plugins": [
+    {
+      "name": "everything-opencode",
+      "source": "./",
+      "description": "Complete collection of agents, skills, plugins, commands, and rules adapted from everything-claude-code with opencode-specific optimizations (LSP, multi-provider, TUI)",
+      "author": {
+        "name": "Adapted from Affaan Mustafa"
+      },
+      "homepage": "https://github.com/anomalyco/opencode",
+      "repository": "https://github.com/anomalyco/opencode",
+      "license": "MIT",
+      "keywords": [
+        "agents",
+        "skills",
+        "plugins",
+        "commands",
+        "tdd",
+        "code-review",
+        "security",
+        "best-practices",
+        "lsp",
+        "multi-provider",
+        "tui"
+      ],
+      "category": "workflow",
+      "tags": [
+        "agents",
+        "skills",
+        "plugins",
+        "commands",
+        "tdd",
+        "code-review",
+        "security",
+        "best-practices",
+        "lsp",
+        "multi-provider",
+        "tui"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "name": "everything-opencode",
+  "description": "Complete collection of battle-tested opencode configs - agents, skills, plugins, commands, and rules adapted from everything-claude-code with opencode-specific optimizations",
+  "author": {
+    "name": "Adapted from Affaan Mustafa's everything-claude-code",
+    "url": "https://github.com/affaan-m/everything-claude-code"
+  },
+  "homepage": "https://github.com/anomalyco/opencode",
+  "repository": "https://github.com/anomalyco/opencode",
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "agents",
+    "skills",
+    "plugins",
+    "commands",
+    "rules",
+    "tdd",
+    "code-review",
+    "security",
+    "workflow",
+    "automation",
+    "best-practices",
+    "lsp",
+    "multi-provider",
+    "tui"
+  ],
+  "version": "1.0.0",
+  "engines": {
+    "opencode": ">=1.0.0"
+  },
+  "main": "./plugins/index.js",
+  "files": [
+    "agents/",
+    "skills/",
+    "commands/",
+    "rules/",
+    "plugins/",
+    "scripts/",
+    "contexts/",
+    "examples/",
+    "mcp-configs/"
+  ]
+}
