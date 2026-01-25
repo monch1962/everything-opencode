@@ -23,6 +23,7 @@ This repository is a **converted version** of [everything-claude-code](https://g
 - ✅ **Cross-platform**: All scripts work on Windows, macOS, and Linux
 
 **Original Guides:** The original guides from everything-claude-code still apply:
+
 - [Shorthand Guide](https://x.com/affaanmustafa/status/2012378465664745795) - Setup, foundations, philosophy
 - [Longform Guide](https://x.com/affaanmustafa/status/2014040193557471352) - Token optimization, memory persistence, evals, parallelization
 
@@ -112,6 +113,13 @@ everything-opencode/
 |   |-- update-codemaps.md  # /update-codemaps - Architecture documentation
 |   |-- orchestrate.md      # /orchestrate - Sequential agent workflows
 |   |-- eval.md             # /eval - Eval-driven development
+|   |-- python-test.md      # /python-test - Run Python tests
+|   |-- python-lint.md      # /python-lint - Run linter and formatter
+|   |-- python-typecheck.md # /python-typecheck - Run type checker
+|   |-- python-deps.md      # /python-deps - Manage dependencies
+|   |-- python-setup.md     # /python-setup - Configure Python project
+|   |-- pine-setup.md       # /pine-setup - Configure PineScript project
+|   |-- pine-validate.md    # /pine-validate - Validate PineScript syntax
 |
 |-- rules/            # Always-follow guidelines (copy to ~/.opencode/rules/)
 |   |-- security.md         # Mandatory security checks
@@ -150,7 +158,14 @@ everything-opencode/
 |   |-- review.md           # Code review mode context
 |   |-- research.md         # Research/exploration mode context
 |
+|-- languages/         # Language-specific configuration wizards
+|   |-- python/              # Python configuration wizard
+|   |-- pinescript/          # PineScript configuration wizard
+|   |-- shared/              # Shared language utilities
+|
 |-- examples/         # Example configurations and sessions
+|   |-- python-projects/     # Python project examples
+|   |-- pinescript-projects/ # PineScript project examples
 |   |-- AGENTS.md           # Agent guidelines and examples
 |
 |-- mcp-configs/      # MCP server configurations
@@ -266,10 +281,12 @@ Hooks fire on tool events. Example - warn about console.log:
 ```json
 {
   "matcher": "tool == \"Edit\" && tool_input.file_path matches \"\\\\.(ts|tsx|js|jsx)$\"",
-  "hooks": [{
-    "type": "command",
-    "command": "node -e \"const fs=require('fs');const p=process.argv[2];if(p&&fs.existsSync(p)){const c=fs.readFileSync(p,'utf8');if(/console\\.log/.test(c))console.error('[Hook] WARNING: console.log found')\" \"$file_path\""
-  }]
+  "hooks": [
+    {
+      "type": "command",
+      "command": "node -e \"const fs=require('fs');const p=process.argv[2];if(p&&fs.existsSync(p)){const c=fs.readFileSync(p,'utf8');if(/console\\.log/.test(c))console.error('[Hook] WARNING: console.log found')\" \"$file_path\""
+    }
+  ]
 }
 ```
 
@@ -307,6 +324,7 @@ node tests/hooks/hooks.test.js
 If you're migrating from everything-claude-code to everything-opencode:
 
 1. **Backup your existing configs**:
+
    ```bash
    cp -r ~/.claude ~/.claude-backup
    ```
@@ -327,6 +345,7 @@ If you're migrating from everything-claude-code to everything-opencode:
 **Contributions are welcome and encouraged.**
 
 This repo is meant to be a community resource for opencode users. If you have:
+
 - Useful agents or skills optimized for opencode
 - Clever hooks that work with opencode tools
 - Better MCP configurations
@@ -359,6 +378,7 @@ These configs are battle-tested across multiple production applications and have
 **Critical:** Don't enable all MCPs at once. Your context window can shrink with too many tools enabled.
 
 Rule of thumb:
+
 - Have 20-30 MCPs configured
 - Keep under 10 enabled per project
 - Monitor context usage
@@ -368,6 +388,7 @@ Use `disabledMcpServers` in project config to disable unused ones.
 ### Customization
 
 These configs work for many workflows. You should:
+
 1. Start with what resonates
 2. Modify for your stack
 3. Remove what you don't use

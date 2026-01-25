@@ -39,12 +39,15 @@ everything-opencode/
 ## Features
 
 ### 1. Smart Project Detection
-- **5 languages**: Python (priority), TypeScript, Go, Rust, PineScript
+
+- **6 languages**: Python (priority), PineScript, TypeScript, Go, Rust
 - **Confidence scoring**: 0-0.95 based on multiple indicators
 - **Python project types**: FastAPI, Django, Flask, Data Science, ML, CLI, Library
+- **PineScript project types**: Indicator, Strategy, Library with version detection (v4, v5, v6)
 - **Automatic primary language determination**
 
 ### 2. Interactive Configuration
+
 - **Color-coded prompts** for better UX
 - **Multiple choice with descriptions** for informed decisions
 - **Yes/no confirmations** with smart defaults
@@ -52,21 +55,35 @@ everything-opencode/
 - **User approval** before saving configuration
 
 ### 3. Python Tool Detection
+
 - **30+ tools** detected with version checking
 - **Installation guides** per platform (macOS, Linux, Windows)
 - **Compatibility checking** with version constraints
 - **Priority-based recommendations**
 
 ### 4. Command Automation
+
+#### Python Commands
+
 - **/python-test** - Run tests with configured test runner
 - **/python-lint** - Run linter and formatter
 - **/python-typecheck** - Run type checker
 - **/python-deps** - Manage dependencies
 - **/python-setup** - Configure Python project
 
+#### PineScript Commands
+
+- **/pine-setup** - Configure PineScript project with interactive wizard
+- **/pine-validate** - Validate PineScript syntax and version compatibility
+- **/pine-backtest** - Run backtesting on strategies with performance metrics
+- **/pine-optimize** - Optimize strategy parameters with grid search
+- **/pine-convert** - Convert between PineScript versions (v4 ↔ v5 ↔ v6)
+- **/pine-alert** - Configure alert system with webhooks and notifications
+
 ## Quick Start
 
 ### 1. Initial Setup
+
 ```bash
 # Run interactive setup
 node scripts/interactive-setup.js
@@ -79,6 +96,7 @@ node scripts/commands/python-setup.js
 ```
 
 ### 2. Using Python Commands
+
 ```bash
 # Run tests
 node scripts/commands/python-test.js
@@ -98,6 +116,7 @@ node scripts/commands/python-setup.js --reconfigure
 ```
 
 ### 3. Manual Testing
+
 ```bash
 # Test project detection
 node scripts/interactive-setup.js detect
@@ -112,6 +131,7 @@ node scripts/interactive-setup.js config
 ## Configuration
 
 ### Project Configuration File
+
 Saved to `.opencode/project-config.json`:
 
 ```json
@@ -144,6 +164,7 @@ Saved to `.opencode/project-config.json`:
 ### Tool Recommendations
 
 #### New Projects
+
 - **Dependency manager**: uv (fast, modern)
 - **Test runner**: pytest (feature-rich)
 - **Linter**: ruff (extremely fast)
@@ -151,6 +172,7 @@ Saved to `.opencode/project-config.json`:
 - **Type checker**: pyright (fast, good editor integration)
 
 #### Existing Projects
+
 - Use detected tools if available
 - Migrate gradually to recommended tools
 - Maintain compatibility with existing workflow
@@ -158,6 +180,7 @@ Saved to `.opencode/project-config.json`:
 ## Integration with opencode
 
 ### Command Integration
+
 The Python commands are designed to integrate with opencode's command system:
 
 1. **Command discovery** - Commands are documented in `commands/` directory
@@ -166,13 +189,16 @@ The Python commands are designed to integrate with opencode's command system:
 4. **Exit codes** - Proper exit codes for automation
 
 ### AI Assistant Integration
+
 The system provides context for AI assistance:
+
 - Project type and structure
 - Installed tools and versions
 - Configuration preferences
 - Common patterns for the project type
 
 ### Development Workflow
+
 ```bash
 # Typical workflow
 /python-setup                    # Configure project
@@ -188,7 +214,9 @@ The system provides context for AI assistance:
 ## Extending the System
 
 ### Adding New Python Tools
+
 1. Add tool definition to `scripts/python/tool-detector.js`:
+
 ```javascript
 toolName: {
   command: 'tool --version',
@@ -206,12 +234,14 @@ toolName: {
 3. Add to wizard options in `languages/python/config-wizard.js`
 
 ### Adding New Project Types
+
 1. Add detection logic to `scripts/interactive/project-detector.js`:
+
 ```javascript
 // Check for project type markers
-const hasMarkers = await checkPythonProjectType(projectPath, 'new-type', [
-  'import newframework',
-  'from newframework import'
+const hasMarkers = await checkPythonProjectType(projectPath, "new-type", [
+  "import newframework",
+  "from newframework import",
 ]);
 ```
 
@@ -219,6 +249,7 @@ const hasMarkers = await checkPythonProjectType(projectPath, 'new-type', [
 3. Add project templates to `examples/python-projects/`
 
 ### Creating New Commands
+
 1. Create command documentation in `commands/` directory
 2. Implement command in `scripts/commands/` directory
 3. Use `PythonCommandRunner` base class
@@ -227,6 +258,7 @@ const hasMarkers = await checkPythonProjectType(projectPath, 'new-type', [
 ## Testing
 
 ### Unit Tests
+
 ```bash
 # Test project detection
 node -e "const ProjectDetector = require('./scripts/interactive/project-detector'); const d = new ProjectDetector(); d.getProjectSummary().then(console.log)"
@@ -239,6 +271,7 @@ node scripts/commands/python-test.js --help
 ```
 
 ### Integration Tests
+
 1. Create test Python project
 2. Run `/python-setup` to configure
 3. Test each command functionality
@@ -247,12 +280,14 @@ node scripts/commands/python-test.js --help
 ## Performance Considerations
 
 ### Detection Performance
+
 - **File scanning**: Limited to first 10 Python files for import detection
 - **Glob patterns**: Efficient file pattern matching
 - **Caching**: Configuration cached after first detection
 - **Parallel detection**: Language detectors run independently
 
 ### Command Performance
+
 - **Lazy initialization**: Configuration loaded only when needed
 - **Tool checking**: Tools checked once per command
 - **Parallel execution**: Where supported (test parallelization)
@@ -261,12 +296,14 @@ node scripts/commands/python-test.js --help
 ## Security
 
 ### Configuration Security
+
 - **User approval**: Configurations only saved with user consent
 - **No secrets**: Configuration files don't contain secrets
 - **Validation**: JSON schema validation for configuration
 - **Import/export**: Safe configuration sharing
 
 ### Command Security
+
 - **Command validation**: Validate commands before execution
 - **No arbitrary execution**: Commands are predefined
 - **Environment isolation**: Commands run in project directory
@@ -277,6 +314,7 @@ node scripts/commands/python-test.js --help
 ### Common Issues
 
 #### Project Not Detected
+
 ```bash
 # Force Python project type
 node scripts/commands/python-setup.js --project-type python
@@ -286,6 +324,7 @@ node scripts/interactive-setup.js detect
 ```
 
 #### Tools Not Found
+
 ```bash
 # Detect tools manually
 node scripts/interactive-setup.js tools
@@ -296,6 +335,7 @@ pip install pytest ruff pyright
 ```
 
 #### Configuration Issues
+
 ```bash
 # View current configuration
 cat .opencode/project-config.json
@@ -306,6 +346,7 @@ node scripts/commands/python-setup.js
 ```
 
 #### Command Execution Issues
+
 ```bash
 # Test with --help
 node scripts/commands/python-test.js --help
@@ -319,6 +360,7 @@ source .venv/bin/activate  # Linux/Mac
 ```
 
 ### Debug Mode
+
 ```bash
 # Verbose output
 node scripts/commands/python-test.js --verbose
@@ -330,18 +372,21 @@ node -e "const runner = require('./scripts/commands/python-command-runner'); new
 ## Future Enhancements
 
 ### Phase 3: Advanced Features
+
 1. **Python skills** - AI assistance patterns for Python projects
 2. **Python agents** - Specialized agents for different project types
 3. **Template generation** - Code generation from templates
 4. **Migration tools** - Tool migration assistance
 
 ### Phase 4: Ecosystem Integration
+
 1. **CI/CD integration** - GitHub Actions, GitLab CI templates
 2. **Editor integration** - VS Code, PyCharm configuration
 3. **Package publishing** - PyPI publishing assistance
 4. **Documentation generation** - Auto-documentation tools
 
 ### Phase 5: Multi-language Support
+
 1. **TypeScript integration** - Node.js/TypeScript project support
 2. **Go integration** - Go project configuration
 3. **Rust integration** - Rust project setup
@@ -350,6 +395,7 @@ node -e "const runner = require('./scripts/commands/python-command-runner'); new
 ## Contributing
 
 ### Development Guidelines
+
 1. **Follow existing patterns** - Maintain consistency
 2. **Add tests** - Test new functionality
 3. **Update documentation** - Keep docs current
@@ -357,12 +403,14 @@ node -e "const runner = require('./scripts/commands/python-command-runner'); new
 5. **Store configurations properly** - In `.opencode/project-config.json`
 
 ### Code Style
+
 - **JavaScript**: ES6+ with async/await
 - **Python**: PEP 8 with type hints (for templates)
 - **Documentation**: Markdown with examples
 - **Error handling**: Graceful degradation with clear messages
 
 ### Testing Strategy
+
 1. **Unit tests** - Individual component testing
 2. **Integration tests** - End-to-end workflow testing
 3. **Manual testing** - Interactive testing with sample projects
@@ -371,12 +419,14 @@ node -e "const runner = require('./scripts/commands/python-command-runner'); new
 ## Support
 
 ### Getting Help
+
 1. **Check documentation** - `PYTHON-INTEGRATION.md` and `INTEGRATION-GUIDE.md`
 2. **Test commands** - Use `--help` flag for command usage
 3. **Examine configuration** - Check `.opencode/project-config.json`
 4. **Create test case** - Reproduce issue with minimal example
 
 ### Reporting Issues
+
 1. **Describe the problem** - What happened vs expected
 2. **Include configuration** - Project type and tools
 3. **Provide reproduction steps** - How to reproduce the issue

@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+- **PineScript language support** with comprehensive integration
+- PineScript configuration wizard (`/pine-setup`)
+- PineScript validation command (`/pine-validate`)
+- Enhanced PineScript project detection with version and type classification
+- PineScript tool detection and recommendations
+- PineScript command runner base class
+- PineScript example projects (basic indicator, trading strategy, alert integration)
+- PineScript integration documentation (`PINESCRIPT-INTEGRATION.md`)
 - Initial release of everything-opencode
 - Complete conversion from everything-claude-code
 - 4 new optimization skills for opencode
@@ -19,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - npm package configuration
 
 ### Changed
+
 - All `~/.claude/` paths → `~/.opencode/`
 - All `CLAUDE_*` environment variables → `OPENCODE_*`
 - Plugin configuration updated for opencode compatibility
@@ -26,17 +36,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved documentation and examples
 
 ### Fixed
+
 - Fixed date handling in test suite
 - Improved error handling in hook scripts
 - Enhanced file path handling for Windows compatibility
 
 ### Removed
+
 - Claude Code specific configurations
 - Deprecated file references
 
 ## [1.0.0] - 2026-01-25
 
 ### Major Changes
+
 - Initial release of everything-opencode
 - Complete conversion from everything-claude-code repository
 - Full compatibility with opencode AI coding agent
@@ -51,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Detailed documentation
 
 ### Added
+
 - **New optimization skills**:
   1. LSP integration optimizations
   2. Multi-provider model configurations
@@ -63,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **npm package**: Ready for distribution via npm
 
 ### Changed
+
 - **Path updates**: All references updated from Claude Code to opencode
 - **Environment variables**: Complete migration to opencode naming convention
 - **Configuration files**: Updated for opencode plugin system compatibility
@@ -70,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test suite**: Expanded and improved for better coverage
 
 ### Technical Details
+
 - **Platform support**: Windows, macOS, Linux
 - **Node.js version**: >=14.0.0
 - **Test coverage**: 62 comprehensive tests
@@ -77,21 +93,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Performance**: Optimized for opencode integration
 
 ### Migration Notes
+
 - Users migrating from everything-claude-code should follow the MIGRATION.md guide
 - All original functionality preserved and enhanced
 - New opencode-specific features added
 - Backward compatibility maintained where possible
 
 ### Known Issues
+
 - None reported in initial release
 
 ### Security
+
 - No known security vulnerabilities
 - Follows security best practices for AI coding agents
 - Environment variable handling improved
 - File system operations secured
 
 ### Performance
+
 - Optimized for fast execution with opencode
 - Efficient memory usage
 - Minimal overhead for hook execution

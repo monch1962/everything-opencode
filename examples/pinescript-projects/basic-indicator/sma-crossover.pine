@@ -1,0 +1,35 @@
+//@version=5
+indicator("Simple Moving Average Crossover", overlay=true)
+
+// Input parameters
+fastLength = input.int(10, "Fast SMA Length", minval=1, maxval=100)
+slowLength = input.int(30, "Slow SMA Length", minval=1, maxval=100)
+
+// Calculate SMAs
+fastSMA = ta.sma(close, fastLength)
+slowSMA = ta.sma(close, slowLength)
+
+// Plot SMAs
+plot(fastSMA, color=color.blue, title="Fast SMA", linewidth=2)
+plot(slowSMA, color=color.red, title="Slow SMA", linewidth=2)
+
+// Crossover signals
+bullishCross = ta.crossover(fastSMA, slowSMA)
+bearishCross = ta.crossunder(fastSMA, slowSMA)
+
+// Plot crossover signals
+plotshape(bullishCross, style=shape.triangleup, location=location.belowbar, 
+         color=color.green, size=size.small, title="Bullish Signal")
+plotshape(bearishCross, style=shape.triangledown, location=location.abovebar, 
+         color=color.red, size=size.small, title="Bearish Signal")
+
+// Background color for trend
+bgcolor(bullishCross ? color.new(color.green, 90) : bearishCross ? color.new(color.red, 90) : na)
+
+// Alert conditions (commented out by default)
+// alertcondition(bullishCross, title="Bullish Crossover", message="Fast SMA crossed above Slow SMA")
+// alertcondition(bearishCross, title="Bearish Crossover", message="Fast SMA crossed below Slow SMA")
+
+// Display current values in data window
+plotchar(fastSMA, "Fast SMA", "", location.top, size=size.tiny, color=color.blue)
+plotchar(slowSMA, "Slow SMA", "", location.top, size=size.tiny, color=color.red)

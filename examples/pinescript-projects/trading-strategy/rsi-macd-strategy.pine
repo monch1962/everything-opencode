@@ -1,0 +1,116 @@
+//@version=5
+strategy("RSI + MACD Strategy", overlay=false, 
+         default_qty_type=strategy.percent_of_equity, 
+         default_qty_value=10,
+         initial_capital=10000,
+         commission_type=strategy.commission.percent,
+         commission_value=0.1)
+
+// ========== INPUT PARAMETERS ==========
+
+// RSI Parameters
+rsiLength = input.int(14, "RSI Length", minval=1, maxval=50)
+rsiOverbought = input.int(70, "RSI Overbought", minval=50, maxval=90)
+rsiOversold = input.int(30, "RSI Oversold", minval=10, maxval=50)
+
+// MACD Parameters
+macdFast = input.int(12, "MACD Fast Length", minval=5, maxval=26)
+macdSlow = input.int(26, "MACD Slow Length", minval=10, maxval=50)
+macdSignal = input.int(9, "MACD Signal Length", minval=5, maxval=20)
+
+// Stop Loss & Take Profit
+stopLossPct = input.float(2.0, "Stop Loss %", minval=0.1, maxval=10.0, step=0.1)
+takeProfitPct = input.float(4.0, "Take Profit %", minval=0.1, maxval=20.0, step=0.1)
+
+// Position Sizing
+maxPositionSize = input.float(25, "Max Position Size %", minval=1, maxval=100, step=1)
+
+// ========== INDICATOR CALCULATIONS ==========
+
+// RSI Calculation
+rsiValue = ta.rsi(close, rsiLength)
+
+// MACD Calculation
+[macdLine, signalLine, histLine] = ta.macd(close, macdFast, macdSlow, macdSignal)
+
+// ========== TRADING CONDITIONS ==========
+
+// Buy Conditions (ALL must be true)
+rsiBuyCondition = rsiValue < rsiOversold
+macdBuyCondition = macdLine > signalLine and macdLine[1] <= signalLine[1]  // MACD crossover above
+volumeCondition = volume > ta.sma(volume, 20) * 1.5  // Above average volume
+
+buySignal = rsiBuyCondition and macdBuyCondition and volumeCondition
+
+// Sell Conditions (ANY can be true)
+rsiSellCondition = rsiValue > rsiOverbought
+macdSellCondition = macdLine < signalLine and macdLine[1] >= signalLine[1]  // MACD crossover below
+stopLossHit = strategy.position_avg_price * (1 - stopLossPct / 100)
+takeProfitHit = strategy.position_avg_price * (1 + takeProfitPct / 100)
+
+sellSignal = rsiSellCondition or macdSellCondition or 
+             (close <= stopLossHit) or (close >= takeProfitHit)
+
+// ========== STRATEGY EXECUTION ==========
+
+// Entry with position sizing
+if (buySignal)
+    strategy.entry("Long", strategy.long, qty=strategy.equity * (maxPositionSize / 100) / close)
+
+// Exit conditions
+if (sellSignal and strategy.position_size > 0)
+    strategy.close("Long", comment="Exit Signal")
+
+// ========== PLOTTING ==========
+
+// RSI Plot
+rsiPlot = plot(rsiValue, "RSI", color=color.purple, linewidth=2)
+overboughtLine = hline(rsiOverbought, "Overbought", color=color.red, linestyle=hline.style_dashed)
+oversoldLine = hline(rsiOversold, "Oversold", color=color.green, linestyle=hline.style_dashed)
+fill(rsiPlot, overboughtLine, color=color.new(color.red, 90), title="Overbought Zone")
+fill(rsiPlot, oversoldLine, color=color.new(color.green, 90), title="Oversold Zone")
+
+// MACD Plot
+plot(macdLine, "MACD Line", color=color.blue)
+plot(signalLine, "Signal Line", color=color.orange)
+plot(histLine, "MACD Histogram", color=histLine >= 0 ? color.green : color.red, style=plot.style_columns)
+
+// Buy/Sell signals on price chart (overlay)
+bullishSignal = buySignal ? low * 0.995 : na
+bearishSignal = sellSignal ? high * 1.005 : na
+
+plotshape(bullishSignal, style=shape.triangleup, location=location.absolute,
+         color=color.green, size=size.small, title="Buy Signal")
+plotshape(bearishSignal, style=shape.triangledown, location=location.absolute,
+         color=color.red, size=size.small, title="Sell Signal")
+
+// ========== ALERT CONDITIONS ==========
+
+alertcondition(buySignal, title="Buy Signal", 
+               message="RSI: {{plot_0}} | MACD Bullish Crossover | Symbol: {{ticker}}")
+alertcondition(sellSignal, title="Sell Signal", 
+               message="Exit triggered | P&L: {{strategy.netprofit}} | Symbol: {{ticker}}")
+
+// ========== PERFORMANCE METRICS ==========
+
+// Display in data window
+plotchar(strategy.netprofit, "Net Profit", "", location.top, size=size.tiny)
+plotchar(strategy.wintrade / strategy.closedtrades * 100, "Win Rate %", "", location.top, size=size.tiny)
+plotchar(strategy.max_drawdown, "Max Drawdown", "", location.top, size=size.tiny)
+
+// ========== BACKTESTING NOTES ==========
+
+// This strategy uses:
+// 1. RSI for momentum filtering
+// 2. MACD for trend confirmation  
+// 3. Volume confirmation for entries
+// 4. Fixed stop loss and take profit
+// 5. Position sizing based on equity
+
+// Optimization parameters to test:
+// - RSI lengths (7-21)
+// - RSI levels (60-80 overbought, 20-40 oversold)
+// - MACD parameters (fast: 8-21, slow: 21-55, signal: 5-13)
+// - Stop loss (1-5%)
+// - Take profit (2-10%)
+// - Position size (10-50%)
