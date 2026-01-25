@@ -342,6 +342,50 @@ function grepFile(filePath, pattern) {
   return results;
 }
 
+/**
+ * Simple glob pattern matching (basic implementation)
+ */
+function glob(pattern, options = {}) {
+  const { cwd = process.cwd(), ignore = [] } = options;
+  const results = [];
+  
+  function matchPattern(path, pattern) {
+    // Convert glob pattern to regex
+    const regexPattern = pattern
+      .replace(/\./g, '\\.')
+      .replace(/\*/g, '.*')
+      .replace(/\?/g, '.');
+    const regex = new RegExp(`^${regexPattern}$`);
+    return regex.test(path);
+  }
+  
+  function searchDir(currentDir, relativePath = '') {
+    try {
+      const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = path.join(currentDir, entry.name);
+        const relPath = relativePath ? path.join(relativePath, entry.name) : entry.name;
+        
+        // Check if path should be ignored
+        const shouldIgnore = ignore.some(ignorePattern => matchPattern(relPath, ignorePattern));
+        if (shouldIgnore) continue;
+        
+        if (entry.isFile() && matchPattern(relPath, pattern)) {
+          results.push(relPath);
+        } else if (entry.isDirectory()) {
+          searchDir(fullPath, relPath);
+        }
+      }
+    } catch (err) {
+      // Ignore permission errors
+    }
+  }
+  
+  searchDir(cwd);
+  return results;
+}
+
 module.exports = {
   // Platform info
   isWindows,
@@ -369,6 +413,7 @@ module.exports = {
   replaceInFile,
   countInFile,
   grepFile,
+  glob,
 
   // Hook I/O
   readStdinJson,
