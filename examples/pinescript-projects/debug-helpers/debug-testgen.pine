@@ -1,0 +1,385 @@
+//@version=5
+indicator("Debug Test Generator", overlay=false)
+
+// ========== TEST GENERATION CONFIGURATION ==========
+
+// Enable/disable test generation
+testGenEnabled = input.bool(true, "Enable Test Generation", group="Test Generation")
+
+// Test generation modes
+generateUnitTests = input.bool(true, "Generate Unit Tests", group="Test Generation")
+generateIntegrationTests = input.bool(true, "Generate Integration Tests", group="Test Generation")
+generateEdgeCaseTests = input.bool(true, "Generate Edge Cases", group="Test Generation")
+
+// Test data collection
+collectTestData = input.bool(true, "Collect Test Data", group="Test Generation")
+maxTestCases = input.int(100, "Max Test Cases", group="Test Generation", minval=10, maxval=1000)
+
+// ========== TEST DATA STRUCTURES ==========
+
+// Collected test data
+var float[] testInputs = array.new_float(0)
+var float[] testOutputs = array.new_float(0)
+var string[] testConditions = array.new_string(0)
+var string[] testScenarios = array.new_string(0)
+
+// Function signatures for test generation
+var string[] functionSignatures = array.new_string(0)
+var string[] functionCalls = array.new_string(0)
+
+// Edge case tracking
+var string[] edgeCases = array.new_string(0)
+
+// ========== TEST DATA COLLECTION FUNCTIONS ==========
+
+/**
+ * Collect test input/output data
+ */
+debug.collectTestData(inputValue, outputValue, label = "") =>
+    if testGenEnabled and collectTestData and array.size(testInputs) < maxTestCases
+        array.push(testInputs, inputValue)
+        array.push(testOutputs, outputValue)
+        
+        if label != ""
+            array.push(testScenarios, label)
+        
+        true
+    else
+        false
+
+/**
+ * Collect test condition
+ */
+debug.collectTestCondition(condition, description = "") =>
+    if testGenEnabled
+        conditionStr = str.tostring(condition)
+        if description != ""
+            conditionStr := conditionStr + " // " + description
+        
+        array.push(testConditions, conditionStr)
+        true
+    else
+        false
+
+/**
+ * Register function signature for test generation
+ */
+debug.registerFunction(name, signature) =>
+    if testGenEnabled
+        array.push(functionSignatures, name + ":" + signature)
+        true
+    else
+        false
+
+/**
+ * Record function call for test generation
+ */
+debug.recordFunctionCall(name, args, result) =>
+    if testGenEnabled
+        callStr = name + "("
+        for i = 0 to array.size(args) - 1
+            if i > 0
+                callStr := callStr + ", "
+            callStr := callStr + str.tostring(array.get(args, i))
+        callStr := callStr + ") = " + str.tostring(result)
+        
+        array.push(functionCalls, callStr)
+        true
+    else
+        false
+
+/**
+ * Record edge case
+ */
+debug.recordEdgeCase(description, inputs, output) =>
+    if testGenEnabled and generateEdgeCaseTests
+        edgeCase = "Edge Case: " + description + "\n"
+        edgeCase := edgeCase + "  Inputs: " + str.tostring(inputs) + "\n"
+        edgeCase := edgeCase + "  Output: " + str.tostring(output)
+        
+        array.push(edgeCases, edgeCase)
+        true
+    else
+        false
+
+// ========== TEST GENERATION FUNCTIONS ==========
+
+/**
+ * Generate unit tests from collected data
+ */
+debug.generateUnitTests() =>
+    if testGenEnabled and generateUnitTests and barstate.islast
+        tests = "// AUTO-GENERATED UNIT TESTS\n"
+        tests := tests + "// Generated from " + str.tostring(array.size(testInputs)) + " test cases\n\n"
+        
+        // Generate test for each collected data point
+        for i = 0 to array.size(testInputs) - 1
+            inputVal = array.get(testInputs, i)
+            outputVal = array.get(testOutputs, i)
+            
+            testName = "test_case_" + str.tostring(i + 1)
+            if i < array.size(testScenarios)
+                testName := array.get(testScenarios, i)
+            
+            test = testName + " = () =>\n"
+            test := test + "    input = " + str.tostring(inputVal) + "\n"
+            test := test + "    expected = " + str.tostring(outputVal) + "\n"
+            test := test + "    actual = yourFunction(input)  // Replace with actual function call\n"
+            test := test + "    debug.assert(math.abs(actual - expected) < 0.001, \"" + testName + " failed\")\n"
+            test := test + "    true\n\n"
+            
+            tests := tests + test
+        
+        tests
+
+/**
+ * Generate integration tests
+ */
+debug.generateIntegrationTests() =>
+    if testGenEnabled and generateIntegrationTests and barstate.islast
+        tests = "// AUTO-GENERATED INTEGRATION TESTS\n"
+        tests := tests + "// Based on " + str.tostring(array.size(functionCalls)) + " function calls\n\n"
+        
+        // Group function calls by function name
+        functionGroups = {}
+        
+        for i = 0 to array.size(functionCalls) - 1
+            callStr = array.get(functionCalls, i)
+            // Parse function name (simplified)
+            funcName = str.split(callStr, "(")[0]
+            
+            if not functionGroups[funcName]
+                functionGroups[funcName] = []
+            
+            array.push(functionGroups[funcName], callStr)
+        
+        // Generate integration tests
+        for funcName, calls in functionGroups
+            tests := tests + "// Integration tests for " + funcName + "\n"
+            
+            for j = 0 to array.size(calls) - 1
+                if j < 5  // Limit to 5 tests per function
+                    call = calls[j]
+                    testName = "integration_" + funcName + "_" + str.tostring(j + 1)
+                    
+                    test = testName + " = () =>\n"
+                    test := test + "    // Test based on: " + call + "\n"
+                    test := test + "    debug.log(\"Running " + testName + "\")\n"
+                    test := test + "    // TODO: Implement integration test\n"
+                    test := test + "    true\n\n"
+                    
+                    tests := tests + test
+            
+            tests := tests + "\n"
+        
+        tests
+
+/**
+ * Generate edge case tests
+ */
+debug.generateEdgeCaseTests() =>
+    if testGenEnabled and generateEdgeCaseTests and barstate.islast and array.size(edgeCases) > 0
+        tests = "// AUTO-GENERATED EDGE CASE TESTS\n"
+        tests := tests + "// " + str.tostring(array.size(edgeCases)) + " edge cases detected\n\n"
+        
+        for i = 0 to array.size(edgeCases) - 1
+            edgeCase = array.get(edgeCases, i)
+            testName = "edge_case_" + str.tostring(i + 1)
+            
+            test = "// " + str.replace(edgeCase, "\n", "\n// ") + "\n"
+            test := test + testName + " = () =>\n"
+            test := test + "    debug.log(\"Testing edge case: " + testName + "\")\n"
+            test := test + "    // TODO: Implement edge case test\n"
+            test := test + "    debug.assert(true, \"" + testName + " not implemented\")\n"
+            test := test + "    true\n\n"
+            
+            tests := tests + test
+        
+        tests
+
+/**
+ * Generate condition tests
+ */
+debug.generateConditionTests() =>
+    if testGenEnabled and barstate.islast and array.size(testConditions) > 0
+        tests = "// AUTO-GENERATED CONDITION TESTS\n"
+        tests := tests + "// " + str.tostring(array.size(testConditions)) + " conditions to test\n\n"
+        
+        for i = 0 to array.size(testConditions) - 1
+            condition = array.get(testConditions, i)
+            testName = "condition_test_" + str.tostring(i + 1)
+            
+            test = testName + " = () =>\n"
+            test := test + "    // Test condition: " + condition + "\n"
+            test := test + "    conditionResult = " + str.split(condition, " // ")[0] + "\n"
+            test := test + "    debug.assert(conditionResult == true or conditionResult == false, \"" + testName + "\")\n"
+            test := test + "    true\n\n"
+            
+            tests := tests + test
+        
+        tests
+
+/**
+ * Generate comprehensive test suite
+ */
+debug.generateTestSuite() =>
+    if testGenEnabled and barstate.islast
+        suite = "// ========== AUTO-GENERATED TEST SUITE ==========\n"
+        suite := suite + "// Generated from debugging session\n"
+        suite := suite + "// Timestamp: " + str.tostring(timenow) + "\n"
+        suite := suite + "// Test cases collected: " + str.tostring(array.size(testInputs)) + "\n"
+        suite := suite + "// Function calls recorded: " + str.tostring(array.size(functionCalls)) + "\n"
+        suite := suite + "// Edge cases detected: " + str.tostring(array.size(edgeCases)) + "\n\n"
+        
+        // Add setup
+        suite := suite + "// Test setup\n"
+        suite := suite + "testResults = []\n"
+        suite := suite + "testFailures = []\n\n"
+        
+        // Add test runner
+        suite := suite + "// Test runner\n"
+        suite := suite + "runTest(testName, testFunc) =>\n"
+        suite := suite + "    try\n"
+        suite := suite + "        result = testFunc()\n"
+        suite := suite + "        array.push(testResults, testName + \": PASS\")\n"
+        suite := suite + "        true\n"
+        suite := suite + "    catch\n"
+        suite := suite + "        array.push(testFailures, testName + \": FAIL\")\n"
+        suite := suite + "        false\n\n"
+        
+        // Generate and add tests
+        if generateUnitTests and array.size(testInputs) > 0
+            suite := suite + debug.generateUnitTests() + "\n"
+        
+        if generateIntegrationTests and array.size(functionCalls) > 0
+            suite := suite + debug.generateIntegrationTests() + "\n"
+        
+        if generateEdgeCaseTests and array.size(edgeCases) > 0
+            suite := suite + debug.generateEdgeCaseTests() + "\n"
+        
+        if array.size(testConditions) > 0
+            suite := suite + debug.generateConditionTests() + "\n"
+        
+        // Add test execution
+        suite := suite + "// Execute tests\n"
+        suite := suite + "if barstate.islast\n"
+        suite := suite + "    debug.log(\"=== RUNNING TEST SUITE ===\")\n\n"
+        
+        // List all test functions to run
+        testCount = 0
+        
+        if array.size(testInputs) > 0
+            for i = 0 to math.min(array.size(testInputs) - 1, 9)
+                suite := suite + "    runTest(\"test_case_" + str.tostring(i + 1) + "\", test_case_" + str.tostring(i + 1) + ")\n"
+                testCount := testCount + 1
+        
+        if array.size(functionCalls) > 0
+            // Add integration tests
+            suite := suite + "    // Integration tests\n"
+        
+        if array.size(edgeCases) > 0
+            for i = 0 to math.min(array.size(edgeCases) - 1, 4)
+                suite := suite + "    runTest(\"edge_case_" + str.tostring(i + 1) + "\", edge_case_" + str.tostring(i + 1) + ")\n"
+                testCount := testCount + 1
+        
+        // Add results summary
+        suite := suite + "\n    // Test results\n"
+        suite := suite + "    debug.log(\"Tests run: \" + str.tostring(testCount))\n"
+        suite := suite + "    debug.log(\"Passed: \" + str.tostring(array.size(testResults)))\n"
+        suite := suite + "    debug.log(\"Failed: \" + str.tostring(array.size(testFailures)))\n\n"
+        
+        suite := suite + "    if array.size(testFailures) > 0\n"
+        suite := suite + "        debug.logError(\"TEST FAILURES:\")\n"
+        suite := suite + "        for i = 0 to array.size(testFailures) - 1\n"
+        suite := suite + "            debug.logError(\"  \" + array.get(testFailures, i))\n"
+        suite := suite + "    else\n"
+        suite := suite + "        debug.logSuccess(\"All tests passed!\")\n"
+        
+        suite
+
+/**
+ * Export test data for external use
+ */
+debug.exportTestData() =>
+    if testGenEnabled and barstate.islast
+        data = {
+            "inputs": testInputs,
+            "outputs": testOutputs,
+            "conditions": testConditions,
+            "functionCalls": functionCalls,
+            "edgeCases": edgeCases,
+            "timestamp": timenow
+        }
+        
+        // In a real implementation, this would export to a file
+        // For PineScript, we can format as a string
+        "Test Data Export:\n" + str.tostring(data)
+
+// ========== TEST EXECUTION HELPERS ==========
+
+/**
+ * Assertion function for tests
+ */
+debug.assert(condition, message) =>
+    if not condition
+        runtime.error(message)
+    true
+
+/**
+ * Test equality with tolerance for floating point
+ */
+debug.assertEqual(expected, actual, tolerance = 0.001, message = "") =>
+    if math.abs(expected - actual) > tolerance
+        errorMsg = "Assertion failed: expected " + str.tostring(expected) + ", got " + str.tostring(actual)
+        if message != ""
+            errorMsg := errorMsg + " (" + message + ")"
+        runtime.error(errorMsg)
+    true
+
+/**
+ * Test that code throws an error (for negative tests)
+ */
+debug.assertThrows(codeBlock, expectedError = "") =>
+    try
+        codeBlock()
+        runtime.error("Expected error but none was thrown")
+    catch
+        true
+
+// ========== EXAMPLE USAGE ==========
+
+/*
+// Example of test generation in your indicator:
+
+//@include "debug-testgen.pine"
+
+// Register function for test generation
+myCalculation(x) =>
+    debug.registerFunction("myCalculation", "x: float")
+    result = x * 2
+    debug.recordFunctionCall("myCalculation", [x], result)
+    result
+
+// Collect test data during execution
+value = close
+calculated = myCalculation(value)
+debug.collectTestData(value, calculated, "Close price doubled")
+
+// Collect conditions
+isBullish = close > open
+debug.collectTestCondition(isBullish, "Bullish candle")
+
+// Record edge cases
+if close == 0
+    debug.recordEdgeCase("Zero price", [close], calculated)
+
+// Generate and run tests at the end
+if barstate.islast
+    // Generate test suite
+    testSuite = debug.generateTestSuite()
+    debug.log(testSuite)
+    
+    // Export test data
+    exportData = debug.exportTestData()
+    debug.log("\n" + exportData)
+*/

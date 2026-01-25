@@ -1,0 +1,265 @@
+//@version=5
+indicator("Debugging Visualization Patterns", overlay=false)
+
+// ========== COLOR SCHEMES FOR DEBUGGING ==========
+
+// Standard debugging colors
+colorGood = color.new(color.green, 0)
+colorBad = color.new(color.red, 0)
+colorNeutral = color.new(color.blue, 0)
+colorWarning = color.new(color.orange, 0)
+colorInfo = color.new(color.purple, 0)
+
+// Transparent versions for backgrounds
+colorGoodBg = color.new(color.green, 90)
+colorBadBg = color.new(color.red, 90)
+colorNeutralBg = color.new(color.blue, 90)
+colorWarningBg = color.new(color.orange, 90)
+
+// ========== PATTERN 1: VALUE TRACKING ==========
+
+// Simple value plot with reference lines
+valueToTrack = close
+plot(valueToTrack, "Value", color=colorNeutral, linewidth=2)
+
+// Reference lines (mean, min, max)
+meanValue = ta.sma(valueToTrack, 20)
+minValue = ta.lowest(valueToTrack, 20)
+maxValue = ta.highest(valueToTrack, 20)
+
+plot(meanValue, "Mean", color=color.new(color.gray, 0), linewidth=1)
+plot(minValue, "Min", color=color.new(color.red, 50), linewidth=1)
+plot(maxValue, "Max", color=color.new(color.green, 50), linewidth=1)
+
+// Background for value ranges
+bgcolor(valueToTrack > meanValue ? colorGoodBg : colorBadBg)
+
+// ========== PATTERN 2: CONDITION VISUALIZATION ==========
+
+// Condition example
+condition = close > ta.sma(close, 20)
+
+// Shape markers
+plotshape(condition, "Condition True", shape.triangleup, location.belowbar, color=colorGood, size=size.small)
+
+// Arrow markers (directional)
+plotarrow(condition ? 1 : na, "Up Arrow", colorup=colorGood, maxheight=20)
+plotarrow(not condition ? -1 : na, "Down Arrow", colordown=colorBad, maxheight=20)
+
+// Label markers
+if condition
+    label.new(bar_index, high, "Condition\nMet", color=colorGood, textcolor=color.white, 
+              style=label.style_label_up, size=size.small)
+
+// ========== PATTERN 3: HISTORICAL COMPARISON ==========
+
+// Compare current value with historical
+currentValue = close
+historicalAvg = ta.sma(close, 50)
+historicalStd = ta.stdev(close, 50)
+
+// Plot with bands
+plot(currentValue, "Current", color=colorNeutral, linewidth=2)
+plot(historicalAvg, "Historical Avg", color=color.new(color.gray, 0), linewidth=1)
+
+// Standard deviation bands
+upperBand = historicalAvg + historicalStd
+lowerBand = historicalAvg - historicalStd
+
+plot(upperBand, "+1 Std", color=color.new(color.green, 50), linewidth=1)
+plot(lowerBand, "-1 Std", color=color.new(color.red, 50), linewidth=1)
+
+// Fill between bands
+fill(upperBand, lowerBand, color=color.new(color.gray, 90), title="Std Dev Band")
+
+// ========== PATTERN 4: MULTI-SERIES COMPARISON ==========
+
+// Multiple series to compare
+series1 = ta.rsi(close, 14)
+series2 = ta.sma(close, 20) / close * 100
+series3 = volume / ta.sma(volume, 20) * 100
+
+// Plot on different scales
+plot(series1, "RSI", color=color.new(color.blue, 0), linewidth=2, display=display.data_window)
+plot(series2, "SMA %", color=color.new(color.green, 0), linewidth=2, display=display.data_window)
+plot(series3, "Volume %", color=color.new(color.orange, 0), linewidth=2, display=display.data_window)
+
+// Correlation visualization
+correlation = ta.correlation(series1, series2, 20)
+plot(correlation, "Correlation", color=color.new(color.purple, 0), linewidth=1)
+
+// ========== PATTERN 5: STATE MACHINE VISUALIZATION ==========
+
+// Track state changes
+var string currentState = "neutral"
+var string lastState = "neutral"
+
+// State conditions
+bullishState = close > ta.sma(close, 50) and ta.rsi(close, 14) > 50
+bearishState = close < ta.sma(close, 50) and ta.rsi(close, 14) < 50
+
+// Update state
+if bullishState
+    currentState := "bullish"
+else if bearishState
+    currentState := "bearish"
+else
+    currentState := "neutral"
+
+// Visualize state changes
+if currentState != lastState
+    // Background color for state
+    bgcolor(currentState == "bullish" ? colorGoodBg : 
+            currentState == "bearish" ? colorBadBg : 
+            colorNeutralBg)
+    
+    // State change marker
+    plotshape(true, "State: " + currentState, 
+              currentState == "bullish" ? shape.triangleup : 
+              currentState == "bearish" ? shape.triangledown : shape.diamond,
+              location.bottom, color=colorInfo, size=size.small)
+    
+    lastState := currentState
+
+// ========== PATTERN 6: ERROR/ANOMALY DETECTION ==========
+
+// Detect anomalies
+priceChange = (close - close[1]) / close[1] * 100
+largeMove = math.abs(priceChange) > 5  // 5% move
+volumeSpike = volume > ta.sma(volume, 20) * 2
+
+// Anomaly markers
+plotshape(largeMove, "Large Move: " + str.tostring(priceChange, "#.##") + "%",
+          shape.xcross, location.abovebar, color=colorWarning, size=size.small)
+
+plotshape(volumeSpike, "Volume Spike",
+          shape.circle, location.belowbar, color=colorWarning, size=size.small)
+
+// Combined anomaly
+combinedAnomaly = largeMove and volumeSpike
+plotshape(combinedAnomaly, "Major Anomaly",
+          shape.flag, location.abovebar, color=color.new(color.red, 0), size=size.normal)
+
+// ========== PATTERN 7: PERFORMANCE METRICS ==========
+
+// Calculate performance metrics
+returns = math.log(close / close[1])
+volatility = ta.stdev(returns, 20) * math.sqrt(252)
+sharpe = ta.sma(returns, 20) / volatility * math.sqrt(252)
+
+// Plot metrics
+plot(volatility * 100, "Volatility %", color=color.new(color.orange, 0), linewidth=1)
+plot(sharpe, "Sharpe Ratio", color=color.new(color.purple, 0), linewidth=1)
+
+// Performance bands
+goodPerformance = sharpe > 1
+badPerformance = sharpe < -1
+
+bgcolor(goodPerformance ? colorGoodBg : badPerformance ? colorBadBg : na)
+
+// ========== PATTERN 8: DATA TABLE VISUALIZATION ==========
+
+// Create a data table in the data window
+if barstate.islast
+    // Current values
+    plotchar(close, "Close: " + str.tostring(close, "#.##"), location=location.top)
+    plotchar(ta.rsi(close, 14), "RSI: " + str.tostring(ta.rsi(close, 14), "#.##"), location=location.top - 1)
+    plotchar(volume, "Volume: " + str.tostring(volume, "#.##"), location=location.top - 2)
+    plotchar(volatility * 100, "Vol: " + str.tostring(volatility * 100, "#.##") + "%", location=location.top - 3)
+    
+    // Statistics
+    plotchar(ta.sma(close, 20), "SMA20: " + str.tostring(ta.sma(close, 20), "#.##"), location=location.top - 4)
+    plotchar(ta.highest(high, 20), "High20: " + str.tostring(ta.highest(high, 20), "#.##"), location=location.top - 5)
+    plotchar(ta.lowest(low, 20), "Low20: " + str.tostring(ta.lowest(low, 20), "#.##"), location=location.top - 6)
+
+// ========== PATTERN 9: TREND VISUALIZATION ==========
+
+// Multiple timeframe trend analysis
+shortTrend = ta.sma(close, 10) > ta.sma(close, 20)
+mediumTrend = ta.sma(close, 20) > ta.sma(close, 50)
+longTrend = ta.sma(close, 50) > ta.sma(close, 200)
+
+// Trend strength visualization
+trendStrength = (shortTrend ? 1 : 0) + (mediumTrend ? 1 : 0) + (longTrend ? 1 : 0)
+
+plot(trendStrength, "Trend Strength", color=color.new(color.blue, 0), linewidth=2, style=plot.style_histogram)
+
+// Trend alignment visualization
+allBullish = shortTrend and mediumTrend and longTrend
+allBearish = not shortTrend and not mediumTrend and not longTrend
+
+bgcolor(allBullish ? colorGoodBg : allBearish ? colorBadBg : na)
+
+// ========== PATTERN 10: INTERACTIVE DEBUGGING ==========
+
+// User-controlled debugging
+showDebug = input.bool(true, "Show Debug Visuals")
+debugLevel = input.int(1, "Debug Level", minval=0, maxval=3)
+
+// Conditional plotting based on debug level
+plot(showDebug and debugLevel >= 1 ? close : na, "Price", color=colorNeutral)
+plot(showDebug and debugLevel >= 2 ? ta.sma(close, 20) : na, "SMA20", color=color.new(color.gray, 0))
+plot(showDebug and debugLevel >= 3 ? ta.bb(close, 20, 2) : na, "BB Upper", color=color.new(color.green, 50))
+
+// ========== USAGE GUIDE ==========
+/*
+Debugging Visualization Patterns Guide:
+
+1. VALUE TRACKING:
+   - Use for monitoring individual variables
+   - Add reference lines (mean, min, max)
+   - Use background colors for value ranges
+
+2. CONDITION VISUALIZATION:
+   - Use plotshape() for discrete events
+   - Use plotarrow() for directional signals
+   - Use label.new() for detailed annotations
+
+3. HISTORICAL COMPARISON:
+   - Compare current vs historical values
+   - Use standard deviation bands
+   - Fill between bands for visual clarity
+
+4. MULTI-SERIES COMPARISON:
+   - Plot related series together
+   - Use correlation for relationship analysis
+   - Different colors for different series
+
+5. STATE MACHINE:
+   - Track and visualize state changes
+   - Use background colors for states
+   - Mark state transitions clearly
+
+6. ANOMALY DETECTION:
+   - Identify unusual market conditions
+   - Use different shapes for different anomalies
+   - Color code by severity
+
+7. PERFORMANCE METRICS:
+   - Display calculated metrics
+   - Use bands for performance thresholds
+   - Update in real-time
+
+8. DATA TABLES:
+   - Use plotchar() for tabular data
+   - Organize related metrics together
+   - Update only on last bar for efficiency
+
+9. TREND VISUALIZATION:
+   - Show multiple timeframe analysis
+   - Use histograms for strength indicators
+   - Background colors for alignment
+
+10. INTERACTIVE DEBUGGING:
+    - Allow user to control debug level
+    - Conditional plotting based on settings
+    - Progressive detail levels
+
+Best Practices:
+- Use consistent color schemes
+- Limit the number of simultaneous visuals
+- Use transparency for background elements
+- Organize related visuals together
+- Add clear labels and titles
+- Consider performance impact
+*/

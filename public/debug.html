@@ -1,0 +1,1415 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PineScript Debug Interface</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #1a1a1a;
+        color: #e0e0e0;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .container {
+        display: grid;
+        grid-template-columns: 300px 1fr 350px;
+        grid-template-rows: 60px 1fr 250px;
+        height: 100vh;
+        gap: 1px;
+        background: #2d2d2d;
+      }
+
+      /* Header */
+      .header {
+        grid-column: 1 / -1;
+        background: #252525;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        border-bottom: 1px solid #404040;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .logo i {
+        font-size: 1.5rem;
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .btn {
+        background: #404040;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+      }
+
+      .btn:hover {
+        background: #505050;
+      }
+
+      .btn-primary {
+        background: #667eea;
+      }
+
+      .btn-primary:hover {
+        background: #5a6fd8;
+      }
+
+      .btn-success {
+        background: #4caf50;
+      }
+
+      .btn-success:hover {
+        background: #45a049;
+      }
+
+      .btn-danger {
+        background: #f44336;
+      }
+
+      .btn-danger:hover {
+        background: #da190b;
+      }
+
+      .btn-warning {
+        background: #ff9800;
+      }
+
+      .btn-warning:hover {
+        background: #e68900;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+      }
+
+      .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #4caf50;
+      }
+
+      .status-indicator.paused {
+        background: #ff9800;
+      }
+
+      .status-indicator.stopped {
+        background: #f44336;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        background: #252525;
+        border-right: 1px solid #404040;
+        overflow-y: auto;
+      }
+
+      .panel {
+        padding: 15px;
+        border-bottom: 1px solid #404040;
+      }
+
+      .panel h3 {
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .file-list {
+        list-style: none;
+      }
+
+      .file-item {
+        padding: 8px 10px;
+        background: #2d2d2d;
+        margin-bottom: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .file-item:hover {
+        background: #353535;
+      }
+
+      .file-item.active {
+        background: #667eea;
+      }
+
+      .breakpoint-list {
+        list-style: none;
+      }
+
+      .breakpoint-item {
+        padding: 8px 10px;
+        background: #2d2d2d;
+        margin-bottom: 5px;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .breakpoint-line {
+        color: #ff9800;
+        font-weight: bold;
+      }
+
+      .watch-item {
+        padding: 8px 10px;
+        background: #2d2d2d;
+        margin-bottom: 5px;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .watch-value {
+        color: #4caf50;
+        font-family: monospace;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 5px;
+        margin-top: 10px;
+      }
+
+      .input-group input {
+        flex: 1;
+        background: #2d2d2d;
+        border: 1px solid #404040;
+        color: white;
+        padding: 8px;
+        border-radius: 4px;
+      }
+
+      /* Editor */
+      .editor-container {
+        background: #1e1e1e;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .editor-header {
+        background: #252525;
+        padding: 10px 15px;
+        border-bottom: 1px solid #404040;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .editor-title {
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .editor-line-info {
+        font-family: monospace;
+        color: #888;
+      }
+
+      .CodeMirror {
+        height: calc(100% - 41px) !important;
+        font-size: 14px;
+      }
+
+      .breakpoint-gutter {
+        width: 20px;
+        background: #252525;
+      }
+
+      .breakpoint-marker {
+        color: #ff9800;
+        cursor: pointer;
+        text-align: center;
+        line-height: 20px;
+      }
+
+      /* Variables Panel */
+      .variables-panel {
+        background: #252525;
+        border-left: 1px solid #404040;
+        overflow-y: auto;
+      }
+
+      .variables-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .variables-table th {
+        background: #2d2d2d;
+        padding: 10px;
+        text-align: left;
+        font-size: 0.8rem;
+        color: #888;
+        border-bottom: 1px solid #404040;
+      }
+
+      .variables-table td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #353535;
+        font-family: monospace;
+        font-size: 0.9rem;
+      }
+
+      .variable-name {
+        color: #569cd6;
+      }
+
+      .variable-value {
+        color: #4caf50;
+      }
+
+      .variable-type {
+        color: #888;
+        font-size: 0.8rem;
+      }
+
+      /* Console */
+      .console {
+        grid-column: 1 / -1;
+        background: #1a1a1a;
+        border-top: 1px solid #404040;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .console-header {
+        background: #252525;
+        padding: 10px 15px;
+        border-bottom: 1px solid #404040;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .console-title {
+        color: #667eea;
+        font-weight: bold;
+      }
+
+      .console-tabs {
+        display: flex;
+        gap: 10px;
+      }
+
+      .console-tab {
+        background: none;
+        border: none;
+        color: #888;
+        padding: 5px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+
+      .console-tab.active {
+        background: #667eea;
+        color: white;
+      }
+
+      .console-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 0.9rem;
+      }
+
+      .console-line {
+        margin-bottom: 5px;
+        padding: 5px;
+        border-radius: 4px;
+        background: #252525;
+      }
+
+      .console-line.info {
+        color: #569cd6;
+      }
+
+      .console-line.warning {
+        color: #ff9800;
+      }
+
+      .console-line.error {
+        color: #f44336;
+      }
+
+      .console-line.success {
+        color: #4caf50;
+      }
+
+      .console-input {
+        background: #252525;
+        border: none;
+        border-top: 1px solid #404040;
+        color: white;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 0.9rem;
+      }
+
+      /* Speed Control */
+      .speed-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .speed-slider {
+        width: 100px;
+        -webkit-appearance: none;
+        height: 4px;
+        background: #404040;
+        border-radius: 2px;
+        outline: none;
+      }
+
+      .speed-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 12px;
+        height: 12px;
+        background: #667eea;
+        border-radius: 50%;
+        cursor: pointer;
+      }
+
+      .speed-value {
+        font-size: 0.8rem;
+        color: #888;
+        min-width: 40px;
+      }
+
+      /* Bar Control */
+      .bar-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .bar-input {
+        width: 60px;
+        background: #2d2d2d;
+        border: 1px solid #404040;
+        color: white;
+        padding: 5px;
+        border-radius: 4px;
+        text-align: center;
+      }
+
+      /* Chart Container */
+      .chart-container {
+        padding: 15px;
+        height: 200px;
+        background: #1a1a1a;
+        border-radius: 4px;
+        margin: 10px;
+      }
+
+      .chart-controls {
+        display: flex;
+        gap: 10px;
+        padding: 0 10px;
+        margin-bottom: 10px;
+      }
+
+      .chart-controls select {
+        flex: 1;
+        background: #252525;
+        color: #e0e0e0;
+        border: 1px solid #404040;
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-size: 0.9rem;
+      }
+
+      .chart-controls select:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      /* Responsive */
+      @media (max-width: 1200px) {
+        .container {
+          grid-template-columns: 250px 1fr 300px;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .container {
+          grid-template-columns: 1fr;
+          grid-template-rows: 60px 300px 1fr 250px;
+        }
+
+        .sidebar,
+        .variables-panel {
+          display: none;
+        }
+
+        .sidebar.active,
+        .variables-panel.active {
+          display: block;
+          position: fixed;
+          top: 60px;
+          left: 0;
+          right: 0;
+          bottom: 250px;
+          z-index: 1000;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="logo">
+          <i class="fas fa-bug"></i>
+          <span>PineScript Debugger</span>
+        </div>
+
+        <div class="controls">
+          <div class="speed-control">
+            <i class="fas fa-tachometer-alt"></i>
+            <input
+              type="range"
+              min="0.1"
+              max="10"
+              step="0.1"
+              value="1"
+              class="speed-slider"
+              id="speedSlider"
+            />
+            <span class="speed-value" id="speedValue">1x</span>
+          </div>
+
+          <div class="bar-control">
+            <span>Bar:</span>
+            <input type="number" class="bar-input" id="barInput" value="0" />
+            <button class="btn" onclick="gotoBar()">
+              <i class="fas fa-arrow-right"></i> Go
+            </button>
+          </div>
+
+          <button
+            class="btn btn-primary"
+            onclick="startDebugging()"
+            id="startBtn"
+          >
+            <i class="fas fa-play"></i> Start
+          </button>
+          <button
+            class="btn btn-warning"
+            onclick="pauseDebugging()"
+            id="pauseBtn"
+          >
+            <i class="fas fa-pause"></i> Pause
+          </button>
+          <button
+            class="btn btn-success"
+            onclick="stepDebugging()"
+            id="stepBtn"
+          >
+            <i class="fas fa-step-forward"></i> Step
+          </button>
+          <button class="btn btn-danger" onclick="stopDebugging()" id="stopBtn">
+            <i class="fas fa-stop"></i> Stop
+          </button>
+        </div>
+
+        <div class="status">
+          <div class="status-indicator" id="statusIndicator"></div>
+          <span id="statusText">Ready</span>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="panel">
+          <h3><i class="fas fa-file-code"></i> Files</h3>
+          <ul class="file-list" id="fileList">
+            <!-- Files will be loaded here -->
+          </ul>
+          <div class="input-group">
+            <input
+              type="text"
+              id="fileInput"
+              placeholder="Load PineScript file..."
+            />
+            <button class="btn" onclick="loadFile()">
+              <i class="fas fa-folder-open"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3><i class="fas fa-map-marker-alt"></i> Breakpoints</h3>
+          <ul class="breakpoint-list" id="breakpointList">
+            <!-- Breakpoints will be loaded here -->
+          </ul>
+          <div class="input-group">
+            <input
+              type="number"
+              id="breakpointInput"
+              placeholder="Line number"
+            />
+            <button class="btn" onclick="addBreakpoint()">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3><i class="fas fa-eye"></i> Watch Expressions</h3>
+          <ul class="watch-list" id="watchList">
+            <!-- Watch expressions will be loaded here -->
+          </ul>
+          <div class="input-group">
+            <input
+              type="text"
+              id="watchInput"
+              placeholder="Variable or expression"
+            />
+            <button class="btn" onclick="addWatch()">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3><i class="fas fa-chart-bar"></i> Quick Charts</h3>
+          <div class="chart-controls">
+            <button
+              class="btn btn-small"
+              onclick="clearChart()"
+              title="Clear chart"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+            <select
+              id="chartVariable"
+              onchange="updateSelectedChart()"
+              title="Select variable to chart"
+            >
+              <option value="">Auto-select</option>
+            </select>
+          </div>
+          <div class="chart-container" id="quickChart">
+            <!-- Chart will be rendered here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor -->
+      <div class="editor-container">
+        <div class="editor-header">
+          <div class="editor-title" id="editorTitle">No file loaded</div>
+          <div class="editor-line-info">
+            Line: <span id="currentLine">1</span> | Col:
+            <span id="currentCol">1</span>
+          </div>
+        </div>
+        <textarea id="codeEditor"></textarea>
+      </div>
+
+      <!-- Variables Panel -->
+      <div class="variables-panel">
+        <div class="panel">
+          <h3><i class="fas fa-list"></i> Variables</h3>
+          <table class="variables-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Value</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody id="variablesTable">
+              <!-- Variables will be loaded here -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <h3><i class="fas fa-project-diagram"></i> Call Stack</h3>
+          <ul class="file-list" id="callStackList">
+            <!-- Call stack will be loaded here -->
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h3><i class="fas fa-info-circle"></i> Session Info</h3>
+          <div style="font-size: 0.9rem; line-height: 1.6">
+            <div>Session: <span id="sessionId">-</span></div>
+            <div>Bars: <span id="totalBars">0</span></div>
+            <div>Complexity: <span id="complexityScore">0</span></div>
+            <div>Variables: <span id="variableCount">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Console -->
+      <div class="console">
+        <div class="console-header">
+          <div class="console-title">Debug Console</div>
+          <div class="console-tabs">
+            <button
+              class="console-tab active"
+              onclick="switchConsoleTab('output')"
+            >
+              Output
+            </button>
+            <button class="console-tab" onclick="switchConsoleTab('errors')">
+              Errors
+            </button>
+            <button class="console-tab" onclick="switchConsoleTab('network')">
+              Network
+            </button>
+          </div>
+        </div>
+        <div class="console-content" id="consoleOutput">
+          <!-- Console output will be displayed here -->
+          <div class="console-line info">
+            Welcome to PineScript Interactive Debugger
+          </div>
+          <div class="console-line info">
+            Load a PineScript file to start debugging
+          </div>
+        </div>
+        <input
+          type="text"
+          class="console-input"
+          id="consoleInput"
+          placeholder="Enter expression to evaluate..."
+          onkeypress="handleConsoleInput(event)"
+        />
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/pine/pine.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+      // Global variables
+      let socket = null;
+      let editor = null;
+      let currentSessionId = null;
+      let currentFile = null;
+      let debugState = {
+        isRunning: false,
+        paused: false,
+        currentBar: 0,
+        totalBars: 0,
+        breakpoints: new Set(),
+        watches: new Map(),
+        variables: new Map(),
+      };
+
+      // Initialize CodeMirror editor
+      function initEditor() {
+        editor = CodeMirror.fromTextArea(
+          document.getElementById("codeEditor"),
+          {
+            mode: "pine",
+            theme: "dracula",
+            lineNumbers: true,
+            lineWrapping: false,
+            readOnly: true,
+            gutters: ["CodeMirror-linenumbers", "breakpoint-gutter"],
+            extraKeys: {
+              "Ctrl-Space": "autocomplete",
+            },
+          },
+        );
+
+        editor.on("gutterClick", function (cm, line) {
+          const info = cm.lineInfo(line);
+          if (info.gutterMarkers) {
+            cm.setGutterMarker(line, "breakpoint-gutter", null);
+            removeBreakpoint(line + 1);
+          } else {
+            const marker = document.createElement("div");
+            marker.innerHTML = "●";
+            marker.className = "breakpoint-marker";
+            cm.setGutterMarker(line, "breakpoint-gutter", marker);
+            addBreakpoint(line + 1);
+          }
+        });
+
+        editor.on("cursorActivity", function () {
+          const cursor = editor.getCursor();
+          document.getElementById("currentLine").textContent = cursor.line + 1;
+          document.getElementById("currentCol").textContent = cursor.ch + 1;
+        });
+      }
+
+      // Initialize Socket.IO connection
+      function initSocket() {
+        socket = io();
+
+        socket.on("connect", () => {
+          addConsoleMessage("Connected to debug server", "success");
+          updateStatus("Connected", "success");
+        });
+
+        socket.on("disconnect", () => {
+          addConsoleMessage("Disconnected from debug server", "error");
+          updateStatus("Disconnected", "error");
+        });
+
+        socket.on("initialState", (data) => {
+          debugState = data.debugState;
+          currentSessionId = data.sessionId;
+          currentFile = data.file;
+
+          if (currentFile) {
+            loadFileContent(currentFile);
+          }
+
+          updateUI();
+        });
+
+        socket.on("fileLoaded", (data) => {
+          currentSessionId = data.sessionId;
+          currentFile = data.file;
+          loadFileContent(currentFile);
+          updateAnalysis(data.analysis);
+          addConsoleMessage(`File loaded: ${currentFile}`, "success");
+        });
+
+        socket.on("debuggingStarted", (data) => {
+          debugState.isRunning = true;
+          debugState.paused = false;
+          debugState.currentBar = data.currentBar;
+          updateUI();
+          addConsoleMessage("Debugging started", "success");
+        });
+
+        socket.on("debuggingPaused", (data) => {
+          debugState.paused = true;
+          debugState.currentBar = data.currentBar;
+          updateUI();
+          addConsoleMessage("Debugging paused", "warning");
+        });
+
+        socket.on("debuggingResumed", (data) => {
+          debugState.paused = false;
+          debugState.currentBar = data.currentBar;
+          updateUI();
+          addConsoleMessage("Debugging resumed", "success");
+        });
+
+        socket.on("debuggingStopped", (data) => {
+          debugState.isRunning = false;
+          debugState.paused = false;
+          updateUI();
+          addConsoleMessage("Debugging stopped", "info");
+        });
+
+        socket.on("stepComplete", (data) => {
+          debugState.currentBar = data.currentBar;
+          debugState.variables = new Map(data.variables);
+          debugState.callStack = data.callStack;
+          updateVariablesTable();
+          updateCallStack();
+          addConsoleMessage(`Step complete - Bar: ${data.currentBar}`, "info");
+        });
+
+        socket.on("barExecuted", (data) => {
+          debugState.currentBar = data.bar;
+          debugState.variables = new Map(data.variables);
+          updateVariablesTable();
+          updateWatches(data.watches);
+          document.getElementById("barInput").value = data.bar;
+        });
+
+        socket.on("breakpointHit", (data) => {
+          debugState.paused = true;
+          debugState.currentBar = data.bar;
+          debugState.variables = new Map(data.variables);
+          updateUI();
+          updateVariablesTable();
+          addConsoleMessage(`Breakpoint hit at bar ${data.bar}`, "warning");
+        });
+
+        socket.on("breakpointsUpdated", (breakpoints) => {
+          debugState.breakpoints = new Set(breakpoints);
+          updateBreakpointsList();
+          updateEditorBreakpoints();
+        });
+
+        socket.on("watchesUpdated", (watches) => {
+          debugState.watches = new Map(watches);
+          updateWatchesList();
+        });
+
+        socket.on("speedChanged", (data) => {
+          document.getElementById("speedSlider").value = data.speed;
+          document.getElementById("speedValue").textContent = `${data.speed}x`;
+        });
+
+        socket.on("barChanged", (data) => {
+          debugState.currentBar = data.currentBar;
+          debugState.variables = new Map(data.variables);
+          document.getElementById("barInput").value = data.currentBar;
+          updateVariablesTable();
+        });
+      }
+
+      // UI Update functions
+      function updateUI() {
+        const statusIndicator = document.getElementById("statusIndicator");
+        const statusText = document.getElementById("statusText");
+        const startBtn = document.getElementById("startBtn");
+        const pauseBtn = document.getElementById("pauseBtn");
+        const stepBtn = document.getElementById("stepBtn");
+        const stopBtn = document.getElementById("stopBtn");
+
+        if (debugState.isRunning) {
+          if (debugState.paused) {
+            statusIndicator.className = "status-indicator paused";
+            statusText.textContent = `Paused at bar ${debugState.currentBar}`;
+            pauseBtn.disabled = true;
+            stepBtn.disabled = false;
+          } else {
+            statusIndicator.className = "status-indicator";
+            statusText.textContent = `Running at bar ${debugState.currentBar}`;
+            pauseBtn.disabled = false;
+            stepBtn.disabled = true;
+          }
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+        } else {
+          statusIndicator.className = "status-indicator stopped";
+          statusText.textContent = "Stopped";
+          startBtn.disabled = false;
+          pauseBtn.disabled = true;
+          stepBtn.disabled = true;
+          stopBtn.disabled = true;
+        }
+
+        document.getElementById("barInput").value = debugState.currentBar;
+      }
+
+      function updateStatus(message, type) {
+        const statusText = document.getElementById("statusText");
+        statusText.textContent = message;
+
+        const colors = {
+          success: "#4CAF50",
+          error: "#f44336",
+          warning: "#ff9800",
+          info: "#2196F3",
+        };
+
+        document.getElementById("statusIndicator").style.backgroundColor =
+          colors[type] || "#888";
+      }
+
+       function updateVariablesTable() {
+         const tbody = document.getElementById("variablesTable");
+         tbody.innerHTML = "";
+
+         // Update chart variable dropdown
+         const chartSelect = document.getElementById("chartVariable");
+         const currentOptions = Array.from(chartSelect.options).map(opt => opt.value);
+         const numericVariables = [];
+
+         for (const [name, value] of debugState.variables) {
+           const row = document.createElement("tr");
+           row.innerHTML = `
+                     <td class="variable-name">${name}</td>
+                     <td class="variable-value">${formatValue(value)}</td>
+                     <td class="variable-type">${typeof value}</td>
+                 `;
+           tbody.appendChild(row);
+
+           // Track numeric variables for chart
+           if (typeof value === 'number' && !isNaN(value)) {
+             numericVariables.push(name);
+
+             // Add to dropdown if not already there
+             if (!currentOptions.includes(name)) {
+               const option = document.createElement("option");
+               option.value = name;
+               option.textContent = name;
+               chartSelect.appendChild(option);
+             }
+           }
+         }
+
+         document.getElementById("variableCount").textContent =
+           debugState.variables.size;
+
+         // Update chart with selected variable or first numeric
+         const selectedVar = chartSelect.value;
+         if (selectedVar && debugState.variables.has(selectedVar)) {
+           updateChart(selectedVar, debugState.variables.get(selectedVar));
+         } else if (numericVariables.length > 0) {
+           updateChart(numericVariables[0], debugState.variables.get(numericVariables[0]));
+         }
+       }
+
+       function updateSelectedChart() {
+         const chartSelect = document.getElementById("chartVariable");
+         const selectedVar = chartSelect.value;
+
+         if (selectedVar && debugState.variables.has(selectedVar)) {
+           clearChart();
+           updateChart(selectedVar, debugState.variables.get(selectedVar));
+         }
+       }
+        }
+
+        document.getElementById("variableCount").textContent =
+          debugState.variables.size;
+
+        // Update chart if we have a numeric variable
+        if (chartVariable && chartValue !== null) {
+          updateChart(chartVariable, chartValue);
+        }
+      }
+
+      function updateCallStack() {
+        const list = document.getElementById("callStackList");
+        list.innerHTML = "";
+
+        debugState.callStack.forEach((frame, index) => {
+          const item = document.createElement("li");
+          item.className = "file-item";
+          item.innerHTML = `
+                    <span>${frame.function}</span>
+                    <span style="color: #888; font-size: 0.8rem;">bar ${frame.bar}</span>
+                `;
+          list.appendChild(item);
+        });
+      }
+
+      function updateBreakpointsList() {
+        const list = document.getElementById("breakpointList");
+        list.innerHTML = "";
+
+        debugState.breakpoints.forEach((line) => {
+          const item = document.createElement("li");
+          item.className = "breakpoint-item";
+          item.innerHTML = `
+                    <span>Line ${line}</span>
+                    <span class="breakpoint-line" onclick="removeBreakpoint(${line})">
+                        <i class="fas fa-times"></i>
+                    </span>
+                `;
+          list.appendChild(item);
+        });
+      }
+
+      function updateWatchesList() {
+        const list = document.getElementById("watchList");
+        list.innerHTML = "";
+
+        for (const [variable, expression] of debugState.watches) {
+          const item = document.createElement("li");
+          item.className = "watch-item";
+          item.innerHTML = `
+                    <span>${variable}</span>
+                    <span class="watch-value">${expression}</span>
+                    <span onclick="removeWatch('${variable}')" style="cursor: pointer; color: #f44336;">
+                        <i class="fas fa-times"></i>
+                    </span>
+                `;
+          list.appendChild(item);
+        }
+      }
+
+      function updateWatches(watchResults) {
+        const list = document.getElementById("watchList");
+        const items = list.getElementsByClassName("watch-item");
+
+        for (const [variable, data] of watchResults) {
+          for (let item of items) {
+            if (item.children[0].textContent === variable) {
+              const valueSpan = item.querySelector(".watch-value");
+              if (data.error) {
+                valueSpan.textContent = `Error: ${data.error}`;
+                valueSpan.style.color = "#f44336";
+              } else {
+                valueSpan.textContent = formatValue(data.value);
+                valueSpan.style.color = "#4CAF50";
+              }
+              break;
+            }
+          }
+        }
+      }
+
+      function updateEditorBreakpoints() {
+        if (!editor) return;
+
+        // Clear all breakpoints
+        editor.clearGutter("breakpoint-gutter");
+
+        // Add current breakpoints
+        debugState.breakpoints.forEach((line) => {
+          const marker = document.createElement("div");
+          marker.innerHTML = "●";
+          marker.className = "breakpoint-marker";
+          editor.setGutterMarker(line - 1, "breakpoint-gutter", marker);
+        });
+      }
+
+      function updateAnalysis(analysis) {
+        document.getElementById("complexityScore").textContent =
+          analysis.complexity;
+        document.getElementById("totalBars").textContent =
+          analysis.totalBars || 1000;
+
+        // Update suggestions in console
+        analysis.suggestions.forEach((suggestion) => {
+          addConsoleMessage(
+            `${suggestion.type}: ${suggestion.message}`,
+            "info",
+          );
+        });
+      }
+
+      // File operations
+      function loadFile() {
+        const fileInput = document.getElementById("fileInput");
+        const filePath = fileInput.value.trim();
+
+        if (!filePath) {
+          addConsoleMessage("Please enter a file path", "error");
+          return;
+        }
+
+        fetch("/api/load", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file: filePath }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.error) {
+              addConsoleMessage(`Error: ${data.error}`, "error");
+            } else {
+              fileInput.value = "";
+            }
+          })
+          .catch((error) => {
+            addConsoleMessage(`Network error: ${error.message}`, "error");
+          });
+      }
+
+      function loadFileContent(filePath) {
+        fetch(filePath)
+          .then((response) => response.text())
+          .then((content) => {
+            editor.setValue(content);
+            document.getElementById("editorTitle").textContent = filePath
+              .split("/")
+              .pop();
+            addConsoleMessage(`Loaded file: ${filePath}`, "success");
+          })
+          .catch((error) => {
+            addConsoleMessage(`Error loading file: ${error.message}`, "error");
+          });
+      }
+
+      // Debug control functions
+      function startDebugging() {
+        socket.emit("control", { action: "start" });
+      }
+
+      function pauseDebugging() {
+        socket.emit("control", { action: "pause" });
+      }
+
+      function resumeDebugging() {
+        socket.emit("control", { action: "resume" });
+      }
+
+      function stopDebugging() {
+        socket.emit("control", { action: "stop" });
+      }
+
+      function stepDebugging() {
+        socket.emit("control", { action: "step", steps: 1 });
+      }
+
+      function gotoBar() {
+        const barInput = document.getElementById("barInput");
+        const bar = parseInt(barInput.value);
+
+        if (!isNaN(bar)) {
+          socket.emit("control", { action: "gotoBar", bar });
+        }
+      }
+
+      // Breakpoint functions
+      function addBreakpoint(line = null) {
+        const lineNumber =
+          line || parseInt(document.getElementById("breakpointInput").value);
+
+        if (!isNaN(lineNumber)) {
+          socket.emit("setBreakpoint", { line: lineNumber, enabled: true });
+          document.getElementById("breakpointInput").value = "";
+        }
+      }
+
+      function removeBreakpoint(line) {
+        socket.emit("setBreakpoint", { line, enabled: false });
+      }
+
+      // Watch functions
+      function addWatch() {
+        const watchInput = document.getElementById("watchInput");
+        const expression = watchInput.value.trim();
+
+        if (expression) {
+          const variable = expression.split("=")[0].trim() || expression;
+          socket.emit("addWatch", { variable, expression });
+          watchInput.value = "";
+        }
+      }
+
+      function removeWatch(variable) {
+        socket.emit("removeWatch", variable);
+      }
+
+      // Console functions
+      function addConsoleMessage(message, type = "info") {
+        const consoleOutput = document.getElementById("consoleOutput");
+        const line = document.createElement("div");
+        line.className = `console-line ${type}`;
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        consoleOutput.appendChild(line);
+        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+      }
+
+      function switchConsoleTab(tab) {
+        // Update tab buttons
+        document.querySelectorAll(".console-tab").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        event.target.classList.add("active");
+
+        // TODO: Implement tab switching logic
+        addConsoleMessage(`Switched to ${tab} tab`, "info");
+      }
+
+      function handleConsoleInput(event) {
+        if (event.key === "Enter") {
+          const input = document.getElementById("consoleInput");
+          const expression = input.value.trim();
+
+          if (expression) {
+            addConsoleMessage(`> ${expression}`, "info");
+
+            // Evaluate expression
+            socket.emit("evaluate", { expression }, (response) => {
+              if (response.error) {
+                addConsoleMessage(`Error: ${response.error}`, "error");
+              } else {
+                addConsoleMessage(
+                  `Result: ${formatValue(response.result.value)}`,
+                  "success",
+                );
+              }
+            });
+
+            input.value = "";
+          }
+        }
+      }
+
+      // Utility functions
+      function formatValue(value) {
+        if (value === null || value === undefined) {
+          return "null";
+        }
+
+        if (typeof value === "number") {
+          return value.toFixed(4);
+        }
+
+        if (typeof value === "object") {
+          return JSON.stringify(value).substring(0, 50) + "...";
+        }
+
+        return String(value);
+      }
+
+      // Chart initialization
+      let quickChart = null;
+
+      function initChart() {
+        const ctx = document.getElementById("quickChart").getContext("2d");
+        quickChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "Variable Value",
+                data: [],
+                borderColor: "rgb(75, 192, 192)",
+                backgroundColor: "rgba(75, 192, 192, 0.2)",
+                tension: 0.4,
+                fill: true,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  color: "#e0e0e0",
+                },
+              },
+            },
+            scales: {
+              x: {
+                grid: {
+                  color: "#404040",
+                },
+                ticks: {
+                  color: "#a0a0a0",
+                },
+              },
+              y: {
+                grid: {
+                  color: "#404040",
+                },
+                ticks: {
+                  color: "#a0a0a0",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function updateChart(variableName, value, maxPoints = 50) {
+        if (!quickChart) return;
+
+        const now = new Date().toLocaleTimeString();
+        quickChart.data.labels.push(now);
+        quickChart.data.datasets[0].data.push(value);
+        quickChart.data.datasets[0].label = variableName;
+
+        // Keep only last N points
+        if (quickChart.data.labels.length > maxPoints) {
+          quickChart.data.labels.shift();
+          quickChart.data.datasets[0].data.shift();
+        }
+
+        quickChart.update();
+      }
+
+      function clearChart() {
+        if (!quickChart) return;
+        quickChart.data.labels = [];
+        quickChart.data.datasets[0].data = [];
+        quickChart.update();
+      }
+
+      // Speed control
+      document
+        .getElementById("speedSlider")
+        .addEventListener("input", function () {
+          const speed = parseFloat(this.value);
+          document.getElementById("speedValue").textContent = `${speed}x`;
+          socket.emit("control", { action: "setSpeed", speed });
+        });
+
+      // Initialize
+      window.onload = function () {
+        initEditor();
+        initSocket();
+        initChart();
+        updateUI();
+
+        // Add some example files
+        const fileList = document.getElementById("fileList");
+        const exampleFiles = [
+          "examples/pinescript-projects/debug-examples/complex-indicator-debug.pine",
+          "examples/pinescript-projects/debug-examples/simple-test-indicator.pine",
+          "examples/pinescript-projects/basic-indicator/sma-crossover.pine",
+          "examples/pinescript-projects/trading-strategy/rsi-macd-strategy.pine",
+        ];
+
+        exampleFiles.forEach((file) => {
+          const item = document.createElement("li");
+          item.className = "file-item";
+          item.textContent = file.split("/").pop();
+          item.onclick = () => {
+            document.getElementById("fileInput").value = file;
+            loadFile();
+          };
+          fileList.appendChild(item);
+        });
+
+        // Update session info
+        document.getElementById("sessionId").textContent =
+          currentSessionId || "-";
+      };
+    </script>
+  </body>
+</html>

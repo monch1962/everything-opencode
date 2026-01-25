@@ -1,0 +1,287 @@
+//@version=5
+indicator("Complex Custom Indicator with Debugging", overlay=true, 
+          max_lines_count=50, max_labels_count=50)
+
+// ========== DEBUGGING CONFIGURATION ==========
+// Include debugging helpers
+//@include "debug-helpers.pine"
+
+// Debug settings
+debugLevel = input.int(2, "Debug Level", minval=0, maxval=3, group="Debugging")
+debugOutput = input.string("all", "Debug Output", options=["plot", "alert", "table", "all"], group="Debugging")
+
+// ========== CUSTOM INDICATOR PARAMETERS ==========
+
+// Trend detection
+trendPeriod = input.int(50, "Trend Period", minval=10, maxval=200, group="Trend")
+trendThreshold = input.float(0.5, "Trend Threshold", minval=0.1, maxval=2.0, step=0.1, group="Trend")
+
+// Momentum
+momentumPeriod = input.int(14, "Momentum Period", minval=5, maxval=50, group="Momentum")
+momentumSmoothing = input.int(3, "Momentum Smoothing", minval=1, maxval=10, group="Momentum")
+
+// Volatility
+volatilityPeriod = input.int(20, "Volatility Period", minval=5, maxval=50, group="Volatility")
+volatilityMultiplier = input.float(2.0, "Volatility Multiplier", minval=1.0, maxval=5.0, step=0.1, group="Volatility")
+
+// Signal generation
+signalThreshold = input.float(0.7, "Signal Threshold", minval=0.1, maxval=1.0, step=0.1, group="Signals")
+confirmationBars = input.int(2, "Confirmation Bars", minval=1, maxval=5, group="Signals")
+
+// ========== CUSTOM INDICATOR CALCULATIONS ==========
+
+// 1. Trend Strength Calculation
+trendStrength() =>
+    // Calculate price slope
+    priceSlope = (close - close[trendPeriod]) / close[trendPeriod] * 100
+    
+    // Calculate volume trend
+    volumeAvg = ta.sma(volume, trendPeriod)
+    volumeSlope = (volume - volume[trendPeriod]) / volume[trendPeriod] * 100
+    
+    // Combine factors
+    trendScore = (priceSlope * 0.6) + (volumeSlope * 0.4)
+    normalizedTrend = trendScore / 100
+    
+    // Debug: Plot intermediate calculations
+    debug.plot(priceSlope, "Price Slope", color=color.new(color.blue, 0))
+    debug.plot(volumeSlope, "Volume Slope", color=color.new(color.orange, 0))
+    debug.plot(normalizedTrend, "Trend Score", color=color.new(color.purple, 0))
+    
+    normalizedTrend
+
+trendValue = trendStrength()
+
+// 2. Momentum Oscillator with Custom Formula
+customMomentum() =>
+    // Price change momentum
+    priceChange = (close - close[momentumPeriod]) / close[momentumPeriod]
+    
+    // Volume-weighted momentum
+    volumeWeight = volume / ta.sma(volume, momentumPeriod)
+    weightedMomentum = priceChange * volumeWeight
+    
+    // Smooth the momentum
+    smoothedMomentum = ta.ema(weightedMomentum, momentumSmoothing)
+    
+    // Normalize to -1 to 1 range
+    normalizedMomentum = math.tanh(smoothedMomentum * 10)
+    
+    // Debug: Monitor momentum components
+    debug.series(weightedMomentum, "Raw Momentum", 20, true)
+    debug.series(smoothedMomentum, "Smoothed Momentum", 20, true)
+    debug.errorCheck(normalizedMomentum, "Momentum", ["na", "inf"])
+    
+    normalizedMomentum
+
+momentumValue = customMomentum()
+
+// 3. Adaptive Volatility Bands
+adaptiveVolatility() =>
+    // Calculate rolling volatility
+    returns = math.log(close / close[1])
+    volatility = ta.stdev(returns, volatilityPeriod) * math.sqrt(252)  // Annualized
+    
+    // Adaptive multiplier based on volatility regime
+    volatilityRegime = volatility / ta.sma(volatility, 100)
+    adaptiveMultiplier = volatilityMultiplier * (1 + volatilityRegime)
+    
+    // Create bands
+    middleBand = ta.sma(close, volatilityPeriod)
+    upperBand = middleBand * (1 + adaptiveMultiplier * volatility)
+    lowerBand = middleBand * (1 - adaptiveMultiplier * volatility)
+    
+    // Band width as signal
+    bandWidth = (upperBand - lowerBand) / middleBand * 100
+    
+    // Debug: Plot bands and metrics
+    debug.plot(upperBand, "Upper Band", color=color.new(color.green, 50))
+    debug.plot(lowerBand, "Lower Band", color=color.new(color.red, 50))
+    debug.plot(bandWidth, "Band Width %", color=color.new(color.gray, 0))
+    debug.monitorSeries(volatility, "Volatility", 3.0)
+    
+    [upperBand, lowerBand, bandWidth, volatilityRegime]
+
+[upperBand, lowerBand, bandWidth, volatilityRegime] = adaptiveVolatility()
+
+// 4. Composite Signal Generator
+generateSignals() =>
+    // Trend condition
+    strongTrend = math.abs(trendValue) > trendThreshold
+    
+    // Momentum condition
+    bullishMomentum = momentumValue > signalThreshold
+    bearishMomentum = momentumValue < -signalThreshold
+    
+    // Volatility condition (avoid signals in extreme volatility)
+    normalVolatility = volatilityRegime < 2.0
+    
+    // Price position relative to bands
+    aboveUpper = close > upperBand
+    belowLower = close < lowerBand
+    withinBands = not aboveUpper and not belowLower
+    
+    // Generate signals with confirmation
+    buySignal = bullishMomentum and withinBands and normalVolatility and strongTrend
+    sellSignal = bearishMomentum and withinBands and normalVolatility and strongTrend
+    
+    // Exit signals
+    exitBuy = aboveUpper or not normalVolatility
+    exitSell = belowLower or not normalVolatility
+    
+    // Debug: Monitor all conditions
+    conditions = array.new_bool()
+    array.push(conditions, strongTrend)
+    array.push(conditions, bullishMomentum)
+    array.push(conditions, bearishMomentum)
+    array.push(conditions, normalVolatility)
+    array.push(conditions, withinBands)
+    
+    conditionLabels = array.new_string()
+    array.push(conditionLabels, "Strong Trend")
+    array.push(conditionLabels, "Bullish Momentum")
+    array.push(conditionLabels, "Bearish Momentum")
+    array.push(conditionLabels, "Normal Vol")
+    array.push(conditionLabels, "Within Bands")
+    
+    debug.conditionBreakdown(buySignal or sellSignal, conditions, conditionLabels)
+    
+    // Track signal statistics
+    var int buyCount = 0
+    var int sellCount = 0
+    
+    if buySignal
+        buyCount := buyCount + 1
+    if sellSignal
+        sellCount := sellCount + 1
+    
+    if barstate.islast
+        debug.plotchar(buyCount, "Buy Signals: " + str.tostring(buyCount))
+        debug.plotchar(sellCount, "Sell Signals: " + str.tostring(sellCount))
+    
+    [buySignal, sellSignal, exitBuy, exitSell]
+
+[buySignal, sellSignal, exitBuy, exitSell] = generateSignals()
+
+// ========== VISUALIZATION ==========
+
+// Main indicator plot
+indicatorValue = (trendValue * 0.4) + (momentumValue * 0.4) + (bandWidth / 100 * 0.2)
+plot(indicatorValue, "Composite Indicator", color=color.new(color.purple, 0), linewidth=2)
+
+// Zero line for reference
+hline(0, "Zero", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
+
+// Signal visualization
+plotshape(buySignal, "Buy", shape.triangleup, location.belowbar, 
+         color=color.new(color.green, 0), size=size.small)
+plotshape(sellSignal, "Sell", shape.triangledown, location.abovebar, 
+         color=color.new(color.red, 0), size=size.small)
+plotshape(exitBuy, "Exit Buy", shape.xcross, location.abovebar,
+         color=color.new(color.orange, 0), size=size.small)
+plotshape(exitSell, "Exit Sell", shape.xcross, location.belowbar,
+         color=color.new(color.orange, 0), size=size.small)
+
+// Background colors for trend
+bgcolor(trendValue > 0 ? color.new(color.green, 90) : trendValue < 0 ? color.new(color.red, 90) : na)
+
+// ========== DEBUGGING OUTPUT ==========
+
+// Create debug table
+if barstate.islast
+    debugValues = array.new_float()
+    array.push(debugValues, trendValue)
+    array.push(debugValues, momentumValue)
+    array.push(debugValues, bandWidth)
+    array.push(debugValues, volatilityRegime)
+    array.push(debugValues, indicatorValue)
+    
+    debugLabels = array.new_string()
+    array.push(debugLabels, "Trend")
+    array.push(debugLabels, "Momentum")
+    array.push(debugLabels, "Band Width")
+    array.push(debugLabels, "Vol Regime")
+    array.push(debugLabels, "Composite")
+    
+    debug.table(debugValues, debugLabels, "Indicator Values")
+
+// Alert debugging
+if buySignal
+    debug.alert(indicatorValue, "Buy Signal - Composite: ")
+if sellSignal
+    debug.alert(indicatorValue, "Sell Signal - Composite: ")
+
+// Performance monitoring
+debug.trackCalculation("Indicator Calculation")
+
+// Error checking
+debug.errorCheck(trendValue, "Trend", ["na", "inf"])
+debug.errorCheck(momentumValue, "Momentum", ["na", "inf"])
+debug.errorCheck(indicatorValue, "Composite", ["na", "inf"])
+
+// ========== DEBUGGING TESTS ==========
+
+// Test 1: Verify calculations are within expected ranges
+testRangeValid() =>
+    validTrend = not na(trendValue) and math.abs(trendValue) < 5
+    validMomentum = not na(momentumValue) and math.abs(momentumValue) <= 1.1
+    validComposite = not na(indicatorValue) and math.abs(indicatorValue) < 5
+    
+    allValid = validTrend and validMomentum and validComposite
+    
+    if not allValid
+        debug.plotshape(true, "Range Test Failed", shape.xcross, location.abovebar, debugColorWarning)
+        debug.alert("Range test failed", "Validation")
+    
+    allValid
+
+// Test 2: Check for calculation consistency
+testConsistency() =>
+    // Trend should not jump too much between bars
+    trendChange = math.abs(trendValue - trendValue[1])
+    consistentTrend = trendChange < 0.5 or na(trendChange[1])
+    
+    // Momentum should be smooth
+    momentumChange = math.abs(momentumValue - momentumValue[1])
+    consistentMomentum = momentumChange < 0.2 or na(momentumChange[1])
+    
+    if not (consistentTrend and consistentMomentum)
+        debug.plotshape(true, "Consistency Issue", shape.circle, location.belowbar, debugColorWarning)
+    
+    consistentTrend and consistentMomentum
+
+// Run tests
+if barstate.islast
+    test1 = testRangeValid()
+    test2 = testConsistency()
+    
+    debug.plotchar(test1, "Range Test: " + str.tostring(test1))
+    debug.plotchar(test2, "Consistency Test: " + str.tostring(test2))
+
+// ========== USAGE INSTRUCTIONS ==========
+/*
+To debug this indicator:
+
+1. Use /pine-debug commands:
+   /pine-debug inspect --var "trendValue" --bars 20
+   /pine-debug trace --var "momentumValue" --plot
+   /pine-debug monitor --condition "buySignal" --alert
+   /pine-debug profile --metrics complexity
+
+2. Adjust debug settings:
+   - Set Debug Level to 3 for maximum detail
+   - Change Debug Output to see different formats
+   - Use the debug table for quick value inspection
+
+3. Common debugging patterns:
+   - Use debug.plot() for continuous values
+   - Use debug.plotshape() for discrete events
+   - Use debug.series() for historical analysis
+   - Use debug.monitorCondition() for state tracking
+   - Use debug.errorCheck() for validation
+
+4. Performance tips:
+   - Reduce Debug Level when not needed
+   - Use specific debug outputs instead of "all"
+   - Disable historical tracking for long series
+*/

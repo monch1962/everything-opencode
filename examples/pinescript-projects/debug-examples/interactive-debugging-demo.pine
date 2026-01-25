@@ -1,0 +1,317 @@
+//@version=5
+indicator("Interactive Debugging Demo", overlay=true)
+
+// ========== DEBUGGING INCLUDES ==========
+// Include all debugging helpers
+//@include "debug-helpers.pine"
+//@include "debug-breakpoints.pine"
+
+// ========== DEBUGGING CONFIGURATION ==========
+debugLevel = input.int(3, "Debug Level", minval=0, maxval=3, group="Debugging")
+breakpointsEnabled = input.bool(true, "Enable Breakpoints", group="Debugging")
+stepModeEnabled = input.bool(false, "Enable Step Mode", group="Debugging")
+
+// ========== INDICATOR PARAMETERS ==========
+rsiLength = input.int(14, "RSI Length", group="RSI")
+rsiOverbought = input.int(70, "RSI Overbought", group="RSI")
+rsiOversold = input.int(30, "RSI Oversold", group="RSI")
+
+macdFast = input.int(12, "MACD Fast", group="MACD")
+macdSlow = input.int(26, "MACD Slow", group="MACD")
+macdSignal = input.int(9, "MACD Signal", group="MACD")
+
+// ========== INDICATOR CALCULATIONS ==========
+
+// RSI Calculation with debug tracking
+rsiValue = ta.rsi(close, rsiLength)
+debug.plot(rsiValue, "RSI", color=color.new(color.blue, 0))
+debug.series(rsiValue, "RSI History", 50, true)
+
+// MACD Calculation with debug tracking
+[macdLine, signalLine, histLine] = ta.macd(close, macdFast, macdSlow, macdSignal)
+debug.plot(macdLine, "MACD Line", color=color.new(color.green, 0))
+debug.plot(signalLine, "Signal Line", color=color.new(color.red, 0))
+debug.plot(histLine, "Histogram", color=color.new(color.orange, 0), style=plot.style_histogram)
+
+// Custom composite indicator
+compositeIndicator() =>
+    rsiNormalized = (rsiValue - 50) / 50
+    macdNormalized = macdLine / close * 1000
+    composite = (rsiNormalized * 0.6) + (macdNormalized * 0.4)
+    composite
+
+compValue = compositeIndicator()
+debug.plot(compValue, "Composite", color=color.new(color.purple, 0))
+
+// ========== TRADING SIGNALS ==========
+
+// Buy signal conditions
+buyCondition1 = rsiValue < rsiOversold
+buyCondition2 = macdLine > signalLine
+buyCondition3 = compValue < -0.5
+buyCondition4 = volume > ta.sma(volume, 20) * 1.2
+
+buySignal = buyCondition1 and buyCondition2 and buyCondition3 and buyCondition4
+
+// Sell signal conditions
+sellCondition1 = rsiValue > rsiOverbought
+sellCondition2 = macdLine < signalLine
+sellCondition3 = compValue > 0.5
+sellCondition4 = volume > ta.sma(volume, 20) * 1.5
+
+sellSignal = sellCondition1 and sellCondition2 and sellCondition3 and sellCondition4
+
+// ========== DEBUGGING BREAKPOINTS ==========
+
+// Set automatic breakpoints based on conditions
+if breakpointsEnabled
+    // Break on extreme RSI values
+    if rsiValue < 20
+        debug.setBreakpoint("rsiValue < 20", "Extreme RSI oversold")
+    
+    if rsiValue > 80
+        debug.setBreakpoint("rsiValue > 80", "Extreme RSI overbought")
+    
+    // Break on strong signals
+    if buySignal
+        debug.setBreakpoint("buySignal == true", "Buy signal generated")
+    
+    if sellSignal
+        debug.setBreakpoint("sellSignal == true", "Sell signal generated")
+    
+    // Break on specific bar numbers (for step debugging)
+    if bar_index % 100 == 0
+        debug.setBreakpoint("bar_index % 100 == 0", "Every 100 bars")
+
+// ========== WATCH EXPRESSIONS ==========
+
+// Add watch expressions for key variables
+debug.addWatch("rsiValue")
+debug.addWatch("macdLine")
+debug.addWatch("signalLine")
+debug.addWatch("compValue")
+debug.addWatch("volume")
+
+// Update watch values
+debug.updateWatches()
+
+// ========== STEP DEBUGGING ==========
+
+// Enable step mode if configured
+if stepModeEnabled and not stepMode
+    debug.enableStepMode()
+
+// Check if should pause for step debugging
+if debug.shouldPause()
+    // Visual indicator for pause
+    plotshape(true, "Step Pause", shape.diamond, location.abovebar,
+             color=color.new(color.yellow, 0), size=size.normal)
+    
+    // Alert for step
+    debug.alert(true, "Step pause at bar " + str.tostring(bar_index), 
+               alert.freq_once_per_bar)
+
+// ========== BREAKPOINT VISUALIZATION ==========
+
+// Check and visualize breakpoints
+breakpointHit = debug.visualizeBreakpoints()
+
+if breakpointHit
+    // Special visualization when breakpoint hits
+    bgcolor(color.new(color.orange, 90))
+    
+    // Enhanced plotting
+    debug.plot(close, "Close at Breakpoint", color=color.new(color.red, 0), linewidth=3)
+    
+    // Table display of current values
+    values = array.new_float()
+    array.push(values, close)
+    array.push(values, rsiValue)
+    array.push(values, macdLine)
+    array.push(values, compValue)
+    
+    labels = array.new_string()
+    array.push(labels, "Close")
+    array.push(labels, "RSI")
+    array.push(labels, "MACD")
+    array.push(labels, "Composite")
+    
+    debug.table(values, labels, "Breakpoint Values")
+
+// ========== SIGNAL VISUALIZATION ==========
+
+// Plot signals with debugging
+plotshape(buySignal, "Buy", shape.triangleup, location.belowbar,
+         color=color.new(color.green, 0), size=size.normal)
+plotshape(sellSignal, "Sell", shape.triangledown, location.abovebar,
+         color=color.new(color.red, 0), size=size.normal)
+
+// Debug signal conditions
+debug.monitorCondition(buySignal, "Buy Signal", true)
+debug.monitorCondition(sellSignal, "Sell Signal", true)
+
+// Condition breakdown
+buyConditions = array.new_bool()
+array.push(buyConditions, buyCondition1)
+array.push(buyConditions, buyCondition2)
+array.push(buyConditions, buyCondition3)
+array.push(buyConditions, buyCondition4)
+
+buyLabels = array.new_string()
+array.push(buyLabels, "RSI < " + str.tostring(rsiOversold))
+array.push(buyLabels, "MACD > Signal")
+array.push(buyLabels, "Composite < -0.5")
+array.push(buyLabels, "Volume > 120% Avg")
+
+debug.conditionBreakdown(buySignal, buyConditions, buyLabels)
+
+// ========== PERFORMANCE DEBUGGING ==========
+
+// Track calculation performance
+debug.trackCalculation("RSI Calculation")
+debug.trackCalculation("MACD Calculation")
+debug.trackCalculation("Composite Calculation")
+
+// Monitor series for anomalies
+debug.monitorSeries(rsiValue, "RSI Monitor", 3.0)
+debug.monitorSeries(macdLine, "MACD Monitor", 5.0)
+debug.monitorSeries(compValue, "Composite Monitor", 2.0)
+
+// Error checking
+debug.errorCheck(rsiValue, "RSI", ["na", "inf"])
+debug.errorCheck(macdLine, "MACD", ["na", "inf"])
+debug.errorCheck(compValue, "Composite", ["na", "inf"])
+
+// ========== REAL-TIME DEBUG DATA ==========
+
+// Generate debug data for server
+debugData = debug.getDebugData()
+
+// Display debug data on last bar
+if barstate.islast
+    // Show all debug information
+    debug.showBreakpointStatus()
+    debug.showWatches()
+    
+    // Performance summary
+    plotchar(bar_index, "Total Bars: " + str.tostring(bar_index), 
+            location=location.top, size=size.tiny, color=color.new(color.blue, 0))
+    
+    // Signal statistics
+    var int buyCount = 0
+    var int sellCount = 0
+    
+    if buySignal
+        buyCount := buyCount + 1
+    if sellSignal
+        sellCount := sellCount + 1
+    
+    plotchar(buyCount, "Buy Signals: " + str.tostring(buyCount),
+            location=location.top - 1, size=size.tiny, color=color.new(color.green, 0))
+    plotchar(sellCount, "Sell Signals: " + str.tostring(sellCount),
+            location=location.top - 2, size=size.tiny, color=color.new(color.red, 0))
+    
+    // Debug data preview
+    plotchar(na, "Debug Data Ready", location=location.top - 3, 
+            size=size.tiny, color=color.new(color.purple, 0))
+
+// ========== INTERACTIVE DEBUGGING CONTROLS ==========
+
+// These would be controlled via the debug server interface
+// For now, we use input controls
+
+// Manual breakpoint trigger
+manualBreakpoint = input.bool(false, "Trigger Manual Breakpoint", group="Interactive")
+if manualBreakpoint
+    debug.setBreakpoint("manual == true", "Manual breakpoint triggered")
+    debug.alert(true, "Manual breakpoint triggered", alert.freq_once_per_bar)
+
+// Step control
+manualStep = input.bool(false, "Manual Step", group="Interactive")
+if manualStep and stepMode
+    debug.step()
+
+// Watch expression input
+watchInput = input.string("", "Add Watch Expression", group="Interactive")
+if watchInput != ""
+    debug.addWatch(watchInput)
+    // Reset input (this would be handled by the server in production)
+
+// ========== DEBUGGING WORKFLOW EXAMPLE ==========
+/*
+Interactive Debugging Workflow:
+
+1. Start the debug server:
+   /pine-debug server --file interactive-debugging-demo.pine
+
+2. Open web interface:
+   http://localhost:3000/debug
+
+3. Set breakpoints:
+   - Click on line numbers in editor
+   - Or use: debug.setBreakpoint("rsiValue < 30", "RSI oversold")
+
+4. Add watch expressions:
+   - Use the watch panel in the web interface
+   - Or use: debug.addWatch("macdLine")
+
+5. Start debugging:
+   - Click "Start" in the web interface
+   - Execution will pause at breakpoints
+
+6. Step through code:
+   - Use "Step" button to execute one bar at a time
+   - Inspect variables in real-time
+
+7. Monitor performance:
+   - Watch calculation counts and timing
+   - Check for anomalies in series data
+
+8. Export debug data:
+   - Use debug.getDebugData() for server integration
+   - Save variable history for analysis
+*/
+
+// ========== VISUALIZATION ENHANCEMENTS ==========
+
+// Background colors for different modes
+bgcolor(stepMode ? color.new(color.yellow, 95) : 
+        breakpointHit ? color.new(color.orange, 90) : 
+        buySignal ? color.new(color.green, 90) : 
+        sellSignal ? color.new(color.red, 90) : na)
+
+// Reference lines for debugging
+hline(50, "RSI Mid", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
+hline(0, "MACD Zero", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
+
+// Current value display
+plotchar(close, "Close: " + str.tostring(close, "#.##"), location=location.top)
+plotchar(rsiValue, "RSI: " + str.tostring(rsiValue, "#.##"), location=location.top - 1)
+plotchar(macdLine, "MACD: " + str.tostring(macdLine, "#.##"), location=location.top - 2)
+
+// ========== ERROR HANDLING AND VALIDATION ==========
+
+// Validate calculations
+validationPassed = not na(rsiValue) and not na(macdLine) and not na(compValue)
+
+if not validationPassed
+    plotshape(true, "Calculation Error", shape.xcross, location.abovebar,
+             color=color.new(color.red, 0), size=size.large)
+    debug.alert(true, "Calculation error detected", alert.freq_once_per_bar)
+
+// Range checking
+rsiInRange = rsiValue >= 0 and rsiValue <= 100
+macdReasonable = math.abs(macdLine) < close * 0.1
+
+if not (rsiInRange and macdReasonable)
+    plotshape(true, "Range Error", shape.circle, location.belowbar,
+             color=color.new(color.orange, 0), size=size.normal)
+
+// ========== FINAL INITIALIZATION ==========
+// Ensure debug system is active
+var debugActive = na
+debugActive := true
+
+if barstate.islast and debugLevel > 0
+    plotchar(debugActive, "Debug System Active", location=location.bottom,
+            size=size.tiny, color=color.new(color.green, 0))

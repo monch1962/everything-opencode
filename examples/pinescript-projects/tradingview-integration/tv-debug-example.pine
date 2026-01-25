@@ -1,0 +1,181 @@
+//@version=5
+indicator("TradingView Debug Example", overlay=true)
+
+// ===== DEBUG CONFIGURATION =====
+// These inputs control debugging in TradingView
+debugEnabled = input.bool(false, "🔧 Enable Debugging", group="Debugging")
+debugLevel = input.int(1, "Debug Level", minval=0, maxval=3, group="Debugging")
+showPlots = input.bool(true, "Show Debug Plots", group="Debugging")
+showLabels = input.bool(true, "Show Debug Labels", group="Debugging")
+exportData = input.bool(false, "Export Debug Data", group="Debugging")
+
+// ===== MINIMAL DEBUG FUNCTIONS =====
+// These functions work within TradingView constraints
+
+// Debug plot with conditional execution
+debugPlot(value, title, color) =>
+    if debugEnabled and showPlots and debugLevel >= 1
+        plot(value, title, color=color.new(color ? color : color.purple, 70), linewidth=1)
+
+// Debug label (only on last bar to avoid clutter)
+debugLabel(message, importance = 1) =>
+    if debugEnabled and showLabels and debugLevel >= importance and barstate.islast
+        label.new(bar_index, high, message, 
+                 color=color.new(color.gray, 50), 
+                 style=label.style_label_down,
+                 size=size.small)
+
+// Debug table display
+debugTable(title, rows) =>
+    if debugEnabled and debugLevel >= 2 and barstate.islast
+        tableText = title + ":\n"
+        for i = 0 to array.size(rows) - 1
+            [key, value] = array.get(rows, i)
+            tableText := tableText + key + ": " + str.tostring(value) + "\n"
+        
+        label.new(bar_index, high, tableText,
+                 color=color.new(color.blue, 90),
+                 style=label.style_label_center,
+                 textcolor=color.white,
+                 size=size.normal)
+
+// Data collection for export
+var string debugData = ""
+collectDebugData(key, value) =>
+    if debugEnabled and exportData
+        debugData := debugData + key + "=" + str.tostring(value) + ","
+    value
+
+// ===== INDICATOR LOGIC WITH DEBUGGING =====
+
+// RSI calculation with debugging
+lengthRSI = input.int(14, "RSI Length", group="Indicator")
+rsiValue = ta.rsi(close, lengthRSI)
+collectDebugData("rsi", rsiValue)
+debugPlot(rsiValue, "RSI Debug", color.blue)
+
+// SMA calculation with debugging  
+lengthSMA = input.int(20, "SMA Length", group="Indicator")
+smaValue = ta.sma(close, lengthSMA)
+collectDebugData("sma", smaValue)
+debugPlot(smaValue, "SMA Debug", color.orange)
+
+// MACD calculation with debugging
+[macdLine, signalLine, histLine] = ta.macd(close, 12, 26, 9)
+collectDebugData("macd", macdLine)
+collectDebugData("signal", signalLine)
+debugPlot(macdLine, "MACD", color.green)
+debugPlot(signalLine, "Signal", color.red)
+
+// ===== SIGNAL GENERATION WITH DEBUGGING =====
+
+// Buy signal: RSI oversold and price above SMA
+buyCondition = rsiValue < 30 and close > smaValue
+collectDebugData("buyCondition", buyCondition)
+
+// Sell signal: RSI overbought and price below SMA  
+sellCondition = rsiValue > 70 and close < smaValue
+collectDebugData("sellCondition", sellCondition)
+
+// Plot signals
+plotshape(buyCondition, "Buy", shape.triangleup, location.belowbar, 
+         color=color.new(color.green, 0), size=size.small)
+plotshape(sellCondition, "Sell", shape.triangledown, location.abovebar,
+         color=color.new(color.red, 0), size=size.small)
+
+// ===== DEBUG VISUALIZATION =====
+
+// Show RSI levels
+hline(70, "Overbought", color=color.new(color.red, 50), linestyle=hline.style_dashed)
+hline(30, "Oversold", color=color.new(color.green, 50), linestyle=hline.style_dashed)
+
+// Debug labels for signals
+if buyCondition and debugEnabled
+    debugLabel("BUY: RSI=" + str.tostring(rsiValue, "#.##") + 
+              " Close=" + str.tostring(close, "#.##"), 2)
+
+if sellCondition and debugEnabled
+    debugLabel("SELL: RSI=" + str.tostring(rsiValue, "#.##") + 
+              " Close=" + str.tostring(close, "#.##"), 2)
+
+// ===== PERFORMANCE MONITORING =====
+
+// Track execution (simplified)
+var int barCount = 0
+barCount := barCount + 1
+
+if barstate.islast and debugEnabled and debugLevel >= 3
+    debugLabel("Bars processed: " + str.tostring(barCount), 3)
+
+// ===== DATA EXPORT =====
+
+// Export debug data on last bar
+if barstate.islast and debugEnabled and exportData
+    // Add metadata
+    debugData := "TV_DEBUG:" + debugData + 
+                "symbol=" + syminfo.ticker + "," +
+                "timeframe=" + timeframe.period + "," +
+                "bars=" + str.tostring(barCount) + "," +
+                "timestamp=" + str.tostring(timenow)
+    
+    // Display export data (for manual copy-paste)
+    exportLabel = label.new(bar_index, low, 
+                           "📋 Copy debug data below:\n" + debugData,
+                           color=color.new(color.blue, 90),
+                           style=label.style_label_up,
+                           textcolor=color.white,
+                           size=size.large)
+    
+    // Also log to console (for TradingView Pro/Desktop)
+    debugLabel("Debug data ready for export", 1)
+
+// ===== DEBUG TABLE DISPLAY =====
+
+// Show summary table on last bar
+if barstate.islast and debugEnabled and debugLevel >= 2
+    tableRows = array.new_tuple(0)
+    array.push(tableRows, ["RSI", str.tostring(rsiValue, "#.##")])
+    array.push(tableRows, ["SMA", str.tostring(smaValue, "#.##")])
+    array.push(tableRows, ["MACD", str.tostring(macdLine, "#.##")])
+    array.push(tableRows, ["Buy Signals", str.tostring(ta.cum(buyCondition ? 1 : 0))])
+    array.push(tableRows, ["Sell Signals", str.tostring(ta.cum(sellCondition ? 1 : 0))])
+    
+    debugTable("Indicator Summary", tableRows)
+
+// ===== MAIN PLOTS =====
+
+// Always show main indicator (even when debug is off)
+plot(rsiValue, "RSI", color=color.new(color.blue, 0), linewidth=2)
+plot(smaValue, "SMA", color=color.new(color.orange, 0), linewidth=2)
+
+// ===== USAGE INSTRUCTIONS =====
+// This comment block explains how to use the debug features
+
+/*
+TRADINGVIEW DEBUG EXAMPLE - USAGE GUIDE:
+
+1. ENABLE DEBUGGING:
+   - Turn on "Enable Debugging" in inputs
+   - Adjust "Debug Level" (1=basic, 2=detailed, 3=verbose)
+
+2. DEBUG FEATURES:
+   - Debug plots (colored, transparent)
+   - Signal labels (on chart)
+   - Data table (summary on last bar)
+   - Performance tracking
+
+3. DATA EXPORT:
+   - Enable "Export Debug Data"
+   - Copy data from label on last bar
+   - Paste into debug server for analysis
+
+4. PERFORMANCE TIPS:
+   - Disable debug in live trading
+   - Use lower debug levels for better performance
+   - Disable plots/labels if chart is slow
+
+5. INTEGRATION WITH DEBUG SERVER:
+   - Develop in debug server with full features
+   - Copy minimal debug functions to TradingView
+   - Export data back to debug server for analysis
+*/

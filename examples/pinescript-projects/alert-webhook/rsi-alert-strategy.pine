@@ -1,0 +1,122 @@
+//@version=5
+strategy("RSI Alert Strategy with Webhook Integration", overlay=true, 
+         default_qty_type=strategy.percent_of_equity, default_qty_value=10,
+         commission_type=strategy.commission.percent, commission_value=0.1)
+
+// Input parameters
+rsi_length = input.int(14, "RSI Length", minval=5, maxval=30)
+rsi_overbought = input.int(70, "RSI Overbought", minval=60, maxval=90)
+rsi_oversold = input.int(30, "RSI Oversold", minval=10, maxval=40)
+use_ema_filter = input.bool(true, "Use EMA Filter")
+ema_length = input.int(50, "EMA Length", minval=20, maxval=200)
+stop_loss_pct = input.float(2.0, "Stop Loss %", minval=0.5, maxval=10.0, step=0.5)
+take_profit_pct = input.float(4.0, "Take Profit %", minval=1.0, maxval=20.0, step=1.0)
+
+// Calculate indicators
+rsi = ta.rsi(close, rsi_length)
+ema = ta.ema(close, ema_length)
+price = close
+
+// Trading conditions
+ema_bullish = use_ema_filter ? price > ema : true
+ema_bearish = use_ema_filter ? price < ema : true
+
+// Buy conditions
+strong_buy = rsi < 25 and ema_bullish
+moderate_buy = rsi < rsi_oversold and rsi >= 25 and ema_bullish
+
+// Sell conditions
+strong_sell = rsi > 85 and ema_bearish
+moderate_sell = rsi > rsi_overbought and rsi <= 85 and ema_bearish
+
+// Exit conditions
+stop_loss_level = strategy.position_avg_price * (1 - stop_loss_pct / 100)
+take_profit_level = strategy.position_avg_price * (1 + take_profit_pct / 100)
+
+// Strategy entries
+if strong_buy
+    strategy.entry("Strong Buy", strategy.long, 
+                   comment="Strong buy: RSI < 25 and above EMA")
+    
+if moderate_buy and not strong_buy
+    strategy.entry("Moderate Buy", strategy.long, 
+                   comment="Moderate buy: RSI < 30 and above EMA")
+
+if strong_sell
+    strategy.entry("Strong Sell", strategy.short, 
+                   comment="Strong sell: RSI > 85 and below EMA")
+    
+if moderate_sell and not strong_sell
+    strategy.entry("Moderate Sell", strategy.short, 
+                   comment="Moderate sell: RSI > 70 and below EMA")
+
+// Strategy exits
+if strategy.position_size > 0
+    strategy.exit("Long Exit", "Strong Buy", 
+                  stop=stop_loss_level, limit=take_profit_level,
+                  comment="Long exit with stop loss/take profit")
+    strategy.exit("Long Exit", "Moderate Buy",
+                  stop=stop_loss_level, limit=take_profit_level,
+                  comment="Long exit with stop loss/take profit")
+
+if strategy.position_size < 0
+    strategy.exit("Short Exit", "Strong Sell",
+                  stop=stop_loss_level * (1 + stop_loss_pct/100), 
+                  limit=take_profit_level * (1 - take_profit_pct/100),
+                  comment="Short exit with stop loss/take profit")
+    strategy.exit("Short Exit", "Moderate Sell",
+                  stop=stop_loss_level * (1 + stop_loss_pct/100),
+                  limit=take_profit_level * (1 - take_profit_pct/100),
+                  comment="Short exit with stop loss/take profit")
+
+// Plot indicators
+plot(rsi, "RSI", color=color.new(color.blue, 0), linewidth=2, display=display.data_window)
+hline(rsi_overbought, "Overbought", color=color.new(color.red, 50), linestyle=hline.style_dashed)
+hline(rsi_oversold, "Oversold", color=color.new(color.green, 50), linestyle=hline.style_dashed)
+hline(50, "Midline", color=color.new(color.gray, 30), linestyle=hline.style_dotted)
+
+plot(ema, "EMA", color=color.new(color.orange, 0), linewidth=2)
+
+// ALERT CONFIGURATION
+// These alerts will be detected and configured by /pine-alert command
+
+// Strong buy alert (most important)
+alert("STRONG BUY: RSI = " + str.tostring(rsi, "#.##") + 
+      ", Price = $" + str.tostring(price, "#.##") + 
+      ", EMA Filter = " + str.tostring(ema_bullish), 
+      alert.freq_once_per_bar) when strong_buy
+
+// Moderate buy alert
+alert("MODERATE BUY: RSI = " + str.tostring(rsi, "#.##") + 
+      ", Price = $" + str.tostring(price, "#.##"), 
+      alert.freq_once_per_bar) when moderate_buy
+
+// Strong sell alert
+alert("STRONG SELL: RSI = " + str.tostring(rsi, "#.##") + 
+      ", Price = $" + str.tostring(price, "#.##") + 
+      ", EMA Filter = " + str.tostring(ema_bearish), 
+      alert.freq_once_per_bar_close) when strong_sell
+
+// Moderate sell alert  
+alert("MODERATE SELL: RSI = " + str.tostring(rsi, "#.##") + 
+      ", Price = $" + str.tostring(price, "#.##"), 
+      alert.freq_once_per_bar_close) when moderate_sell
+
+// Position exit alerts
+alert("LONG EXIT: Stop loss triggered at $" + str.tostring(stop_loss_level, "#.##"), 
+      alert.freq_once_per_bar) when strategy.position_size[1] > 0 and price <= stop_loss_level
+
+alert("LONG EXIT: Take profit reached at $" + str.tostring(take_profit_level, "#.##"), 
+      alert.freq_once_per_bar) when strategy.position_size[1] > 0 and price >= take_profit_level
+
+alert("SHORT EXIT: Stop loss triggered at $" + str.tostring(stop_loss_level * (1 + stop_loss_pct/100), "#.##"), 
+      alert.freq_once_per_bar) when strategy.position_size[1] < 0 and price >= stop_loss_level * (1 + stop_loss_pct/100)
+
+alert("SHORT EXIT: Take profit reached at $" + str.tostring(take_profit_level * (1 - take_profit_pct/100), "#.##"), 
+      alert.freq_once_per_bar) when strategy.position_size[1] < 0 and price <= take_profit_level * (1 - take_profit_pct/100)
+
+// Strategy performance summary (daily)
+alert("DAILY SUMMARY: P&L = " + str.tostring(strategy.netprofit, "#.##") + 
+      ", Win Rate = " + str.tostring(strategy.wintrade/strategy.closedtrades * 100, "#.##") + "%" + 
+      ", Open Trades = " + str.tostring(strategy.opentrades), 
+      alert.freq_once_per_day)

@@ -1,0 +1,332 @@
+//@version=5
+indicator("Math Utilities with Debugging", overlay=true)
+
+// ===== MATH UTILITIES LIBRARY WITH PHASE 3 DEBUGGING =====
+// Demonstrates debugging integration for utility functions
+
+// ===== CONFIGURATION =====
+utilsDebug = {
+    enabled: input.bool(true, "Enable Utils Debugging", group="Debug Configuration"),
+    level: input.int(1, "Debug Level", 0, 3, group="Debug Configuration"),
+    testGeneration: input.bool(true, "Generate Tests", group="Debug Configuration"),
+    trackCoverage: input.bool(true, "Track Coverage", group="Debug Configuration")
+}
+
+// ===== TEST GENERATION SETUP =====
+// Initialize test data collection
+var float[] testInputs = array.new_float(0)
+var float[] testOutputs = array.new_float(0)
+var string[] testLabels = array.new_string(0)
+
+collectTestData(inputVal, outputVal, label) =>
+    if utilsDebug.enabled and utilsDebug.testGeneration and array.size(testInputs) < 100
+        array.push(testInputs, inputVal)
+        array.push(testOutputs, outputVal)
+        array.push(testLabels, label)
+        true
+
+// ===== MATH UTILITY FUNCTIONS =====
+
+// Safe division (avoid division by zero)
+safeDivide = (numerator, denominator, defaultValue) =>
+    if denominator == 0
+        defaultValue
+    else
+        numerator / denominator
+
+// Percentage change
+percentageChange = (current, previous) =>
+    if previous == 0
+        0
+    else
+        ((current - previous) / previous) * 100
+
+// Normalize value to range
+normalize = (value, minVal, maxVal) =>
+    if maxVal == minVal
+        0.5
+    else
+        (value - minVal) / (maxVal - minVal)
+
+// Calculate average of array
+arrayAverage = (arr) =>
+    sum = 0.0
+    count = 0
+    
+    for i = 0 to array.size(arr) - 1
+        val = array.get(arr, i)
+        if not na(val)
+            sum := sum + val
+            count := count + 1
+    
+    count > 0 ? sum / count : na
+
+// Calculate standard deviation
+stdDev = (arr) =>
+    avg = arrayAverage(arr)
+    if na(avg)
+        na
+    
+    sumSq = 0.0
+    count = 0
+    
+    for i = 0 to array.size(arr) - 1
+        val = array.get(arr, i)
+        if not na(val)
+            sumSq := sumSq + math.pow(val - avg, 2)
+            count := count + 1
+    
+    count > 1 ? math.sqrt(sumSq / (count - 1)) : 0
+
+// ===== DEBUG-ENHANCED WRAPPERS =====
+
+// Add test generation to functions
+withTestGeneration(fn, functionName) =>
+    (args...) =>
+        result = fn(args...)
+        
+        if utilsDebug.enabled and utilsDebug.testGeneration
+            // Create test label
+            label = functionName + "("
+            for i = 0 to array.size(args) - 1
+                if i > 0
+                    label := label + ", "
+                label := label + str.tostring(args[i])
+            label := label + ")"
+            
+            // Collect test data
+            collectTestData(args[0] if array.size(args) > 0 else 0, result, label)
+        
+        result
+
+// Add coverage tracking
+withCoverageTracking(fn, functionName) =>
+    (args...) =>
+        if utilsDebug.enabled and utilsDebug.trackCoverage
+            debug.registerFunction(functionName)
+            result = fn(args...)
+            debug.markFunctionExecuted(functionName)
+            result
+        else
+            fn(args...)
+
+// Combined wrapper
+withDebugging(fn, functionName) =>
+    wrappedFn = withCoverageTracking(fn, functionName)
+    wrappedFn = withTestGeneration(wrappedFn, functionName)
+    wrappedFn
+
+// ===== DEBUG-ENHANCED UTILITIES =====
+
+safeDivideDebug = withDebugging(safeDivide, "safeDivide")
+percentageChangeDebug = withDebugging(percentageChange, "percentageChange")
+normalizeDebug = withDebugging(normalize, "normalize")
+arrayAverageDebug = withDebugging(arrayAverage, "arrayAverage")
+stdDevDebug = withDebugging(stdDev, "stdDev")
+
+// ===== USAGE EXAMPLES =====
+
+// Example 1: Safe division
+priceChange = close - close[1]
+priceChangePct = safeDivideDebug(priceChange, close[1], 0) * 100
+
+// Example 2: Percentage change
+rsi = ta.rsi(close, 14)
+rsiChange = percentageChangeDebug(rsi, rsi[1])
+
+// Example 3: Normalization
+high20 = ta.highest(high, 20)
+low20 = ta.lowest(low, 20)
+normalizedPrice = normalizeDebug(close, low20, high20)
+
+// Example 4: Array operations
+priceArray = array.new_float(0)
+for i = 0 to 9
+    array.push(priceArray, close[i])
+
+avgPrice = arrayAverageDebug(priceArray)
+priceStdDev = stdDevDebug(priceArray)
+
+// Example 5: Combined operations
+volatility = safeDivideDebug(priceStdDev, avgPrice, 0) * 100
+
+// ===== VISUALIZATION =====
+
+// Plot normalized price
+plot(normalizedPrice * 100, "Normalized Price %", color=color.new(color.blue, 0), linewidth=2)
+
+// Plot percentage change
+plot(priceChangePct, "Price Change %", color=color.new(color.green, 70), linewidth=1)
+plot(rsiChange, "RSI Change %", color=color.new(color.purple, 70), linewidth=1)
+
+// Plot volatility
+plot(volatility, "Volatility %", color=color.new(color.orange, 0), linewidth=1, style=plot.style_columns)
+
+// Reference lines
+hline(0, "Zero", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
+hline(100, "Max", color=color.new(color.red, 30), linestyle=hline.style_dashed)
+hline(-100, "Min", color=color.new(color.green, 30), linestyle=hline.style_dashed)
+
+// ===== DEBUG VISUALIZATION =====
+
+if utilsDebug.enabled and utilsDebug.level >= 1
+    // Show current values
+    currentValues = [
+        ["Price Change", str.tostring(priceChangePct, "#.##") + "%"],
+        ["RSI Change", str.tostring(rsiChange, "#.##") + "%"],
+        ["Normalized", str.tostring(normalizedPrice * 100, "#.##") + "%"],
+        ["Volatility", str.tostring(volatility, "#.##") + "%"]
+    ]
+    
+    // Simple table display
+    for i = 0 to array.size(currentValues) - 1
+        [label, value] = array.get(currentValues, i)
+        yPos = high * (1.02 - i * 0.01)
+        label.new(bar_index, yPos, label + ": " + value,
+                 color=color.new(color.gray, 80),
+                 style=label.style_label_right,
+                 textcolor=color.white,
+                 size=size.small,
+                 yloc=yloc.price)
+
+if utilsDebug.enabled and utilsDebug.level >= 2 and barstate.islast
+    // Show test data summary
+    testSummary = "=== TEST DATA SUMMARY ===\n"
+    testSummary := testSummary + "Test cases collected: " + str.tostring(array.size(testInputs)) + "\n"
+    
+    // Show sample test cases
+    if array.size(testInputs) > 0
+        testSummary := testSummary + "\nSample tests:\n"
+        for i = 0 to math.min(array.size(testInputs) - 1, 2)
+            labelText = array.get(testLabels, i)
+            inputVal = array.get(testInputs, i)
+            outputVal = array.get(testOutputs, i)
+            
+            testSummary := testSummary + labelText + " = " + str.tostring(outputVal, "#.##") + "\n"
+    
+    label.new(bar_index, low, testSummary,
+             color=color.new(color.green, 90),
+             style=label.style_label_up,
+             textcolor=color.white,
+             size=size.small)
+
+if utilsDebug.enabled and utilsDebug.level >= 3 and barstate.islast
+    // Generate test suite
+    testSuite = "// AUTO-GENERATED MATH UTILS TEST SUITE\n"
+    testSuite := testSuite + "// Generated from " + str.tostring(array.size(testInputs)) + " test cases\n\n"
+    
+    for i = 0 to array.size(testInputs) - 1
+        if i < 5  // Limit to 5 tests in display
+            label = array.get(testLabels, i)
+            inputVal = array.get(testInputs, i)
+            outputVal = array.get(testOutputs, i)
+            
+            testSuite := testSuite + "// Test: " + label + "\n"
+            testSuite := testSuite + "// Expected: " + str.tostring(outputVal, "#.##") + "\n"
+            testSuite := testSuite + "// Actual: [IMPLEMENT TEST]\n\n"
+    
+    // Display test suite
+    label.new(bar_index, high * 0.9, "Generated " + str.tostring(array.size(testInputs)) + " test cases",
+             color=color.new(color.blue, 90),
+             style=label.style_label_center,
+             textcolor=color.white,
+             size=size.normal)
+
+// ===== PERFORMANCE MONITORING =====
+
+// Track execution time for utility functions
+var float totalUtilTime = 0.0
+var int utilCalls = 0
+
+monitorUtilPerformance(fn, label) =>
+    (args...) =>
+        startTime = timenow
+        result = fn(args...)
+        endTime = timenow
+        
+        if utilsDebug.enabled
+            elapsed = endTime - startTime
+            totalUtilTime := totalUtilTime + elapsed
+            utilCalls := utilCalls + 1
+            
+            if utilsDebug.level >= 2 and utilCalls % 10 == 0
+                avgTime = totalUtilTime / utilCalls
+                debugLabel = label + ": " + str.tostring(avgTime, "#.##") + "ms avg"
+                label.new(bar_index, high, debugLabel,
+                         color=color.new(color.gray, 50),
+                         style=label.style_label_down,
+                         size=size.tiny)
+        
+        result
+
+// Apply performance monitoring to utilities
+monitoredUtils = {
+    "safeDivide": monitorUtilPerformance(safeDivideDebug, "safeDivide"),
+    "percentageChange": monitorUtilPerformance(percentageChangeDebug, "pctChange"),
+    "normalize": monitorUtilPerformance(normalizeDebug, "normalize"),
+    "arrayAverage": monitorUtilPerformance(arrayAverageDebug, "arrayAvg"),
+    "stdDev": monitorUtilPerformance(stdDevDebug, "stdDev")
+}
+
+// ===== LIBRARY SUMMARY =====
+
+if utilsDebug.enabled and barstate.islast
+    summary = "=== MATH UTILS LIBRARY ===\n"
+    summary := summary + "Functions available:\n"
+    summary := summary + "1. safeDivide(a, b, default)\n"
+    summary := summary + "2. percentageChange(current, previous)\n"
+    summary := summary + "3. normalize(value, min, max)\n"
+    summary := summary + "4. arrayAverage(array)\n"
+    summary := summary + "5. stdDev(array)\n\n"
+    
+    if utilsDebug.trackCoverage
+        summary := summary + "Coverage tracking: ENABLED\n"
+    
+    if utilsDebug.testGeneration
+        summary := summary + "Test generation: ENABLED\n"
+        summary := summary + "Test cases: " + str.tostring(array.size(testInputs)) + "\n"
+    
+    if utilCalls > 0
+        avgTime = totalUtilTime / utilCalls
+        summary := summary + "Avg exec time: " + str.tostring(avgTime, "#.##") + "ms\n"
+        summary := summary + "Total calls: " + str.tostring(utilCalls)
+    
+    label.new(bar_index, high * 1.05, summary,
+             color=color.new(color.purple, 90),
+             style=label.style_label_down,
+             textcolor=color.white,
+             size=size.small,
+             yloc=yloc.price)
+
+// ===== INTEGRATION NOTES =====
+/*
+LIBRARY INTEGRATION GUIDE:
+
+1. REUSABILITY:
+   - Functions are independent and reusable
+   - Debug wrappers can be added/removed easily
+   - Configuration controls debug features
+
+2. DEBUGGING FEATURES:
+   - Test generation from real usage
+   - Coverage tracking for testing completeness
+   - Performance monitoring
+   - Level-based debug controls
+
+3. PERFORMANCE:
+   - Lightweight wrappers
+   - Conditional execution
+   - Sampling for heavy operations
+   - TV-optimized versions available
+
+4. DEPLOYMENT:
+   - Set utilsDebug.enabled to false for production
+   - Keep test generation for development only
+   - Use appropriate debug levels
+   - Monitor performance impact
+
+5. EXTENSION:
+   - Add new utility functions easily
+   - Extend debug wrappers as needed
+   - Create specialized versions for different use cases
+*/

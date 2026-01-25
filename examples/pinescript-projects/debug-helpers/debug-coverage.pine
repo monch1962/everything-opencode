@@ -1,0 +1,417 @@
+//@version=5
+indicator("Debug Code Coverage", overlay=false)
+
+// ========== CODE COVERAGE CONFIGURATION ==========
+
+// Enable/disable code coverage tracking
+coverageEnabled = input.bool(true, "Enable Code Coverage", group="Code Coverage")
+
+// Coverage granularity
+trackFunctions = input.bool(true, "Track Function Coverage", group="Code Coverage")
+trackConditions = input.bool(true, "Track Condition Coverage", group="Code Coverage")
+trackLoops = input.bool(true, "Track Loop Coverage", group="Code Coverage")
+
+// Coverage reporting
+showCoverageTable = input.bool(true, "Show Coverage Table", group="Code Coverage")
+generateReport = input.bool(true, "Generate Coverage Report", group="Code Coverage")
+
+// ========== COVERAGE TRACKING DATA STRUCTURES ==========
+
+// Function coverage tracking
+var string[] coveredFunctions = array.new_string(0)
+var string[] allFunctions = array.new_string(0)
+
+// Condition coverage tracking
+var int coveredConditions = 0
+var int totalConditions = 0
+
+// Loop coverage tracking
+var int coveredLoops = 0
+var int totalLoops = 0
+
+// Line coverage tracking
+var int[] coveredLines = array.new_int(0)
+var int[] executedLines = array.new_int(0)
+
+// Branch coverage tracking
+var int coveredBranches = 0
+var int totalBranches = 0
+
+// ========== COVERAGE TRACKING FUNCTIONS ==========
+
+/**
+ * Register a function for coverage tracking
+ */
+debug.registerFunction(name) =>
+    if coverageEnabled
+        array.push(allFunctions, name)
+        true
+    else
+        false
+
+/**
+ * Mark a function as executed
+ */
+debug.markFunctionExecuted(name) =>
+    if coverageEnabled
+        // Add to covered functions if not already there
+        found = false
+        for i = 0 to array.size(coveredFunctions) - 1
+            if array.get(coveredFunctions, i) == name
+                found := true
+                break
+        
+        if not found
+            array.push(coveredFunctions, name)
+        
+        true
+    else
+        false
+
+/**
+ * Register a condition for coverage tracking
+ */
+debug.registerCondition() =>
+    if coverageEnabled
+        totalConditions := totalConditions + 1
+        true
+    else
+        false
+
+/**
+ * Mark a condition as executed
+ */
+debug.markConditionExecuted() =>
+    if coverageEnabled and trackConditions
+        coveredConditions := coveredConditions + 1
+        true
+    else
+        false
+
+/**
+ * Register a loop for coverage tracking
+ */
+debug.registerLoop() =>
+    if coverageEnabled
+        totalLoops := totalLoops + 1
+        true
+    else
+        false
+
+/**
+ * Mark a loop as executed
+ */
+debug.markLoopExecuted() =>
+    if coverageEnabled and trackLoops
+        coveredLoops := coveredLoops + 1
+        true
+    else
+        false
+
+/**
+ * Mark a line as executed
+ */
+debug.markLineExecuted(lineNumber) =>
+    if coverageEnabled
+        // Check if line is already marked
+        found = false
+        for i = 0 to array.size(executedLines) - 1
+            if array.get(executedLines, i) == lineNumber
+                found := true
+                break
+        
+        if not found
+            array.push(executedLines, lineNumber)
+        
+        true
+    else
+        false
+
+/**
+ * Mark a line as covered (declared in code)
+ */
+debug.markLineCovered(lineNumber) =>
+    if coverageEnabled
+        // Check if line is already marked
+        found = false
+        for i = 0 to array.size(coveredLines) - 1
+            if array.get(coveredLines, i) == lineNumber
+                found := true
+                break
+        
+        if not found
+            array.push(coveredLines, lineNumber)
+        
+        true
+    else
+        false
+
+/**
+ * Register a branch for coverage tracking
+ */
+debug.registerBranch() =>
+    if coverageEnabled
+        totalBranches := totalBranches + 1
+        true
+    else
+        false
+
+/**
+ * Mark a branch as executed
+ */
+debug.markBranchExecuted() =>
+    if coverageEnabled
+        coveredBranches := coveredBranches + 1
+        true
+    else
+        false
+
+// ========== COVERAGE CALCULATION FUNCTIONS ==========
+
+/**
+ * Calculate function coverage percentage
+ */
+debug.getFunctionCoverage() =>
+    if array.size(allFunctions) == 0
+        100.0
+    else
+        (array.size(coveredFunctions) / array.size(allFunctions)) * 100
+
+/**
+ * Calculate condition coverage percentage
+ */
+debug.getConditionCoverage() =>
+    if totalConditions == 0
+        100.0
+    else
+        (coveredConditions / totalConditions) * 100
+
+/**
+ * Calculate loop coverage percentage
+ */
+debug.getLoopCoverage() =>
+    if totalLoops == 0
+        100.0
+    else
+        (coveredLoops / totalLoops) * 100
+
+/**
+ * Calculate line coverage percentage
+ */
+debug.getLineCoverage() =>
+    if array.size(coveredLines) == 0
+        100.0
+    else
+        (array.size(executedLines) / array.size(coveredLines)) * 100
+
+/**
+ * Calculate branch coverage percentage
+ */
+debug.getBranchCoverage() =>
+    if totalBranches == 0
+        100.0
+    else
+        (coveredBranches / totalBranches) * 100
+
+/**
+ * Calculate overall coverage percentage
+ */
+debug.getOverallCoverage() =>
+    functionCoverage = debug.getFunctionCoverage()
+    conditionCoverage = debug.getConditionCoverage()
+    loopCoverage = debug.getLoopCoverage()
+    lineCoverage = debug.getLineCoverage()
+    branchCoverage = debug.getBranchCoverage()
+    
+    // Weighted average
+    (functionCoverage * 0.2 + conditionCoverage * 0.2 + loopCoverage * 0.1 + lineCoverage * 0.3 + branchCoverage * 0.2)
+
+// ========== COVERAGE REPORTING FUNCTIONS ==========
+
+/**
+ * Generate coverage report
+ */
+debug.generateCoverageReport() =>
+    if coverageEnabled and barstate.islast
+        report = "=== CODE COVERAGE REPORT ===\n\n"
+        
+        // Overall coverage
+        overall = debug.getOverallCoverage()
+        report := report + "Overall Coverage: " + str.tostring(overall, "#.##") + "%\n\n"
+        
+        // Detailed coverage
+        report := report + "Detailed Coverage:\n"
+        report := report + "  Functions: " + str.tostring(debug.getFunctionCoverage(), "#.##") + "% (" + 
+                  str.tostring(array.size(coveredFunctions)) + "/" + str.tostring(array.size(allFunctions)) + ")\n"
+        report := report + "  Conditions: " + str.tostring(debug.getConditionCoverage(), "#.##") + "% (" + 
+                  str.tostring(coveredConditions) + "/" + str.tostring(totalConditions) + ")\n"
+        report := report + "  Loops: " + str.tostring(debug.getLoopCoverage(), "#.##") + "% (" + 
+                  str.tostring(coveredLoops) + "/" + str.tostring(totalLoops) + ")\n"
+        report := report + "  Lines: " + str.tostring(debug.getLineCoverage(), "#.##") + "% (" + 
+                  str.tostring(array.size(executedLines)) + "/" + str.tostring(array.size(coveredLines)) + ")\n"
+        report := report + "  Branches: " + str.tostring(debug.getBranchCoverage(), "#.##") + "% (" + 
+                  str.tostring(coveredBranches) + "/" + str.tostring(totalBranches) + ")\n\n"
+        
+        // Uncovered functions
+        uncoveredFunctions = []
+        for i = 0 to array.size(allFunctions) - 1
+            funcName = array.get(allFunctions, i)
+            found = false
+            for j = 0 to array.size(coveredFunctions) - 1
+                if array.get(coveredFunctions, j) == funcName
+                    found := true
+                    break
+            
+            if not found
+                array.push(uncoveredFunctions, funcName)
+        
+        if array.size(uncoveredFunctions) > 0
+            report := report + "Uncovered Functions:\n"
+            for i = 0 to array.size(uncoveredFunctions) - 1
+                report := report + "  - " + array.get(uncoveredFunctions, i) + "\n"
+            report := report + "\n"
+        
+        // Recommendations
+        recommendations = []
+        
+        if overall < 70
+            array.push(recommendations, "Low coverage. Add more test cases.")
+        
+        if debug.getConditionCoverage() < 80
+            array.push(recommendations, "Condition coverage is low. Test different condition paths.")
+        
+        if debug.getBranchCoverage() < 75
+            array.push(recommendations, "Branch coverage is low. Test different code branches.")
+        
+        if array.size(recommendations) > 0
+            report := report + "=== RECOMMENDATIONS ===\n"
+            for i = 0 to array.size(recommendations) - 1
+                report := report + str.tostring(i + 1) + ". " + array.get(recommendations, i) + "\n"
+        
+        report
+
+/**
+ * Display coverage table
+ */
+debug.showCoverageTable() =>
+    if coverageEnabled and showCoverageTable
+        debug.plotTable("Code Coverage", [
+            ["Overall", str.tostring(debug.getOverallCoverage(), "#.##") + "%"],
+            ["Functions", str.tostring(debug.getFunctionCoverage(), "#.##") + "%"],
+            ["Conditions", str.tostring(debug.getConditionCoverage(), "#.##") + "%"],
+            ["Loops", str.tostring(debug.getLoopCoverage(), "#.##") + "%"],
+            ["Lines", str.tostring(debug.getLineCoverage(), "#.##") + "%"],
+            ["Branches", str.tostring(debug.getBranchCoverage(), "#.##") + "%"]
+        ])
+
+/**
+ * Plot coverage trends
+ */
+debug.plotCoverageTrend() =>
+    if coverageEnabled
+        // Plot overall coverage trend
+        plot(debug.getOverallCoverage(), "Overall Coverage", color=color.blue, linewidth=2)
+        
+        // Plot thresholds
+        hline(70, "Acceptable", color=color.orange, linestyle=hline.style_dashed)
+        hline(90, "Good", color=color.green, linestyle=hline.style_dashed)
+        
+        // Plot detailed coverage
+        plot(debug.getFunctionCoverage(), "Function Coverage", color=color.purple, linewidth=1)
+        plot(debug.getConditionCoverage(), "Condition Coverage", color=color.red, linewidth=1)
+        plot(debug.getBranchCoverage(), "Branch Coverage", color=color.green, linewidth=1)
+
+// ========== AUTOMATED TEST GENERATION ==========
+
+/**
+ * Generate test cases from coverage data
+ */
+debug.generateTestCases() =>
+    if coverageEnabled and barstate.islast
+        testCases = []
+        
+        // Generate test cases for uncovered functions
+        for i = 0 to array.size(allFunctions) - 1
+            funcName = array.get(allFunctions, i)
+            found = false
+            for j = 0 to array.size(coveredFunctions) - 1
+                if array.get(coveredFunctions, j) == funcName
+                    found := true
+                    break
+            
+            if not found
+                testCase = "// Test for uncovered function: " + funcName + "\n" +
+                          "test_" + funcName + " = () =>\n" +
+                          "    // TODO: Add test logic for " + funcName + "\n" +
+                          "    debug.assert(true, \"" + funcName + " test not implemented\")\n"
+                array.push(testCases, testCase)
+        
+        // Generate test cases for low coverage areas
+        if debug.getConditionCoverage() < 80
+            array.push(testCases, "// Additional condition tests needed\n" +
+                                 "// Current condition coverage: " + str.tostring(debug.getConditionCoverage(), "#.##") + "%")
+        
+        if debug.getBranchCoverage() < 75
+            array.push(testCases, "// Additional branch tests needed\n" +
+                                 "// Current branch coverage: " + str.tostring(debug.getBranchCoverage(), "#.##") + "%")
+        
+        if array.size(testCases) > 0
+            testSuite = "// AUTO-GENERATED TEST SUITE\n" +
+                       "// Generated from coverage data\n" +
+                       "// Coverage: " + str.tostring(debug.getOverallCoverage(), "#.##") + "%\n\n"
+            
+            for i = 0 to array.size(testCases) - 1
+                testSuite := testSuite + array.get(testCases, i) + "\n\n"
+            
+            testSuite
+        else
+            "// All code paths covered. No additional tests needed."
+
+// ========== EXAMPLE USAGE ==========
+
+/*
+// Example of code coverage tracking in your indicator:
+
+//@include "debug-coverage.pine"
+
+// Register functions for coverage tracking
+myFunction() =>
+    debug.registerFunction("myFunction")
+    debug.markFunctionExecuted("myFunction")
+    // Function logic here
+    result = close * 2
+    result
+
+// Register and track conditions
+condition = close > open
+debug.registerCondition()
+if condition
+    debug.markConditionExecuted()
+    debug.markBranchExecuted()  // True branch
+    // Do something
+else
+    debug.markBranchExecuted()  // False branch
+    // Do something else
+
+// Register and track loops
+debug.registerLoop()
+for i = 0 to 9
+    debug.markLoopExecuted()
+    // Loop logic
+
+// Mark lines as covered (call this at each significant line)
+debug.markLineCovered(1)  // Line numbers would be tracked in actual usage
+
+// Show coverage information
+debug.showCoverageTable()
+debug.plotCoverageTrend()
+
+// Generate report at the end
+if barstate.islast and generateReport
+    report = debug.generateCoverageReport()
+    debug.log(report)
+    
+    // Generate test cases
+    testSuite = debug.generateTestCases()
+    debug.log("\n=== GENERATED TEST SUITE ===\n" + testSuite)
+*/

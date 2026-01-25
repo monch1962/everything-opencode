@@ -1,0 +1,365 @@
+// PineScript Breakpoint Debugging Helpers
+// Include in your PineScript with: //@include "debug-breakpoints.pine"
+
+// ========== BREAKPOINT CONFIGURATION ==========
+
+// Enable/disable breakpoint system
+breakpointsEnabled = input.bool(true, "Enable Breakpoints", group="Debugging")
+
+// Breakpoint conditions (can be set via debug server)
+var string[] breakpointConditions = array.new_string(0)
+var int[] breakpointLines = array.new_int(0)
+
+// Breakpoint hit tracking
+var int breakpointHitCount = 0
+var int lastBreakpointBar = 0
+var string lastBreakpointCondition = ""
+
+// ========== BREAKPOINT FUNCTIONS ==========
+
+/**
+ * Set a breakpoint condition
+ * Usage: debug.setBreakpoint("rsi < 30", "RSI oversold breakpoint")
+ */
+debug.setBreakpoint(condition, label = "") =>
+    if breakpointsEnabled
+        array.push(breakpointConditions, condition)
+        array.push(breakpointLines, bar_index)
+        if label != ""
+            debug.alert(true, "Breakpoint set: " + label, alert.freq_once_per_bar)
+        true
+    else
+        false
+
+/**
+ * Clear all breakpoints
+ */
+debug.clearBreakpoints() =>
+    array.clear(breakpointConditions)
+    array.clear(breakpointLines)
+    breakpointHitCount := 0
+    true
+
+/**
+ * Check if any breakpoint condition is met
+ * Returns: [hit: bool, condition: string, line: int]
+ */
+debug.checkBreakpoints() =>
+    var bool hit = false
+    var string hitCondition = ""
+    var int hitLine = 0
+    
+    if breakpointsEnabled and array.size(breakpointConditions) > 0
+        for i = 0 to array.size(breakpointConditions) - 1
+            condition = array.get(breakpointConditions, i)
+            line = array.get(breakpointLines, i)
+            
+            // Evaluate condition
+            conditionMet = false
+            try
+                // Simple condition evaluation
+                // Note: In production, this would use a proper expression evaluator
+                conditionMet = evalCondition(condition)
+            catch
+                conditionMet = false
+            
+            if conditionMet
+                hit := true
+                hitCondition := condition
+                hitLine := line
+                break
+    
+    [hit, hitCondition, hitLine]
+
+/**
+ * Evaluate a condition string
+ * Note: This is a simplified evaluator - in production, use a proper parser
+ */
+evalCondition(conditionStr) =>
+    // Simple evaluator for demo purposes
+    // Supports: value > threshold, value < threshold, value == threshold
+    if str.contains(conditionStr, ">")
+        parts = str.split(conditionStr, ">")
+        left = getVariableValue(str.trim(parts[0]))
+        right = getVariableValue(str.trim(parts[1]))
+        left > right
+    else if str.contains(conditionStr, "<")
+        parts = str.split(conditionStr, "<")
+        left = getVariableValue(str.trim(parts[0]))
+        right = getVariableValue(str.trim(parts[1]))
+        left < right
+    else if str.contains(conditionStr, "==") or str.contains(conditionStr, "=")
+        parts = str.split(conditionStr, str.contains(conditionStr, "==") ? "==" : "=")
+        left = getVariableValue(str.trim(parts[0]))
+        right = getVariableValue(str.trim(parts[1]))
+        left == right
+    else
+        false
+
+/**
+ * Get variable value by name
+ */
+getVariableValue(varName) =>
+    // Map common variable names to their values
+    // In production, this would use reflection or a variable registry
+    if varName == "close"
+        close
+    else if varName == "high"
+        high
+    else if varName == "low"
+        low
+    else if varName == "volume"
+        volume
+    else if varName == "bar_index"
+        bar_index
+    else
+        // Try to parse as number
+        num = str.tonumber(varName)
+        na(num) ? 0 : num
+
+// ========== BREAKPOINT VISUALIZATION ==========
+
+/**
+ * Visualize breakpoint hits
+ */
+debug.visualizeBreakpoints() =>
+    [hit, condition, line] = debug.checkBreakpoints()
+    
+    if hit
+        // Update tracking
+        breakpointHitCount := breakpointHitCount + 1
+        lastBreakpointBar := bar_index
+        lastBreakpointCondition := condition
+        
+        // Visual indicators
+        plotshape(true, "Breakpoint Hit", shape.xcross, location.abovebar, 
+                 color=color.new(color.orange, 0), size=size.normal)
+        
+        label.new(bar_index, high, "Breakpoint: " + condition, 
+                 color=color.new(color.orange, 0), textcolor=color.white,
+                 style=label.style_label_down, size=size.normal)
+        
+        // Alert
+        debug.alert(true, "Breakpoint hit: " + condition + " at bar " + str.tostring(bar_index), 
+                   alert.freq_once_per_bar)
+        
+        true
+    else
+        false
+
+/**
+ * Display breakpoint status
+ */
+debug.showBreakpointStatus() =>
+    if barstate.islast
+        // Show breakpoint count
+        plotchar(breakpointHitCount, "Breakpoints Hit: " + str.tostring(breakpointHitCount),
+                location=location.top, size=size.tiny, color=color.new(color.orange, 0))
+        
+        // Show active breakpoints
+        activeCount = array.size(breakpointConditions)
+        plotchar(activeCount, "Active Breakpoints: " + str.tostring(activeCount),
+                location=location.top - 1, size=size.tiny, color=color.new(color.blue, 0))
+        
+        // Show last hit
+        if breakpointHitCount > 0
+            plotchar(lastBreakpointBar, "Last at bar: " + str.tostring(lastBreakpointBar),
+                    location=location.top - 2, size=size.tiny, color=color.new(color.red, 0))
+
+// ========== CONDITIONAL BREAKPOINTS ==========
+
+/**
+ * Breakpoint when variable crosses threshold
+ */
+debug.breakOnCross(variable, threshold, direction = "above") =>
+    condition = variable + (direction == "above" ? " > " : " < ") + str.tostring(threshold)
+    debug.setBreakpoint(condition, variable + " crosses " + str.tostring(threshold))
+
+/**
+ * Breakpoint when indicator gives signal
+ */
+debug.breakOnSignal(indicator, signalType = "buy") =>
+    condition = indicator + (signalType == "buy" ? " == true" : " == false")
+    debug.setBreakpoint(condition, signalType + " signal from " + indicator)
+
+/**
+ * Breakpoint on bar number
+ */
+debug.breakOnBar(barNumber) =>
+    condition = "bar_index == " + str.tostring(barNumber)
+    debug.setBreakpoint(condition, "Bar " + str.tostring(barNumber))
+
+// ========== STEP-THROUGH DEBUGGING ==========
+
+// Step-through debugging state
+var bool stepMode = false
+var int stepBar = 0
+var int stepCount = 0
+
+/**
+ * Enable step-through debugging
+ */
+debug.enableStepMode() =>
+    stepMode := true
+    stepBar := bar_index
+    stepCount := 0
+    debug.alert(true, "Step mode enabled", alert.freq_once_per_bar)
+    true
+
+/**
+ * Disable step-through debugging
+ */
+debug.disableStepMode() =>
+    stepMode := false
+    debug.alert(true, "Step mode disabled", alert.freq_once_per_bar)
+    true
+
+/**
+ * Execute one step
+ */
+debug.step() =>
+    if stepMode
+        stepCount := stepCount + 1
+        stepBar := bar_index
+        
+        // Visual indicator
+        plotshape(true, "Step " + str.tostring(stepCount), shape.circle, location.belowbar,
+                 color=color.new(color.green, 0), size=size.small)
+        
+        // Alert
+        debug.alert(true, "Step " + str.tostring(stepCount) + " at bar " + str.tostring(bar_index),
+                   alert.freq_once_per_bar)
+        
+        true
+    else
+        false
+
+/**
+ * Check if should pause execution (for step mode)
+ */
+debug.shouldPause() =>
+    stepMode and bar_index > stepBar
+
+// ========== WATCH EXPRESSIONS ==========
+
+// Watch expression tracking
+var string[] watchExpressions = array.new_string(0)
+var float[] watchValues = array.new_float(0)
+
+/**
+ * Add a watch expression
+ */
+debug.addWatch(expression) =>
+    array.push(watchExpressions, expression)
+    array.push(watchValues, 0)
+    true
+
+/**
+ * Remove a watch expression
+ */
+debug.removeWatch(index) =>
+    if index >= 0 and index < array.size(watchExpressions)
+        array.remove(watchExpressions, index)
+        array.remove(watchValues, index)
+        true
+    else
+        false
+
+/**
+ * Update watch values
+ */
+debug.updateWatches() =>
+    for i = 0 to array.size(watchExpressions) - 1
+        expression = array.get(watchExpressions, i)
+        value = evalExpression(expression)
+        array.set(watchValues, i, value)
+    true
+
+/**
+ * Display watch values
+ */
+debug.showWatches() =>
+    if barstate.islast
+        for i = 0 to array.size(watchExpressions) - 1
+            expression = array.get(watchExpressions, i)
+            value = array.get(watchValues, i)
+            
+            plotchar(value, expression + ": " + str.tostring(value, "#.##"),
+                    location=location.top - 3 - i, size=size.tiny, 
+                    color=color.new(color.purple, 0))
+
+/**
+ * Evaluate an expression
+ */
+evalExpression(expr) =>
+    // Simplified evaluator
+    if expr == "close"
+        close
+    else if expr == "high"
+        high
+    else if expr == "low"
+        low
+    else if expr == "volume"
+        volume
+    else
+        na
+
+// ========== INTEGRATION WITH DEBUG SERVER ==========
+
+/**
+ * Generate debug data for server
+ */
+debug.getDebugData() =>
+    // Current variable values
+    variables = "close:" + str.tostring(close) + ",high:" + str.tostring(high) + 
+               ",low:" + str.tostring(low) + ",volume:" + str.tostring(volume)
+    
+    // Breakpoint status
+    bpStatus = "active:" + str.tostring(array.size(breakpointConditions)) + 
+              ",hits:" + str.tostring(breakpointHitCount)
+    
+    // Watch values
+    watchData = ""
+    for i = 0 to array.size(watchExpressions) - 1
+        if i > 0
+            watchData := watchData + ","
+        watchData := watchData + array.get(watchExpressions, i) + ":" + 
+                    str.tostring(array.get(watchValues, i), "#.##")
+    
+    variables + "|" + bpStatus + "|" + watchData
+
+// ========== EXAMPLE USAGE ==========
+/*
+// Example 1: Basic breakpoints
+debug.setBreakpoint("close > 100", "Price above 100")
+debug.setBreakpoint("rsi < 30", "RSI oversold")
+
+// Example 2: Step debugging  
+debug.enableStepMode()
+// Code will pause after each bar until you call debug.step()
+
+// Example 3: Watch expressions
+debug.addWatch("close")
+debug.addWatch("ta.sma(close, 20)")
+
+// Example 4: Integration in your indicator
+myIndicator = ta.sma(close, 14)
+if debug.visualizeBreakpoints()
+    // Breakpoint was hit - you could add special logic here
+    debug.plot(myIndicator, "Indicator at breakpoint", color=color.red)
+
+// Always update and display
+debug.updateWatches()
+debug.showWatches()
+debug.showBreakpointStatus()
+*/
+
+// ========== INITIALIZATION ==========
+// Initialize debug namespace
+var debug = na
+debug := true
+
+// Display initialization status
+if barstate.islast and breakpointsEnabled
+    plotchar(true, "Breakpoint System Active", location=location.top, 
+            size=size.tiny, color=color.new(color.green, 0))

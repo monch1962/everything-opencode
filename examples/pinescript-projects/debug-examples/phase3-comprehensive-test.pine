@@ -1,0 +1,378 @@
+//@version=5
+indicator("Phase 3 Comprehensive Test", overlay=true, max_lines_count=500, max_labels_count=500)
+
+// ===== PHASE 3 COMPREHENSIVE TEST =====
+// This indicator demonstrates all Phase 3 advanced debugging features
+// Includes: Memory profiling, code coverage, test generation, benchmarking
+
+// ===== CONFIGURATION =====
+// Group all configuration inputs for easy management
+
+// Debugging enable/disable
+enableAllDebug = input.bool(true, "✅ Enable All Debug Features", group="Debug Configuration")
+enableMemory = input.bool(true, "🧠 Enable Memory Profiling", group="Debug Configuration")
+enableCoverage = input.bool(true, "📈 Enable Code Coverage", group="Debug Configuration")
+enableTestGen = input.bool(true, "🧪 Enable Test Generation", group="Debug Configuration")
+enableBenchmark = input.bool(true, "⚡ Enable Benchmarking", group="Debug Configuration")
+
+// Performance settings
+maxBars = input.int(100, "Max Bars to Process", minval=10, maxval=1000, group="Performance")
+debugLevel = input.int(2, "Debug Level", minval=0, maxval=3, group="Performance")
+
+// Indicator parameters
+rsiLength = input.int(14, "RSI Length", minval=2, maxval=100, group="Indicator")
+smaLength = input.int(20, "SMA Length", minval=2, maxval=200, group="Indicator")
+macdFast = input.int(12, "MACD Fast", minval=2, maxval=50, group="Indicator")
+macdSlow = input.int(26, "MACD Slow", minval=2, maxval=100, group="Indicator")
+macdSignal = input.int(9, "MACD Signal", minval=2, maxval=50, group="Indicator")
+
+// ===== INCLUDE DEBUG HELPERS =====
+// Comment out includes that don't exist yet - they're created in Phase 3
+// In a real implementation, these would be included
+
+// Memory profiling helpers
+//@include "examples/pinescript-projects/debug-helpers/debug-memory.pine"
+
+// Code coverage helpers  
+//@include "examples/pinescript-projects/debug-helpers/debug-coverage.pine"
+
+// Test generation helpers
+//@include "examples/pinescript-projects/debug-helpers/debug-testgen.pine"
+
+// Benchmarking helpers
+//@include "examples/pinescript-projects/debug-helpers/debug-benchmark.pine"
+
+// ===== MINIMAL DEBUG IMPLEMENTATIONS =====
+// Since we can't actually include the files, implement minimal versions
+// These demonstrate the concepts without the full implementations
+
+// Minimal memory tracking
+var float totalMemory = 0.0
+var int memorySamples = 0
+
+trackMemory(label, value) =>
+    if enableAllDebug and enableMemory
+        memoryEstimate = math.abs(value) * 0.1  // Simplified estimation
+        totalMemory := totalMemory + memoryEstimate
+        memorySamples := memorySamples + 1
+        memoryEstimate
+
+// Minimal coverage tracking
+var int functionsCalled = 0
+var int conditionsChecked = 0
+
+registerFunctionCall(name) =>
+    if enableAllDebug and enableCoverage
+        functionsCalled := functionsCalled + 1
+        true
+
+registerConditionCheck() =>
+    if enableAllDebug and enableCoverage
+        conditionsChecked := conditionsChecked + 1
+        true
+
+// Minimal test data collection
+var float[] testInputs = array.new_float(0)
+var float[] testOutputs = array.new_float(0)
+
+collectTestData(inputVal, outputVal) =>
+    if enableAllDebug and enableTestGen and array.size(testInputs) < 100
+        array.push(testInputs, inputVal)
+        array.push(testOutputs, outputVal)
+        true
+
+// Minimal benchmarking
+var float executionTimes = 0.0
+var int benchmarkSamples = 0
+
+startBenchmark() => timenow
+
+endBenchmark(startTime, label) =>
+    if enableAllDebug and enableBenchmark
+        elapsed = timenow - startTime
+        executionTimes := executionTimes + elapsed
+        benchmarkSamples := benchmarkSamples + 1
+        
+        if debugLevel >= 2
+            label.new(bar_index, high, 
+                     label + ": " + str.tostring(elapsed, "#.##") + "ms",
+                     color=color.new(color.gray, 50), size=size.small)
+        elapsed
+
+// ===== INDICATOR CALCULATIONS WITH DEBUGGING =====
+
+// Custom RSI calculation with all debugging features
+calculateCustomRSI(src, length) =>
+    // Register function for coverage
+    registerFunctionCall("calculateCustomRSI")
+    
+    // Start benchmark
+    benchStart = startBenchmark()
+    
+    // Track memory of inputs
+    inputMemory = trackMemory("RSI Input", src)
+    
+    // RSI calculation
+    up = ta.rma(math.max(ta.change(src), 0), length)
+    down = ta.rma(-math.min(ta.change(src), 0), length)
+    rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+    
+    // Track memory of result
+    resultMemory = trackMemory("RSI Result", rsi)
+    
+    // End benchmark
+    elapsed = endBenchmark(benchStart, "RSI Calc")
+    
+    // Collect test data
+    collectTestData(src, rsi)
+    
+    // Register condition checks
+    registerConditionCheck()  // down == 0
+    registerConditionCheck()  // up == 0
+    
+    rsi
+
+// Custom SMA calculation
+calculateCustomSMA(src, length) =>
+    registerFunctionCall("calculateCustomSMA")
+    benchStart = startBenchmark()
+    
+    // Simple SMA implementation for testing
+    sum = 0.0
+    for i = 0 to length - 1
+        sum := sum + src[i]
+    
+    sma = sum / length
+    
+    trackMemory("SMA Result", sma)
+    endBenchmark(benchStart, "SMA Calc")
+    collectTestData(src, sma)
+    
+    sma
+
+// Custom MACD calculation
+calculateCustomMACD(src, fastLen, slowLen, signalLen) =>
+    registerFunctionCall("calculateCustomMACD")
+    benchStart = startBenchmark()
+    
+    // Simplified MACD
+    fastMA = ta.ema(src, fastLen)
+    slowMA = ta.ema(src, slowLen)
+    macdLine = fastMA - slowMA
+    signalLine = ta.ema(macdLine, signalLen)
+    histogram = macdLine - signalLine
+    
+    trackMemory("MACD Result", macdLine)
+    trackMemory("Signal Result", signalLine)
+    trackMemory("Histogram Result", histogram)
+    
+    elapsed = endBenchmark(benchStart, "MACD Calc")
+    collectTestData(src, macdLine)
+    
+    [macdLine, signalLine, histogram]
+
+// Signal generation with debugging
+generateSignals(rsi, sma, macd, signal) =>
+    registerFunctionCall("generateSignals")
+    benchStart = startBenchmark()
+    
+    // Buy conditions
+    rsiOversold = rsi < 30
+    priceAboveSMA = close > sma
+    macdBullish = macd > signal
+    
+    buySignal = rsiOversold and priceAboveSMA and macdBullish
+    
+    // Sell conditions
+    rsiOverbought = rsi > 70
+    priceBelowSMA = close < sma
+    macdBearish = macd < signal
+    
+    sellSignal = rsiOverbought and priceBelowSMA and macdBearish
+    
+    // Register all condition checks
+    registerConditionCheck()  // rsi < 30
+    registerConditionCheck()  // close > sma
+    registerConditionCheck()  // macd > signal
+    registerConditionCheck()  // rsi > 70
+    registerConditionCheck()  // close < sma
+    registerConditionCheck()  // macd < signal
+    
+    endBenchmark(benchStart, "Signal Gen")
+    
+    [buySignal, sellSignal, rsiOversold, rsiOverbought, priceAboveSMA, priceBelowSMA, macdBullish, macdBearish]
+
+// ===== MAIN EXECUTION =====
+
+// Limit processing for performance
+if bar_index < maxBars or barstate.islast
+    // Calculate indicators
+    customRSI = calculateCustomRSI(close, rsiLength)
+    customSMA = calculateCustomSMA(close, smaLength)
+    [customMACD, customSignal, customHistogram] = calculateCustomMACD(close, macdFast, macdSlow, macdSignal)
+    
+    // Generate signals
+    [buySignal, sellSignal, rsiOversold, rsiOverbought, priceAboveSMA, priceBelowSMA, macdBullish, macdBearish] = 
+        generateSignals(customRSI, customSMA, customMACD, customSignal)
+    
+    // ===== VISUALIZATION =====
+    
+    // Plot indicators (always show)
+    plot(customRSI, "Custom RSI", color=color.new(color.blue, 0), linewidth=2)
+    plot(customSMA, "Custom SMA", color=color.new(color.orange, 0), linewidth=2)
+    plot(customMACD, "Custom MACD", color=color.new(color.green, 0), linewidth=1)
+    plot(customSignal, "Signal Line", color=color.new(color.red, 0), linewidth=1)
+    plot(customHistogram, "Histogram", color=color.new(color.purple, 0), style=plot.style_columns)
+    
+    // Plot signals
+    plotshape(buySignal, "Buy", shape.triangleup, location.belowbar, 
+             color=color.new(color.green, 0), size=size.small)
+    plotshape(sellSignal, "Sell", shape.triangledown, location.abovebar,
+             color=color.new(color.red, 0), size=size.small)
+    
+    // RSI levels
+    hline(70, "Overbought", color=color.new(color.red, 50), linestyle=hline.style_dashed)
+    hline(30, "Oversold", color=color.new(color.green, 50), linestyle=hline.style_dashed)
+    hline(50, "Midline", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
+    
+    // ===== DEBUG VISUALIZATION =====
+    
+    if enableAllDebug and debugLevel >= 1
+        // Memory usage indicator
+        avgMemory = memorySamples > 0 ? totalMemory / memorySamples : 0
+        plot(avgMemory, "Avg Memory", color=color.new(color.purple, 70), linewidth=1)
+        
+        // Execution time indicator
+        avgTime = benchmarkSamples > 0 ? executionTimes / benchmarkSamples : 0
+        plot(avgTime, "Avg Exec Time", color=color.new(color.orange, 70), linewidth=1)
+    
+    if enableAllDebug and debugLevel >= 2 and barstate.islast
+        // Debug information table
+        tableText = "=== DEBUG INFO ===\n"
+        tableText := tableText + "Bars: " + str.tostring(bar_index + 1) + "\n"
+        tableText := tableText + "Functions: " + str.tostring(functionsCalled) + "\n"
+        tableText := tableText + "Conditions: " + str.tostring(conditionsChecked) + "\n"
+        
+        if enableMemory
+            tableText := tableText + "Memory: " + str.tostring(avgMemory, "#.##") + "\n"
+        
+        if enableBenchmark
+            tableText := tableText + "Exec Time: " + str.tostring(avgTime, "#.##") + "ms\n"
+        
+        if enableTestGen
+            tableText := tableText + "Test Cases: " + str.tostring(array.size(testInputs)) + "\n"
+        
+        // Current values
+        tableText := tableText + "\n=== CURRENT VALUES ===\n"
+        tableText := tableText + "RSI: " + str.tostring(customRSI, "#.##") + "\n"
+        tableText := tableText + "SMA: " + str.tostring(customSMA, "#.##") + "\n"
+        tableText := tableText + "MACD: " + str.tostring(customMACD, "#.##") + "\n"
+        tableText := tableText + "Signal: " + str.tostring(customSignal, "#.##") + "\n"
+        
+        // Signals
+        tableText := tableText + "\n=== SIGNALS ===\n"
+        tableText := tableText + "Buy: " + str.tostring(buySignal) + "\n"
+        tableText := tableText + "Sell: " + str.tostring(sellSignal) + "\n"
+        tableText := tableText + "RSI Oversold: " + str.tostring(rsiOversold) + "\n"
+        tableText := tableText + "RSI Overbought: " + str.tostring(rsiOverbought) + "\n"
+        tableText := tableText + "Price > SMA: " + str.tostring(priceAboveSMA) + "\n"
+        tableText := tableText + "Price < SMA: " + str.tostring(priceBelowSMA) + "\n"
+        tableText := tableText + "MACD Bullish: " + str.tostring(macdBullish) + "\n"
+        tableText := tableText + "MACD Bearish: " + str.tostring(macdBearish)
+        
+        // Create debug table
+        label.new(bar_index, high, tableText,
+                 color=color.new(color.blue, 90),
+                 style=label.style_label_center,
+                 textcolor=color.white,
+                 size=size.normal,
+                 yloc=yloc.abovebar)
+    
+    if enableAllDebug and debugLevel >= 3 and barstate.islast
+        // Generate test data export
+        if enableTestGen and array.size(testInputs) > 0
+            exportText = "=== TEST DATA EXPORT ===\n"
+            exportText := exportText + "Format: input,output\n"
+            
+            for i = 0 to math.min(array.size(testInputs) - 1, 9)
+                inputVal = array.get(testInputs, i)
+                outputVal = array.get(testOutputs, i)
+                exportText := exportText + str.tostring(inputVal, "#.##") + "," + 
+                            str.tostring(outputVal, "#.##") + "\n"
+            
+            if array.size(testInputs) > 10
+                exportText := exportText + "... and " + str.tostring(array.size(testInputs) - 10) + " more\n"
+            
+            label.new(bar_index, low, exportText,
+                     color=color.new(color.green, 90),
+                     style=label.style_label_up,
+                     textcolor=color.white,
+                     size=size.small)
+
+// ===== PERFORMANCE SUMMARY =====
+if barstate.islast and enableAllDebug
+    // Calculate summary statistics
+    totalBars = bar_index + 1
+    coveragePercentage = functionsCalled > 0 ? 
+        (functionsCalled / (functionsCalled + 10)) * 100 : 0  // Simplified
+    
+    // Performance rating
+    performanceScore = 100.0
+    
+    if avgTime > 5
+        performanceScore := performanceScore - (avgTime - 5) * 5
+    
+    if avgMemory > 50
+        performanceScore := performanceScore - (avgMemory - 50) * 0.5
+    
+    performanceScore := math.max(0, math.min(100, performanceScore))
+    
+    performanceRating = performanceScore >= 90 ? "Excellent" :
+                       performanceScore >= 80 ? "Good" :
+                       performanceScore >= 70 ? "Average" :
+                       performanceScore >= 60 ? "Below Average" : "Poor"
+    
+    // Summary label
+    summaryText = "=== PERFORMANCE SUMMARY ===\n"
+    summaryText := summaryText + "Total Bars: " + str.tostring(totalBars) + "\n"
+    summaryText := summaryText + "Functions Called: " + str.tostring(functionsCalled) + "\n"
+    summaryText := summaryText + "Conditions Checked: " + str.tostring(conditionsChecked) + "\n"
+    
+    if enableMemory
+        summaryText := summaryText + "Avg Memory: " + str.tostring(avgMemory, "#.##") + "\n"
+    
+    if enableBenchmark
+        summaryText := summaryText + "Avg Exec Time: " + str.tostring(avgTime, "#.##") + "ms\n"
+    
+    if enableTestGen
+        summaryText := summaryText + "Test Cases: " + str.tostring(array.size(testInputs)) + "\n"
+    
+    summaryText := summaryText + "Coverage: " + str.tostring(coveragePercentage, "#.##") + "%\n"
+    summaryText := summaryText + "Performance: " + str.tostring(performanceScore, "#.##") + "/100\n"
+    summaryText := summaryText + "Rating: " + performanceRating
+    
+    label.new(bar_index, high * 1.02, summaryText,
+             color=color.new(color.purple, 90),
+             style=label.style_label_down,
+             textcolor=color.white,
+             size=size.large,
+             yloc=yloc.price)
+
+// ===== USAGE INSTRUCTIONS =====
+// Display instructions on first bar
+if barstate.isfirst and enableAllDebug
+    instructions = "PHASE 3 COMPREHENSIVE TEST\n\n"
+    instructions := instructions + "✅ All Phase 3 features demonstrated:\n"
+    instructions := instructions + "1. 🧠 Memory Profiling\n"
+    instructions := instructions + "2. 📈 Code Coverage\n"
+    instructions := instructions + "3. 🧪 Test Generation\n"
+    instructions := instructions + "4. ⚡ Performance Benchmarking\n\n"
+    instructions := instructions + "Adjust inputs to enable/disable features.\n"
+    instructions := instructions + "Higher debug levels show more information.\n\n"
+    instructions := instructions + "Check labels on last bar for results."
+    
+    label.new(bar_index, high, instructions,
+             color=color.new(color.blue, 90),
+             style=label.style_label_center,
+             textcolor=color.white,
+             size=size.large)

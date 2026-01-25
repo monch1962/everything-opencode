@@ -1,0 +1,185 @@
+{
+  "version": "1.0.0",
+  "description": "AI Pattern Database for PineScript Debugging",
+  "patterns": {
+    "common_errors": [
+      {
+        "id": "CE001",
+        "name": "Series Index Out of Bounds",
+        "pattern": "\\[.*\\]\\s*=\\s*.*\\[.*\\]\\s*where\\s*index\\s*<\\s*0",
+        "description": "Accessing series with negative index",
+        "severity": "high",
+        "fix": "Add boundary check: if bar_index >= length then ...",
+        "example_bad": "value = close[bar_index - 10]",
+        "example_fixed": "value = bar_index >= 10 ? close[bar_index - 10] : na"
+      },
+      {
+        "id": "CE002",
+        "name": "Division by Zero",
+        "pattern": "\\/\\s*(0|na|close\\s*-\\s*close)",
+        "description": "Potential division by zero or na",
+        "severity": "high",
+        "fix": "Add zero check: denominator != 0 ? numerator / denominator : na",
+        "example_bad": "roc = (close - close[1]) / close[1]",
+        "example_fixed": "roc = close[1] != 0 ? (close - close[1]) / close[1] : na"
+      },
+      {
+        "id": "CE003",
+        "name": "Na Propagation",
+        "pattern": "na\\s*[+\\-*/]\\s*.*|.*\\s*[+\\-*/]\\s*na",
+        "description": "Operations with na values",
+        "severity": "medium",
+        "fix": "Use nz() function to handle na values",
+        "example_bad": "sum = value1 + value2",
+        "example_fixed": "sum = nz(value1) + nz(value2)"
+      },
+      {
+        "id": "CE004",
+        "name": "Infinite Loop Risk",
+        "pattern": "for\\s+i\\s*=\\s*.*\\s+to\\s+.*\\s+by\\s*[^\\s]+\\s*do",
+        "description": "For loop with potential infinite iteration",
+        "severity": "high",
+        "fix": "Add max iteration limit or validate step direction",
+        "example_bad": "for i = 0 to 100 by -1 do",
+        "example_fixed": "if step > 0 then for i = start to stop by step do"
+      },
+      {
+        "id": "CE005",
+        "name": "Uninitialized Variables",
+        "pattern": "var\\s+\\w+\\s*=\\s*na",
+        "description": "Variables initialized to na without proper setup",
+        "severity": "medium",
+        "fix": "Initialize with default value or add initialization logic",
+        "example_bad": "var float sum = na",
+        "example_fixed": "var float sum = 0.0"
+      }
+    ],
+    "performance_issues": [
+      {
+        "id": "PI001",
+        "name": "Redundant Calculations",
+        "pattern": "ta\\.(sma|ema|rsi|macd)\\s*\\(.*\\)\\s*multiple\\s*times",
+        "description": "Same indicator calculated multiple times",
+        "severity": "medium",
+        "fix": "Store result in variable and reuse",
+        "example_bad": "sma1 = ta.sma(close, 14)\nsma2 = ta.sma(close, 14)",
+        "example_fixed": "sma14 = ta.sma(close, 14)\nsma1 = sma14\nsma2 = sma14"
+      },
+      {
+        "id": "PI002",
+        "name": "Inefficient Array Operations",
+        "pattern": "array\\.(new|push|pop|shift|unshift)\\s*in\\s*every\\s*bar",
+        "description": "Array operations on every bar causing performance hit",
+        "severity": "high",
+        "fix": "Use series operations or limit array updates",
+        "example_bad": "array.push(arr, close) on every bar",
+        "example_fixed": "if barstate.islast then array.push(arr, close)"
+      },
+      {
+        "id": "PI003",
+        "name": "Excessive Plot Calls",
+        "pattern": "plot\\s*\\(.*\\)\\s*more\\s*than\\s*10\\s*times",
+        "description": "Too many plot calls affecting rendering performance",
+        "severity": "low",
+        "fix": "Combine plots or use plotshape/plotchar for multiple items",
+        "example_bad": "plot(value1)\nplot(value2)\n... (20 times)",
+        "example_fixed": "Use plotshape for multiple signals"
+      },
+      {
+        "id": "PI004",
+        "name": "Unoptimized Loops",
+        "pattern": "for\\s+\\w+\\s*=\\s*0\\s+to\\s+1000\\s+do",
+        "description": "Large loops in PineScript (limited to 500ms execution)",
+        "severity": "high",
+        "fix": "Reduce loop size or use built-in functions",
+        "example_bad": "for i = 0 to 1000 do sum := sum + close[i]",
+        "example_fixed": "sum = math.sum(close, 1000)"
+      }
+    ],
+    "best_practices": [
+      {
+        "id": "BP001",
+        "name": "Input Validation",
+        "pattern": "input\\.\\w+\\s*without\\s*min\\s*max\\s*validation",
+        "description": "Input parameters without validation",
+        "severity": "medium",
+        "fix": "Add min/max/step validation to inputs",
+        "example_bad": "input length = 14",
+        "example_fixed": "input length = input.int(14, min=1, max=200)"
+      },
+      {
+        "id": "BP002",
+        "name": "Memory Optimization",
+        "pattern": "var\\s+\\w+\\s*=\\s*array\\.new\\_float\\(10000\\)",
+        "description": "Large arrays declared without need",
+        "severity": "medium",
+        "fix": "Use dynamic sizing or smaller arrays",
+        "example_bad": "var arr = array.new_float(10000)",
+        "example_fixed": "var arr = array.new_float(100)"
+      },
+      {
+        "id": "BP003",
+        "name": "Error Handling",
+        "pattern": "no\\s*error\\s*handling\\s*for\\s*division\\s*or\\s*array\\s*access",
+        "description": "Missing error handling for risky operations",
+        "severity": "high",
+        "fix": "Add defensive programming with checks",
+        "example_bad": "value = arr[index]",
+        "example_fixed": "value = index < array.size(arr) ? arr[index] : na"
+      },
+      {
+        "id": "BP004",
+        "name": "Code Organization",
+        "pattern": "all\\s*code\\s*in\\s*main\\s*scope",
+        "description": "No function separation or modularization",
+        "severity": "low",
+        "fix": "Extract logic into reusable functions",
+        "example_bad": "100 lines of code in main scope",
+        "example_fixed": "Define functions and call them"
+      }
+    ],
+    "tradingview_specific": [
+      {
+        "id": "TV001",
+        "name": "Security Function Misuse",
+        "pattern": "security\\s*\\(.*\\)\\s*in\\s*every\\s*calculation",
+        "description": "security() called too frequently",
+        "severity": "high",
+        "fix": "Cache security results or call conditionally",
+        "example_bad": "higherTFClose = security(syminfo.tickerid, \"D\", close)",
+        "example_fixed": "var higherTFClose = na\nif barstate.islastconfirmedhistory\n    higherTFClose := security(syminfo.tickerid, \"D\", close)"
+      },
+      {
+        "id": "TV002",
+        "name": "Repainting Issues",
+        "pattern": "\\[1\\]\\s*or\\s*\\[0\\]\\s*with\\s*current\\s*bar\\s*logic",
+        "description": "Potential repainting using future data",
+        "severity": "high",
+        "fix": "Use barstate.isconfirmed or historical data only",
+        "example_bad": "signal = close > close[1]",
+        "example_fixed": "signal = barstate.isconfirmed and close > close[1]"
+      },
+      {
+        "id": "TV003",
+        "name": "Indicator Overload",
+        "pattern": "too\\s*many\\s*ta\\.\\w+\\s*calls",
+        "description": "Too many built-in indicator calls",
+        "severity": "medium",
+        "fix": "Combine indicators or use custom calculations",
+        "example_bad": "20 different ta.*() calls",
+        "example_fixed": "Selective indicator usage"
+      }
+    ]
+  },
+  "suggestion_categories": {
+    "error_fixes": ["CE001", "CE002", "CE003", "CE004", "CE005"],
+    "performance_optimizations": ["PI001", "PI002", "PI003", "PI004"],
+    "best_practice_recommendations": ["BP001", "BP002", "BP003", "BP004"],
+    "tradingview_specific": ["TV001", "TV002", "TV003"]
+  },
+  "learning_feedback": {
+    "accepted_suggestions": [],
+    "rejected_suggestions": [],
+    "user_corrections": []
+  }
+}

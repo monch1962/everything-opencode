@@ -1,0 +1,476 @@
+//@version=5
+indicator("Debug Performance Benchmark", overlay=false)
+
+// ========== BENCHMARK CONFIGURATION ==========
+
+// Enable/disable benchmarking
+benchmarkEnabled = input.bool(true, "Enable Benchmarking", group="Performance Benchmark")
+
+// Benchmark modes
+benchmarkExecutionTime = input.bool(true, "Benchmark Execution Time", group="Performance Benchmark")
+benchmarkMemoryUsage = input.bool(true, "Benchmark Memory Usage", group="Performance Benchmark")
+benchmarkAccuracy = input.bool(true, "Benchmark Accuracy", group="Performance Benchmark")
+
+// Comparison targets
+compareToRSI = input.bool(true, "Compare to RSI", group="Performance Benchmark")
+compareToSMA = input.bool(true, "Compare to SMA", group="Performance Benchmark")
+compareToMACD = input.bool(true, "Compare to MACD", group="Performance Benchmark")
+
+// Benchmark parameters
+benchmarkIterations = input.int(100, "Benchmark Iterations", group="Performance Benchmark", minval=10, maxval=1000)
+warmupBars = input.int(50, "Warmup Bars", group="Performance Benchmark", minval=0, maxval=200)
+
+// ========== BENCHMARK DATA STRUCTURES ==========
+
+// Performance metrics
+var float[] executionTimes = array.new_float(0)
+var float[] memoryUsage = array.new_float(0)
+var float[] accuracyScores = array.new_float(0)
+
+// Comparison metrics
+var float[] rsiTimes = array.new_float(0)
+var float[] smaTimes = array.new_float(0)
+var float[] macdTimes = array.new_float(0)
+
+// Benchmark state
+var int benchmarkBar = 0
+var bool warmupComplete = false
+var int completedIterations = 0
+
+// ========== BENCHMARK FUNCTIONS ==========
+
+/**
+ * Start timing a code block
+ */
+debug.startTimer(label = "") =>
+    if benchmarkEnabled and benchmarkExecutionTime
+        // Store start time (using bar_index as proxy for execution time)
+        startBar = bar_index
+        startTime = timenow
+        
+        // Return timer ID
+        timerId = label != "" ? label : "timer_" + str.tostring(array.size(executionTimes))
+        [timerId, startBar, startTime]
+    else
+        ["", 0, 0]
+
+/**
+ * Stop timer and record execution time
+ */
+debug.stopTimer(timerInfo) =>
+    if benchmarkEnabled and benchmarkExecutionTime and timerInfo[0] != ""
+        [timerId, startBar, startTime] = timerInfo
+        
+        // Calculate elapsed time (simplified)
+        elapsedBars = bar_index - startBar
+        elapsedTime = timenow - startTime
+        
+        // Record execution time
+        array.push(executionTimes, elapsedTime)
+        
+        // Log if verbose
+        if label != ""
+            debug.log("Timer [" + timerId + "]: " + str.tostring(elapsedTime) + " ms")
+        
+        elapsedTime
+    else
+        0
+
+/**
+ * Benchmark a code block
+ */
+debug.benchmark(label, codeBlock) =>
+    if benchmarkEnabled and warmupComplete and completedIterations < benchmarkIterations
+        // Start timer
+        timer = debug.startTimer(label)
+        
+        // Execute code block
+        result = codeBlock()
+        
+        // Stop timer
+        elapsedTime = debug.stopTimer(timer)
+        
+        // Record memory usage if enabled
+        if benchmarkMemoryUsage
+            // Estimate memory usage (simplified)
+            memoryEstimate = debug.estimateMemoryUsage(codeBlock)
+            array.push(memoryUsage, memoryEstimate)
+        
+        completedIterations := completedIterations + 1
+        
+        result
+    else
+        codeBlock()
+
+/**
+ * Estimate memory usage of a code block
+ */
+debug.estimateMemoryUsage(codeBlock) =>
+    // Simplified memory estimation
+    // In a real implementation, this would analyze the code structure
+    100  // Placeholder
+
+/**
+ * Benchmark against standard indicator
+ */
+debug.benchmarkAgainstStandard(label, testCode, standardCode) =>
+    if benchmarkEnabled and warmupComplete
+        // Benchmark test code
+        testTimer = debug.startTimer("test_" + label)
+        testResult = testCode()
+        testTime = debug.stopTimer(testTimer)
+        
+        // Benchmark standard code
+        standardTimer = debug.startTimer("standard_" + label)
+        standardResult = standardCode()
+        standardTime = debug.stopTimer(standardTimer)
+        
+        // Calculate performance ratio
+        performanceRatio = standardTime > 0 ? testTime / standardTime : 1.0
+        
+        // Calculate accuracy if applicable
+        accuracy = 1.0
+        if not na(testResult) and not na(standardResult)
+            accuracy = 1.0 - math.abs(testResult - standardResult) / math.abs(standardResult)
+            array.push(accuracyScores, accuracy)
+        
+        // Store comparison
+        if label == "RSI"
+            array.push(rsiTimes, performanceRatio)
+        else if label == "SMA"
+            array.push(smaTimes, performanceRatio)
+        else if label == "MACD"
+            array.push(macdTimes, performanceRatio)
+        
+        [performanceRatio, accuracy, testTime, standardTime]
+    else
+        [1.0, 1.0, 0, 0]
+
+/**
+ * Calculate benchmark statistics
+ */
+debug.calculateBenchmarkStats() =>
+    stats = {}
+    
+    // Execution time statistics
+    if array.size(executionTimes) > 0
+        stats.executionTime = {
+            "min": array.min(executionTimes),
+            "max": array.max(executionTimes),
+            "avg": array.avg(executionTimes),
+            "median": array.median(executionTimes),
+            "samples": array.size(executionTimes)
+        }
+    
+    // Memory usage statistics
+    if array.size(memoryUsage) > 0
+        stats.memoryUsage = {
+            "min": array.min(memoryUsage),
+            "max": array.max(memoryUsage),
+            "avg": array.avg(memoryUsage),
+            "median": array.median(memoryUsage),
+            "samples": array.size(memoryUsage)
+        }
+    
+    // Accuracy statistics
+    if array.size(accuracyScores) > 0
+        stats.accuracy = {
+            "min": array.min(accuracyScores),
+            "max": array.max(accuracyScores),
+            "avg": array.avg(accuracyScores),
+            "median": array.median(accuracyScores),
+            "samples": array.size(accuracyScores)
+        }
+    
+    // Comparison statistics
+    comparisons = {}
+    
+    if array.size(rsiTimes) > 0
+        comparisons.RSI = {
+            "performanceRatio": array.avg(rsiTimes),
+            "samples": array.size(rsiTimes)
+        }
+    
+    if array.size(smaTimes) > 0
+        comparisons.SMA = {
+            "performanceRatio": array.avg(smaTimes),
+            "samples": array.size(smaTimes)
+        }
+    
+    if array.size(macdTimes) > 0
+        comparisons.MACD = {
+            "performanceRatio": array.avg(macdTimes),
+            "samples": array.size(macdTimes)
+        }
+    
+    stats.comparisons = comparisons
+    
+    stats
+
+// ========== STANDARD INDICATOR BENCHMARKS ==========
+
+/**
+ * Benchmark RSI calculation
+ */
+debug.benchmarkRSI(testRSICode) =>
+    if compareToRSI
+        standardRSI = () =>
+            ta.rsi(close, 14)
+        
+        debug.benchmarkAgainstStandard("RSI", testRSICode, standardRSI)
+    else
+        [1.0, 1.0, 0, 0]
+
+/**
+ * Benchmark SMA calculation
+ */
+debug.benchmarkSMA(testSMACode) =>
+    if compareToSMA
+        standardSMA = () =>
+            ta.sma(close, 20)
+        
+        debug.benchmarkAgainstStandard("SMA", testSMACode, standardSMA)
+    else
+        [1.0, 1.0, 0, 0]
+
+/**
+ * Benchmark MACD calculation
+ */
+debug.benchmarkMACD(testMACDCode) =>
+    if compareToMACD
+        standardMACD = () =>
+            [macdLine, signalLine, histLine] = ta.macd(close, 12, 26, 9)
+            macdLine
+        
+        debug.benchmarkAgainstStandard("MACD", testMACDCode, standardMACD)
+    else
+        [1.0, 1.0, 0, 0]
+
+// ========== PERFORMANCE SCORING ==========
+
+/**
+ * Calculate performance score
+ */
+debug.calculatePerformanceScore(stats) =>
+    score = 100.0  // Start with perfect score
+    
+    // Penalize for slow execution
+    if stats.executionTime
+        avgTime = stats.executionTime.avg
+        if avgTime > 10
+            score := score - (avgTime - 10) * 2
+    
+    // Penalize for high memory usage
+    if stats.memoryUsage
+        avgMemory = stats.memoryUsage.avg
+        if avgMemory > 150
+            score := score - (avgMemory - 150) * 0.5
+    
+    // Reward for accuracy
+    if stats.accuracy
+        avgAccuracy = stats.accuracy.avg
+        score := score + (avgAccuracy * 10)
+    
+    // Adjust based on comparisons
+    if stats.comparisons
+        for key, comparison in stats.comparisons
+            ratio = comparison.performanceRatio
+            if ratio > 1.5  // 50% slower than standard
+                score := score - 10
+            elif ratio < 0.8  // 20% faster than standard
+                score := score + 5
+    
+    math.max(0, math.min(100, score))
+
+/**
+ * Get performance rating
+ */
+debug.getPerformanceRating(score) =>
+    if score >= 90
+        "Excellent"
+    elif score >= 80
+        "Good"
+    elif score >= 70
+        "Average"
+    elif score >= 60
+        "Below Average"
+    else
+        "Poor"
+
+// ========== BENCHMARK REPORTING ==========
+
+/**
+ * Generate benchmark report
+ */
+debug.generateBenchmarkReport() =>
+    if benchmarkEnabled and barstate.islast
+        // Calculate statistics
+        stats = debug.calculateBenchmarkStats()
+        
+        // Calculate performance score
+        score = debug.calculatePerformanceScore(stats)
+        rating = debug.getPerformanceRating(score)
+        
+        report = "=== PERFORMANCE BENCHMARK REPORT ===\n\n"
+        
+        // Overall score
+        report := report + "Overall Performance: " + str.tostring(score, "#.##") + "/100 (" + rating + ")\n\n"
+        
+        // Execution time
+        if stats.executionTime
+            report := report + "Execution Time:\n"
+            report := report + "  Min: " + str.tostring(stats.executionTime.min, "#.##") + " ms\n"
+            report := report + "  Max: " + str.tostring(stats.executionTime.max, "#.##") + " ms\n"
+            report := report + "  Avg: " + str.tostring(stats.executionTime.avg, "#.##") + " ms\n"
+            report := report + "  Samples: " + str.tostring(stats.executionTime.samples) + "\n\n"
+        
+        // Memory usage
+        if stats.memoryUsage
+            report := report + "Memory Usage:\n"
+            report := report + "  Min: " + str.tostring(stats.memoryUsage.min, "#.##") + " units\n"
+            report := report + "  Max: " + str.tostring(stats.memoryUsage.max, "#.##") + " units\n"
+            report := report + "  Avg: " + str.tostring(stats.memoryUsage.avg, "#.##") + " units\n"
+            report := report + "  Samples: " + str.tostring(stats.memoryUsage.samples) + "\n\n"
+        
+        // Accuracy
+        if stats.accuracy
+            report := report + "Accuracy:\n"
+            report := report + "  Min: " + str.tostring(stats.accuracy.min * 100, "#.##") + "%\n"
+            report := report + "  Max: " + str.tostring(stats.accuracy.max * 100, "#.##") + "%\n"
+            report := report + "  Avg: " + str.tostring(stats.accuracy.avg * 100, "#.##") + "%\n"
+            report := report + "  Samples: " + str.tostring(stats.accuracy.samples) + "\n\n"
+        
+        // Comparisons
+        if stats.comparisons
+            report := report + "Comparison to Standard Indicators:\n"
+            for key, comparison in stats.comparisons
+                ratio = comparison.performanceRatio
+                status = ratio < 1.0 ? "FASTER" : "SLOWER"
+                percent = math.abs(ratio - 1.0) * 100
+                
+                report := report + "  " + key + ": " + str.tostring(ratio, "#.##") + "x (" + 
+                         str.tostring(percent, "#.##") + "% " + status + ")\n"
+            report := report + "\n"
+        
+        // Recommendations
+        recommendations = []
+        
+        if stats.executionTime and stats.executionTime.avg > 20
+            array.push(recommendations, "High execution time. Optimize calculations.")
+        
+        if stats.memoryUsage and stats.memoryUsage.avg > 200
+            array.push(recommendations, "High memory usage. Review data structures.")
+        
+        if stats.accuracy and stats.accuracy.avg < 0.95
+            array.push(recommendations, "Accuracy could be improved. Check calculations.")
+        
+        if stats.comparisons
+            for key, comparison in stats.comparisons
+                if comparison.performanceRatio > 1.5
+                    array.push(recommendations, "Significantly slower than " + key + ". Consider optimization.")
+        
+        if array.size(recommendations) > 0
+            report := report + "=== RECOMMENDATIONS ===\n"
+            for i = 0 to array.size(recommendations) - 1
+                report := report + str.tostring(i + 1) + ". " + array.get(recommendations, i) + "\n"
+        
+        report
+
+/**
+ * Display benchmark results table
+ */
+debug.showBenchmarkTable() =>
+    if benchmarkEnabled
+        stats = debug.calculateBenchmarkStats()
+        score = debug.calculatePerformanceScore(stats)
+        
+        rows = [
+            ["Performance Score", str.tostring(score, "#.##") + "/100"],
+            ["Rating", debug.getPerformanceRating(score)]
+        ]
+        
+        if stats.executionTime
+            array.push(rows, ["Avg Execution", str.tostring(stats.executionTime.avg, "#.##") + " ms"])
+        
+        if stats.memoryUsage
+            array.push(rows, ["Avg Memory", str.tostring(stats.memoryUsage.avg, "#.##") + " units"])
+        
+        if stats.accuracy
+            array.push(rows, ["Avg Accuracy", str.tostring(stats.accuracy.avg * 100, "#.##") + "%"])
+        
+        debug.plotTable("Benchmark Results", rows)
+
+/**
+ * Plot performance trends
+ */
+debug.plotPerformanceTrends() =>
+    if benchmarkEnabled
+        // Plot execution times
+        if array.size(executionTimes) > 0
+            plot(array.get(executionTimes, math.min(array.size(executionTimes) - 1, bar_index)), 
+                 "Execution Time", color=color.blue, linewidth=2)
+        
+        // Plot memory usage
+        if array.size(memoryUsage) > 0
+            plot(array.get(memoryUsage, math.min(array.size(memoryUsage) - 1, bar_index)), 
+                 "Memory Usage", color=color.green, linewidth=2)
+        
+        // Plot accuracy
+        if array.size(accuracyScores) > 0
+            plot(array.get(accuracyScores, math.min(array.size(accuracyScores) - 1, bar_index)) * 100, 
+                 "Accuracy %", color=color.purple, linewidth=2)
+
+// ========== WARMUP AND INITIALIZATION ==========
+
+// Warmup period
+if bar_index < warmupBars
+    // Still warming up
+    warmupComplete := false
+else
+    warmupComplete := true
+
+// Reset benchmark on new session
+if barstate.isfirst
+    benchmarkBar := 0
+    completedIterations := 0
+    array.clear(executionTimes)
+    array.clear(memoryUsage)
+    array.clear(accuracyScores)
+    array.clear(rsiTimes)
+    array.clear(smaTimes)
+    array.clear(macdTimes)
+
+// ========== EXAMPLE USAGE ==========
+
+/*
+// Example of performance benchmarking in your indicator:
+
+//@include "debug-benchmark.pine"
+
+// Your custom RSI calculation
+myRSI(src, length) =>
+    // Benchmark this calculation
+    debug.benchmark("myRSI", () =>
+        up = ta.rma(math.max(ta.change(src), 0), length)
+        down = ta.rma(-math.min(ta.change(src), 0), length)
+        rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+        rsi
+    )
+
+// Benchmark against standard RSI
+standardRSI = ta.rsi(close, 14)
+customRSI = myRSI(close, 14)
+
+// Compare performance
+if compareToRSI
+    [rsiRatio, rsiAccuracy, testTime, standardTime] = debug.benchmarkRSI(() => myRSI(close, 14))
+
+// Show benchmark results
+debug.showBenchmarkTable()
+debug.plotPerformanceTrends()
+
+// Generate report at the end
+if barstate.islast
+    report = debug.generateBenchmarkReport()
+    debug.log(report)
+*/

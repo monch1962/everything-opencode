@@ -1,0 +1,31 @@
+{
+  "name": "pinescript-alert-webhook-example",
+  "version": "1.0.0",
+  "description": "Example webhook server for PineScript alerts",
+  "main": "webhook-server.js",
+  "scripts": {
+    "start": "node webhook-server.js",
+    "dev": "nodemon webhook-server.js",
+    "test": "node test-webhook.js",
+    "setup-alerts": "node setup-alerts.js"
+  },
+  "keywords": [
+    "pinescript",
+    "tradingview",
+    "alerts",
+    "webhook",
+    "trading"
+  ],
+  "author": "Everything OpenCode",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

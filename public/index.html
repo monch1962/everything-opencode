@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PineScript Interactive Debugger</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: #333;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 40px;
+        color: white;
+      }
+
+      header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+      }
+
+      .card h2 {
+        color: #667eea;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .card h2 i {
+        font-size: 1.2rem;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+      }
+
+      .feature {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .feature i {
+        font-size: 2.5rem;
+        color: #667eea;
+        margin-bottom: 15px;
+      }
+
+      .feature h3 {
+        margin-bottom: 10px;
+        color: #333;
+      }
+
+      .feature p {
+        color: #666;
+        line-height: 1.6;
+      }
+
+      .btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+      }
+
+      .btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-large {
+        padding: 20px 40px;
+        font-size: 1.2rem;
+      }
+
+      .btn-secondary {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+
+      .btn-group {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      .code-block {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: "Courier New", monospace;
+        overflow-x: auto;
+        margin: 20px 0;
+      }
+
+      .code-block .keyword {
+        color: #569cd6;
+      }
+
+      .code-block .function {
+        color: #dcdcaa;
+      }
+
+      .code-block .string {
+        color: #ce9178;
+      }
+
+      .code-block .comment {
+        color: #6a9955;
+      }
+
+      .status-bar {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 30px;
+        color: white;
+        text-align: center;
+      }
+
+      .status-bar a {
+        color: #a3bffa;
+        text-decoration: none;
+      }
+
+      .status-bar a:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 768px) {
+        .main-content {
+          grid-template-columns: 1fr;
+        }
+
+        .features {
+          grid-template-columns: 1fr;
+        }
+
+        .btn-group {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1><i class="fas fa-bug"></i> PineScript Interactive Debugger</h1>
+        <p>
+          Advanced debugging tools for custom PineScript indicator development
+        </p>
+      </header>
+
+      <div class="main-content">
+        <div class="card">
+          <h2><i class="fas fa-rocket"></i> Quick Start</h2>
+          <p>Get started with interactive debugging in seconds:</p>
+
+          <div class="code-block">
+            <span class="comment"># Start the debug server</span><br />
+            <span class="keyword">/pine-debug</span> server --port 3000<br /><br />
+
+            <span class="comment"># Or use the direct command</span><br />
+            node scripts/pinescript/debug-server.js<br />
+            <span class="comment">--file your-indicator.pine</span>
+          </div>
+
+          <div class="btn-group">
+            <a href="/debug" class="btn btn-large">
+              <i class="fas fa-play"></i> Launch Debugger
+            </a>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><i class="fas fa-cogs"></i> Features</h2>
+          <ul style="list-style: none; line-height: 2">
+            <li>
+              <i class="fas fa-check-circle" style="color: #4caf50"></i>
+              Real-time variable inspection
+            </li>
+            <li>
+              <i class="fas fa-check-circle" style="color: #4caf50"></i>
+              Breakpoint system with step-through
+            </li>
+            <li>
+              <i class="fas fa-check-circle" style="color: #4caf50"></i> Live
+              watch expressions
+            </li>
+            <li>
+              <i class="fas fa-check-circle" style="color: #4caf50"></i>
+              Interactive charts and visualization
+            </li>
+            <li>
+              <i class="fas fa-check-circle" style="color: #4caf50"></i> Call
+              stack tracing
+            </li>
+            <li>
+              <i class="fas fa-check-circle" style="color: #4caf50"></i>
+              Performance profiling
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="features">
+        <div class="feature">
+          <i class="fas fa-search"></i>
+          <h3>Variable Inspection</h3>
+          <p>
+            Inspect variables in real-time with historical tracking and value
+            visualization.
+          </p>
+        </div>
+
+        <div class="feature">
+          <i class="fas fa-code-branch"></i>
+          <h3>Breakpoint Debugging</h3>
+          <p>
+            Set breakpoints, step through execution, and examine state at any
+            point.
+          </p>
+        </div>
+
+        <div class="feature">
+          <i class="fas fa-chart-line"></i>
+          <h3>Live Charts</h3>
+          <p>
+            Visualize indicator outputs and intermediate calculations with
+            interactive charts.
+          </p>
+        </div>
+
+        <div class="feature">
+          <i class="fas fa-bolt"></i>
+          <h3>Performance Analysis</h3>
+          <p>
+            Profile execution time, memory usage, and identify performance
+            bottlenecks.
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><i class="fas fa-terminal"></i> Command Line Tools</h2>
+        <p>Use the command line debugging tools alongside the web interface:</p>
+
+        <div class="code-block">
+          <span class="comment"># Inspect variables</span><br />
+          <span class="keyword">/pine-debug</span> inspect --var "rsiValue"
+          --bars 20<br /><br />
+
+          <span class="comment"># Trace variable changes</span><br />
+          <span class="keyword">/pine-debug</span> trace --var "macdLine"
+          --plot<br /><br />
+
+          <span class="comment"># Profile performance</span><br />
+          <span class="keyword">/pine-debug</span> profile --metrics
+          complexity<br /><br />
+
+          <span class="comment"># Generate debug helpers</span><br />
+          <span class="keyword">/pine-debug</span> helpers --output
+          debug-helpers.pine
+        </div>
+
+        <div class="btn-group">
+          <a href="/debug" class="btn">
+            <i class="fas fa-laptop-code"></i> Open Web Debugger
+          </a>
+          <button onclick="copyCommands()" class="btn btn-secondary">
+            <i class="fas fa-copy"></i> Copy Commands
+          </button>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <p>
+          Server running on <strong>http://localhost:3000</strong> |
+          <a href="/api/status">API Status</a> |
+          <a href="https://github.com/yourusername/everything-opencode"
+            >Documentation</a
+          >
+        </p>
+      </div>
+    </div>
+
+    <script>
+      function copyCommands() {
+        const commands = `/pine-debug inspect --var "rsiValue" --bars 20\n/pine-debug trace --var "macdLine" --plot\n/pine-debug profile --metrics complexity\n/pine-debug helpers --output debug-helpers.pine`;
+
+        navigator.clipboard.writeText(commands).then(() => {
+          alert("Commands copied to clipboard!");
+        });
+      }
+    </script>
+  </body>
+</html>

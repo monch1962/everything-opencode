@@ -1,0 +1,314 @@
+//@version=5
+indicator("AI Debug Helper", overlay=false)
+
+// ============================================================================
+// AI-ASSISTED DEBUGGING FOR PINESCRIPT
+// ============================================================================
+// This library provides AI-powered debugging suggestions for PineScript code
+// Integrates with the debug-helpers.pine system for comprehensive analysis
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// AI PATTERN DATABASE LOADER
+// ----------------------------------------------------------------------------
+
+// Load AI patterns from external source (simulated - in real use would load from JSON)
+loadAIPatterns() =>
+    // Common error patterns
+    patterns = array.new_string(0)
+    
+    // Series index out of bounds
+    array.push(patterns, "CE001:Series Index Out of Bounds:Accessing series with negative index:Add boundary check:if bar_index >= length then ...")
+    
+    // Division by zero
+    array.push(patterns, "CE002:Division by Zero:Potential division by zero or na:Add zero check:denominator != 0 ? numerator / denominator : na")
+    
+    // Na propagation
+    array.push(patterns, "CE003:Na Propagation:Operations with na values:Use nz() function:nz(value1) + nz(value2)")
+    
+    // Infinite loop risk
+    array.push(patterns, "CE004:Infinite Loop Risk:For loop with potential infinite iteration:Add max iteration limit:if step > 0 then for i = start to stop by step do")
+    
+    // Uninitialized variables
+    array.push(patterns, "CE005:Uninitialized Variables:Variables initialized to na without proper setup:Initialize with default value:var float sum = 0.0")
+    
+    // Performance issues
+    array.push(patterns, "PI001:Redundant Calculations:Same indicator calculated multiple times:Store result in variable and reuse:sma14 = ta.sma(close, 14)")
+    array.push(patterns, "PI002:Inefficient Array Operations:Array operations on every bar causing performance hit:Use series operations or limit array updates:if barstate.islast then array.push(arr, close)")
+    array.push(patterns, "PI004:Unoptimized Loops:Large loops in PineScript (limited to 500ms execution):Reduce loop size or use built-in functions:sum = math.sum(close, 1000)")
+    
+    // Best practices
+    array.push(patterns, "BP001:Input Validation:Input parameters without validation:Add min/max/step validation:input length = input.int(14, min=1, max=200)")
+    array.push(patterns, "BP002:Memory Optimization:Large arrays declared without need:Use dynamic sizing or smaller arrays:var arr = array.new_float(100)")
+    array.push(patterns, "BP003:Error Handling:Missing error handling for risky operations:Add defensive programming with checks:index < array.size(arr) ? arr[index] : na")
+    
+    // TradingView specific
+    array.push(patterns, "TV001:Security Function Misuse:security() called too frequently:Cache security results or call conditionally:if barstate.islastconfirmedhistory then higherTFClose := security()")
+    array.push(patterns, "TV002:Repainting Issues:Potential repainting using future data:Use barstate.isconfirmed or historical data only:barstate.isconfirmed and close > close[1]")
+    
+    patterns
+
+// ----------------------------------------------------------------------------
+// AI ANALYSIS FUNCTIONS
+// ----------------------------------------------------------------------------
+
+// Analyze code for common patterns and suggest improvements
+analyzeCodeWithAI(code, context = "") =>
+    patterns = loadAIPatterns()
+    suggestions = array.new_string(0)
+    
+    // Check for each pattern
+    for i = 0 to array.size(patterns) - 1
+        patternData = str.split(array.get(patterns, i), ":")
+        if array.size(patternData) >= 5
+            patternId = array.get(patternData, 0)
+            patternName = array.get(patternData, 1)
+            description = array.get(patternData, 2)
+            fix = array.get(patternData, 3)
+            example = array.get(patternData, 4)
+            
+            // Simple pattern matching (in real implementation would use regex)
+            if str.contains(code, "close[bar_index") and patternId == "CE001"
+                suggestion = patternName + ": " + description + "\nFix: " + fix + "\nExample: " + example
+                array.push(suggestions, suggestion)
+            
+            if str.contains(code, "/ 0") or str.contains(code, "/ close[1]") and patternId == "CE002"
+                suggestion = patternName + ": " + description + "\nFix: " + fix + "\nExample: " + example
+                array.push(suggestions, suggestion)
+            
+            if str.contains(code, " + na") or str.contains(code, "na + ") and patternId == "CE003"
+                suggestion = patternName + ": " + description + "\nFix: " + fix + "\nExample: " + example
+                array.push(suggestions, suggestion)
+    
+    suggestions
+
+// Analyze variable usage patterns
+analyzeVariablePatterns(varNames, varTypes, usageCounts) =>
+    suggestions = array.new_string(0)
+    
+    // Check for unused variables
+    for i = 0 to array.size(varNames) - 1
+        if array.get(usageCounts, i) == 0
+            suggestion = "Unused Variable: '" + array.get(varNames, i) + "' of type " + array.get(varTypes, i) + " is declared but never used."
+            array.push(suggestions, suggestion)
+    
+    // Check for potential type mismatches
+    for i = 0 to array.size(varNames) - 1
+        varName = array.get(varNames, i)
+        varType = array.get(varTypes, i)
+        
+        if varType == "series" and str.contains(varName, "Array")
+            suggestion = "Naming Convention: Variable '" + varName + "' is a series but named like an array. Consider renaming."
+            array.push(suggestions, suggestion)
+    
+    suggestions
+
+// Analyze performance based on profiling data
+analyzePerformanceWithAI(profilingData) =>
+    suggestions = array.new_string(0)
+    
+    // Check execution time
+    if profilingData.executionTime > 100
+        suggestion = "Performance Warning: Execution time (" + str.tostring(profilingData.executionTime) + "ms) is high. PineScript has 500ms limit."
+        array.push(suggestions, suggestion)
+    
+    // Check memory usage
+    if profilingData.memoryUsage > 10000
+        suggestion = "Memory Warning: High memory usage (" + str.tostring(profilingData.memoryUsage) + " bytes). Consider optimizing arrays."
+        array.push(suggestions, suggestion)
+    
+    // Check loop counts
+    if profilingData.loopCount > 1000
+        suggestion = "Loop Optimization: " + str.tostring(profilingData.loopCount) + " loop iterations detected. Consider vectorization."
+        array.push(suggestions, suggestion)
+    
+    suggestions
+
+// ----------------------------------------------------------------------------
+// AI SUGGESTION ENGINE
+// ----------------------------------------------------------------------------
+
+// Generate comprehensive AI suggestions
+generateAISuggestions(code, profilingData = na, varData = na) =>
+    suggestions = array.new_string(0)
+    
+    // Code analysis
+    codeSuggestions = analyzeCodeWithAI(code)
+    for i = 0 to array.size(codeSuggestions) - 1
+        array.push(suggestions, "[Code Analysis] " + array.get(codeSuggestions, i))
+    
+    // Performance analysis
+    if not na(profilingData)
+        perfSuggestions = analyzePerformanceWithAI(profilingData)
+        for i = 0 to array.size(perfSuggestions) - 1
+            array.push(suggestions, "[Performance] " + array.get(perfSuggestions, i))
+    
+    // Variable analysis
+    if not na(varData) and array.size(varData) >= 3
+        varNames = array.get(varData, 0)
+        varTypes = array.get(varData, 1)
+        usageCounts = array.get(varData, 2)
+        
+        varSuggestions = analyzeVariablePatterns(varNames, varTypes, usageCounts)
+        for i = 0 to array.size(varSuggestions) - 1
+            array.push(suggestions, "[Variables] " + array.get(varSuggestions, i))
+    
+    // Add general best practices
+    array.push(suggestions, "[Best Practice] Use 'input.int()' with min/max for user inputs")
+    array.push(suggestions, "[Best Practice] Add 'min_bars' to indicator() declaration for historical data")
+    array.push(suggestions, "[Best Practice] Use 'barstate.isconfirmed' to avoid repainting")
+    
+    suggestions
+
+// Prioritize suggestions by severity
+prioritizeSuggestions(suggestions) =>
+    prioritized = array.new_string(0)
+    
+    // High priority (errors)
+    for i = 0 to array.size(suggestions) - 1
+        suggestion = array.get(suggestions, i)
+        if str.contains(suggestion, "Error") or str.contains(suggestion, "Warning") or str.contains(suggestion, "Division by Zero")
+            array.push(prioritized, "🔴 HIGH: " + suggestion)
+    
+    // Medium priority (performance)
+    for i = 0 to array.size(suggestions) - 1
+        suggestion = array.get(suggestions, i)
+        if str.contains(suggestion, "Performance") or str.contains(suggestion, "Optimization") or str.contains(suggestion, "Memory")
+            if not str.contains(suggestion, "🔴")
+                array.push(prioritized, "🟡 MEDIUM: " + suggestion)
+    
+    // Low priority (best practices)
+    for i = 0 to array.size(suggestions) - 1
+        suggestion = array.get(suggestions, i)
+        if str.contains(suggestion, "Best Practice") or str.contains(suggestion, "Naming Convention")
+            if not str.contains(suggestion, "🔴") and not str.contains(suggestion, "🟡")
+                array.push(prioritized, "🟢 LOW: " + suggestion)
+    
+    prioritized
+
+// ----------------------------------------------------------------------------
+// AI LEARNING AND FEEDBACK
+// ----------------------------------------------------------------------------
+
+// Track which suggestions users accept
+trackSuggestionFeedback(suggestionId, accepted, userComment = "") =>
+    // In real implementation, this would update a learning database
+    // For now, just log to console
+    feedback = "Suggestion " + suggestionId + ": " + (accepted ? "ACCEPTED" : "REJECTED")
+    if userComment != ""
+        feedback := feedback + " - Comment: " + userComment
+    
+    // Log to debug output
+    debug.log("[AI Feedback] " + feedback)
+    
+    feedback
+
+// Learn from user corrections
+learnFromCorrection(originalCode, correctedCode, patternId = "") =>
+    // Analyze the difference between original and corrected code
+    // In real implementation, this would update pattern weights
+    
+    debug.log("[AI Learning] Learning from user correction for pattern: " + patternId)
+    
+    // Return learned insight
+    "Learned: User prefers " + (str.len(correctedCode) > str.len(originalCode) ? "more explicit" : "more concise") + " code for pattern " + patternId
+
+// ----------------------------------------------------------------------------
+// INTEGRATION WITH DEBUG HELPERS
+// ----------------------------------------------------------------------------
+
+// Export function for debug helpers integration
+exportAISuggestions(code, profilingData = na, varData = na) =>
+    suggestions = generateAISuggestions(code, profilingData, varData)
+    prioritized = prioritizeSuggestions(suggestions)
+    
+    // Format for export
+    result = array.new_string(0)
+    array.push(result, "=== AI DEBUGGING SUGGESTIONS ===")
+    array.push(result, "Generated: " + str.tostring(time))
+    array.push(result, "")
+    
+    for i = 0 to array.size(prioritized) - 1
+        array.push(result, str.tostring(i + 1) + ". " + array.get(prioritized, i))
+    
+    array.push(result, "")
+    array.push(result, "Total suggestions: " + str.tostring(array.size(prioritized)))
+    
+    result
+
+// Import function for debug server integration
+importAIFeedback(feedbackData) =>
+    // Parse feedback data and update learning
+    // feedbackData format: "suggestionId:accepted:comment"
+    
+    parts = str.split(feedbackData, ":")
+    if array.size(parts) >= 2
+        suggestionId = array.get(parts, 0)
+        accepted = array.get(parts, 1) == "true"
+        comment = array.size(parts) >= 3 ? array.get(parts, 2) : ""
+        
+        trackSuggestionFeedback(suggestionId, accepted, comment)
+        return "Feedback recorded for suggestion: " + suggestionId
+    
+    "Invalid feedback format"
+
+// ----------------------------------------------------------------------------
+// EXAMPLE USAGE
+// ----------------------------------------------------------------------------
+
+// Example: Analyze a piece of code
+exampleCode = """
+// Example with potential issues
+study("Example", overlay=true)
+length = input(14, "Length")
+sma1 = ta.sma(close, length)
+sma2 = ta.sma(close, length)  // Redundant calculation
+roc = (close - close[1]) / close[1]  // Potential division by zero
+plot(sma1, color=color.blue)
+plot(sma2, color=color.red)
+"""
+
+// Generate suggestions for example code
+exampleSuggestions = exportAISuggestions(exampleCode)
+
+// Print suggestions (in real use would export to debug server)
+if barstate.islast
+    for i = 0 to array.size(exampleSuggestions) - 1
+        debug.log(array.get(exampleSuggestions, i))
+
+// ----------------------------------------------------------------------------
+// PUBLIC API
+// ----------------------------------------------------------------------------
+
+// Export public functions
+export analyzeCodeWithAI(code, context)
+export analyzeVariablePatterns(varNames, varTypes, usageCounts)
+export analyzePerformanceWithAI(profilingData)
+export generateAISuggestions(code, profilingData, varData)
+export prioritizeSuggestions(suggestions)
+export trackSuggestionFeedback(suggestionId, accepted, userComment)
+export learnFromCorrection(originalCode, correctedCode, patternId)
+export exportAISuggestions(code, profilingData, varData)
+export importAIFeedback(feedbackData)
+
+// ----------------------------------------------------------------------------
+// DEBUG AI CONFIGURATION
+// ----------------------------------------------------------------------------
+
+// Configuration options
+aiConfig = {
+    "enabled": true,
+    "learning_enabled": true,
+    "suggestion_threshold": 0.7,
+    "max_suggestions": 10,
+    "update_frequency": "daily"
+}
+
+// Initialize AI debug helper
+initAIDebugger() =>
+    debug.log("[AI Debug] AI Debug Helper initialized")
+    debug.log("[AI Debug] Pattern database loaded: " + str.tostring(array.size(loadAIPatterns())) + " patterns")
+    aiConfig
+
+// Call initialization
+initAIDebugger()

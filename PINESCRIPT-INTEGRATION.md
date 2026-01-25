@@ -337,38 +337,95 @@ Run backtesting on PineScript strategies.
 
 ### `/pine-optimize`
 
-Optimize strategy parameters.
+Optimize strategy parameters using various optimization methods.
 
 **Options:**
 
-- `--method <name>` - Optimization method (grid, random, bayesian)
-- `--params <spec>` - Parameter search space
-- `--metric <name>` - Optimization metric (sharpe, profit, winrate)
-- `--iterations <n>` - Maximum iterations
-- `--walk-forward` - Enable walk-forward optimization
+- `--file`, `-f` - PineScript file to optimize (auto-detected)
+- `--method`, `-m` - Optimization method (`grid`, `random`, `bayesian`, `genetic`)
+- `--iterations`, `-i` - Number of optimization iterations (default: 100)
+- `--metric`, `-M` - Optimization metric (`net_profit`, `sharpe`, `win_rate`, `profit_factor`)
+- `--output`, `-o` - Output format (`console`, `json`, `html`, `csv`)
+- `--outputFile`, `-O` - Output file path
+- `--paramSpace`, `-p` - Parameter space definition file (JSON)
+- `--verbose`, `-v` - Verbose output
+
+**Examples:**
+
+```bash
+# Basic optimization
+/pine-optimize --file strategy.pine --method grid --metric sharpe
+
+# Random search with custom parameter space
+/pine-optimize --method random --paramSpace params.json --output json
+
+# Bayesian optimization with HTML report
+/pine-optimize --method bayesian --iterations 200 --output html --outputFile report.html
+```
 
 ### `/pine-convert`
 
-Convert between PineScript versions.
+Convert PineScript code between different versions (v4 ↔ v5 ↔ v6).
 
 **Options:**
 
-- `--to <version>` - Target version (4, 5, 6)
-- `--validate` - Validate after conversion
-- `--backup` - Create backup of original file
-- `--dry-run` - Show changes without applying
+- `--file`, `-f` - PineScript file to convert (auto-detected)
+- `--from` - Source version (`v4`, `v5`, `v6`, `auto`) (default: `auto`)
+- `--to`, `-t` - Target version (`v4`, `v5`, `v6`) (required)
+- `--output`, `-o` - Output file path (auto-generated)
+- `--backup`, `-b` - Create backup of original file (default: true)
+- `--dryRun`, `-d` - Show changes without writing (default: false)
+- `--verbose`, `-v` - Verbose output
+
+**Examples:**
+
+```bash
+# Convert v4 to v5
+/pine-convert --file old-strategy.pine --from v4 --to v5
+
+# Convert to v6 with auto-detection
+/pine-convert --to v6
+
+# Preview changes without writing
+/pine-convert --from v5 --to v4 --dryRun --verbose
+```
 
 ### `/pine-alert`
 
-Configure and test alert system.
+Configure and manage PineScript alert systems with multiple notification channels.
 
 **Options:**
 
-- `--setup` - Interactive alert setup
-- `--test` - Test alert delivery
-- `--monitor` - Monitor alert status
-- `--send <message>` - Send test alert
-- `--webhook <url>` - Add webhook endpoint
+- `--action`, `-a` - Action to perform (`setup`, `test`, `list`, `enable`, `disable`, `webhook`) (default: `setup`)
+- `--file`, `-f` - PineScript file to configure alerts for (auto-detected)
+- `--channel`, `-c` - Alert channel (`webhook`, `email`, `discord`, `telegram`, `slack`)
+- `--webhookUrl`, `-w` - Webhook URL for alert delivery
+- `--email`, `-e` - Email address for alerts
+- `--testMessage`, `-m` - Test message to send
+- `--alertName`, `-n` - Specific alert name to manage
+- `--frequency` - Alert frequency (`once_per_bar`, `once_per_bar_close`, `once_per_minute`)
+- `--verbose`, `-v` - Verbose output
+- `--force` - Force overwrite existing configuration
+
+**Examples:**
+
+```bash
+# Setup alerts with webhook
+/pine-alert --action setup --channel webhook --webhookUrl https://api.example.com/webhook
+
+# Test alert delivery
+/pine-alert --action test --testMessage "System test"
+
+# List configured alerts
+/pine-alert --action list
+
+# Enable/disable specific alerts
+/pine-alert --action disable --alertName buy_signal
+/pine-alert --action enable --alertName sell_signal
+
+# Configure webhook channel
+/pine-alert --action webhook --webhookUrl NEW_URL
+```
 
 ## Example Projects
 
@@ -418,20 +475,39 @@ Configure and test alert system.
 
 **Features:**
 
-- Strategy with real-time alert conditions
-- Webhook server implementation
-- Custom payload templates
-- Rate limiting and retry logic
-- Delivery monitoring
-- Testing utilities
+- Complete RSI-based trading strategy with multiple alert types
+- Production-ready webhook server with Express.js
+- Multiple notification channel support (webhook, email, Discord, Telegram, Slack)
+- Alert processing with type-specific handlers
+- Comprehensive logging and monitoring
+- Statistics and health check endpoints
+- Rate limiting and security features
+- Deployment guides for various platforms
 
 **Files:**
 
-- `strategy-with-alerts.pine` - Strategy with alert integration
-- `webhook-server.js` - Test webhook server
-- `alert-templates.json` - Custom alert templates
-- `webhook-config.json` - Webhook configuration
-- `monitoring-dashboard.md` - Alert monitoring setup
+- `rsi-alert-strategy.pine` - Complete strategy with 8 different alert types
+- `webhook-server.js` - Production-ready webhook server with alert processing
+- `package.json` - Dependencies and scripts
+- `README.md` - Complete setup and usage guide
+
+**Alert Types in Example:**
+
+1. Strong buy/sell signals (RSI extremes)
+2. Moderate buy/sell signals (RSI thresholds)
+3. Exit signals (stop loss/take profit triggers)
+4. Daily performance summaries
+5. System test alerts
+
+**Webhook Server Features:**
+
+- REST API endpoints for alert management
+- Alert processing with business logic
+- File-based logging with rotation
+- Statistics and monitoring dashboard
+- Health checks and test utilities
+- Security middleware (authentication, rate limiting)
+- Extensible architecture for custom processing
 
 ## Configuration
 
@@ -744,7 +820,7 @@ MIT License - See `LICENSE` file for details.
 
 ---
 
-_Last updated: January 2025_  
-_PineScript integration version: 1.0.0_  
+_Last updated: January 2026_  
+_PineScript integration version: 2.0.0_  
 _Compatible with PineScript: v4, v5, v6_  
 _Target audience: Experienced TradingView developers_

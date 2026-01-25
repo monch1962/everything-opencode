@@ -1,0 +1,174 @@
+//@version=5
+indicator("Simple Test Indicator for Debugging", overlay=true)
+
+// ========== TEST INDICATOR ==========
+
+// Input parameters
+length = input.int(14, "Length", minval=5, maxval=50)
+threshold = input.float(0.5, "Threshold", minval=0.1, maxval=1.0, step=0.1)
+
+// Custom calculation with potential issues
+customCalculation() =>
+    // This calculation has intentional issues for debugging practice
+    rawValue = close / ta.sma(close, length)
+    
+    // Problematic: No NA check
+    transformed = math.log(rawValue)
+    
+    // Another issue: Could produce extreme values
+    scaled = transformed * 100
+    
+    // Return all values for debugging
+    [rawValue, transformed, scaled]
+
+[rawValue, transformed, scaled] = customCalculation()
+
+// Condition with multiple components
+condition1 = scaled > threshold * 100
+condition2 = ta.rsi(close, 14) > 50
+condition3 = volume > ta.sma(volume, 20)
+
+finalCondition = condition1 and condition2 and condition3
+
+// ========== BASIC PLOTS ==========
+
+plot(scaled, "Scaled Value", color=color.blue, linewidth=2)
+hline(threshold * 100, "Threshold", color=color.red, linestyle=hline.style_dashed)
+
+plotshape(finalCondition, "Signal", shape.triangleup, location.belowbar, 
+         color=color.green, size=size.small)
+
+// ========== DEBUGGING EXERCISES ==========
+
+/*
+Debugging Exercises:
+
+1. NA Values Issue:
+   - Run: /pine-debug inspect --var "transformed"
+   - Look for NA values when rawValue <= 0
+   - Fix: Add na() check before math.log()
+
+2. Extreme Values:
+   - Run: /pine-debug trace --var "scaled" --bars 50
+   - Check for values outside expected range
+   - Fix: Add bounds checking
+
+3. Complex Condition:
+   - Run: /pine-debug monitor --condition "finalCondition" --watch "condition1,condition2,condition3"
+   - See which sub-conditions fail
+   - Optimize: Simplify logic
+
+4. Performance:
+   - Run: /pine-debug profile --iterations 1000
+   - Check complexity metrics
+   - Optimize: Cache calculations
+
+5. Visualization:
+   - Run: /pine-debug trace --var "rawValue" --plot
+   - Add the generated plot code
+   - Improve: Add reference lines
+*/
+
+// ========== INTENTIONAL BUGS ==========
+
+// Bug 1: Division by zero potential
+buggyCalculation = close / (close - close[1])  // Can divide by zero
+
+// Bug 2: Array index out of bounds (conceptual)
+// PineScript doesn't have arrays like this, but shows the pattern
+var float[] history = array.new_float(0)
+array.push(history, close)
+if array.size(history) > 10
+    array.shift(history)
+// No bounds check when accessing
+
+// Bug 3: Infinite loop potential (commented out for safety)
+// for i = 0 to 1000000
+//     // Some calculation
+// 
+
+// ========== DEBUGGING COMMANDS TO RUN ==========
+
+/*
+Command Sequence for Debugging:
+
+1. Initial validation:
+   /pine-validate simple-test-indicator.pine
+
+2. Variable inspection:
+   /pine-debug inspect --var "*" --bars 20 --format text
+
+3. Trace problematic variable:
+   /pine-debug trace --var "buggyCalculation" --plot
+
+4. Monitor conditions:
+   /pine-debug monitor --condition "finalCondition" --alert
+
+5. Profile performance:
+   /pine-debug profile --metrics complexity
+
+6. Generate debug helpers:
+   /pine-debug helpers --output test-debug-helpers.pine
+
+7. Fix bugs and re-test:
+   /pine-validate --fix simple-test-indicator.pine
+*/
+
+// ========== EXPECTED DEBUGGING OUTPUT ==========
+
+/*
+Expected Issues to Find:
+
+1. Validation Warnings:
+   - No NA handling in customCalculation()
+   - Potential division by zero in buggyCalculation
+   - Complex condition without debugging
+
+2. Inspection Findings:
+   - transformed has NA values
+   - scaled has extreme values
+   - buggyCalculation has infinite values
+
+3. Profile Results:
+   - Moderate complexity score
+   - Suggestions for optimization
+   - Memory usage patterns
+
+4. Debug Suggestions:
+   - Add plotchar() for intermediate values
+   - Use debug.errorCheck() for validation
+   - Monitor condition components separately
+*/
+
+// ========== LEARNING OBJECTIVES ==========
+
+/*
+After debugging this indicator, you should be able to:
+
+1. Identify common PineScript bugs
+2. Use /pine-debug commands effectively
+3. Interpret validation suggestions
+4. Add proper error handling
+5. Optimize indicator performance
+6. Create effective debug visualizations
+7. Develop systematic debugging workflow
+*/
+
+// ========== NEXT STEPS ==========
+
+/*
+Practice Tasks:
+
+1. Fix the NA issue in customCalculation()
+2. Add bounds checking for scaled values
+3. Implement proper error handling
+4. Add debug plots for all intermediate values
+5. Create a debug table showing all calculations
+6. Add performance monitoring
+7. Write tests for edge cases
+8. Optimize the calculations
+9. Create a debug configuration interface
+10. Document the debugging process
+*/
+
+// Happy Debugging! 🐛🔍🚀

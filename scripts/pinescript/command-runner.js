@@ -272,7 +272,123 @@ class PineCommandRunner {
       });
     }
 
+    // Add debugging suggestions for complex indicators
+    if (options.debugSuggestions !== false) {
+      const debugSuggestions = this.generateDebugSuggestions(content);
+      validationResults.checks.push(...debugSuggestions);
+    }
+
     return validationResults;
+  }
+
+  /**
+   * Generate debugging suggestions for PineScript code
+   */
+  generateDebugSuggestions(content) {
+    const suggestions = [];
+
+    // Analyze code complexity
+    const lines = content.split("\n");
+    const lineCount = lines.length;
+    const variableCount = (content.match(/\w+\s*=/g) || []).length;
+    const functionCount = (content.match(/=>/g) || []).length;
+    const conditionCount = (content.match(/if\s+|when\s+|and\s+|or\s+/gi) || [])
+      .length;
+
+    // Complexity analysis
+    if (lineCount > 100) {
+      suggestions.push({
+        type: "info",
+        message: `Complex indicator (${lineCount} lines, ${variableCount} variables).`,
+        suggestion: "Consider using /pine-debug profile to analyze performance",
+        debug: true,
+      });
+    }
+
+    // Check for intermediate variable debugging
+    const hasPlot = content.includes("plot(");
+    const hasPlotchar = content.includes("plotchar(");
+    const hasPlotshape = content.includes("plotshape(");
+
+    if (variableCount > 10 && !hasPlotchar && !hasPlotshape) {
+      suggestions.push({
+        type: "info",
+        message: `Many variables (${variableCount}) without debug visualization.`,
+        suggestion: "Add plotchar() for key variables or use debug helpers",
+        debug: true,
+      });
+    }
+
+    // Check for complex conditions
+    if (conditionCount > 5) {
+      suggestions.push({
+        type: "info",
+        message: `Complex logic (${conditionCount} conditions).`,
+        suggestion: "Use /pine-debug monitor to track condition states",
+        debug: true,
+      });
+    }
+
+    // Check for custom calculations
+    const customCalcPattern =
+      /(\w+)\s*=\s*(?!ta\.|math\.|str\.|input\.|request\.)/g;
+    const customMatches = [...content.matchAll(customCalcPattern)];
+
+    if (customMatches.length > 3) {
+      suggestions.push({
+        type: "info",
+        message: `Custom calculations detected (${customMatches.length}).`,
+        suggestion: "Use debug.plot() to visualize intermediate results",
+        debug: true,
+      });
+    }
+
+    // Check for series operations
+    const seriesOps = (content.match(/\[1\]|\[2\]|\[3\]/g) || []).length;
+    if (seriesOps > 5) {
+      suggestions.push({
+        type: "info",
+        message: `Multiple series operations (${seriesOps}).`,
+        suggestion: "Use debug.series() to track historical values",
+        debug: true,
+      });
+    }
+
+    // Check for error handling
+    const hasNaCheck = content.includes("na(") || content.includes("nz(");
+    if (!hasNaCheck && variableCount > 5) {
+      suggestions.push({
+        type: "info",
+        message: "No explicit NA handling detected.",
+        suggestion: "Add na() checks or use debug.errorCheck()",
+        debug: true,
+      });
+    }
+
+    // Check for performance patterns
+    const nestedLoops = (
+      content.match(/for\s+\w+\s*=\s*\w+\s+to\s+\w+/gi) || []
+    ).length;
+    if (nestedLoops > 0) {
+      suggestions.push({
+        type: "warning",
+        message: "Loop structures detected (performance concern).",
+        suggestion: "Use /pine-debug profile to optimize performance",
+        debug: true,
+      });
+    }
+
+    // Suggest debug helpers for complex indicators
+    if (lineCount > 50 || variableCount > 15 || conditionCount > 10) {
+      suggestions.push({
+        type: "info",
+        message: "Complex indicator suitable for advanced debugging.",
+        suggestion: "Run /pine-debug helpers to generate debugging utilities",
+        debug: true,
+      });
+    }
+
+    return suggestions;
   }
 
   /**
@@ -287,7 +403,8 @@ class PineCommandRunner {
 
     const errors = results.checks.filter((c) => c.type === "error");
     const warnings = results.checks.filter((c) => c.type === "warning");
-    const info = results.checks.filter((c) => c.type === "info");
+    const info = results.checks.filter((c) => c.type === "info" && !c.debug);
+    const debugSuggestions = results.checks.filter((c) => c.debug);
 
     if (errors.length > 0) {
       console.log("\n❌ Errors:");
@@ -297,6 +414,43 @@ class PineCommandRunner {
           console.log(`     💡 ${check.suggestion}`);
         }
       });
+    }
+
+    if (warnings.length > 0) {
+      console.log("\n⚠️  Warnings:");
+      warnings.forEach((check, i) => {
+        console.log(`  ${i + 1}. ${check.message}`);
+        if (check.suggestion) {
+          console.log(`     💡 ${check.suggestion}`);
+        }
+      });
+    }
+
+    if (info.length > 0) {
+      console.log("\nℹ️  Info:");
+      info.forEach((check, i) => {
+        console.log(`  ${i + 1}. ${check.message}`);
+        if (check.suggestion) {
+          console.log(`     💡 ${check.suggestion}`);
+        }
+      });
+    }
+
+    if (debugSuggestions.length > 0) {
+      console.log("\n🔧 Debugging Suggestions:");
+      debugSuggestions.forEach((check, i) => {
+        const icon = check.type === "warning" ? "⚠️" : "💡";
+        console.log(`  ${i + 1}. ${icon} ${check.message}`);
+        if (check.suggestion) {
+          console.log(`     🛠️  ${check.suggestion}`);
+        }
+      });
+
+      console.log("\n🚀 Quick Debugging Commands:");
+      console.log("   /pine-debug inspect --var VARIABLE_NAME");
+      console.log("   /pine-debug trace --var VARIABLE_NAME --plot");
+      console.log("   /pine-debug profile --metrics complexity");
+      console.log("   /pine-debug helpers --output debug-helpers.pine");
     }
 
     if (warnings.length > 0) {

@@ -1,0 +1,269 @@
+//@version=5
+indicator("RSI Library with Debugging", overlay=false)
+
+// ===== RSI LIBRARY WITH PHASE 3 DEBUGGING INTEGRATION =====
+// Demonstrates how to integrate advanced debugging features into a PineScript library
+
+// ===== CONFIGURATION =====
+// Debug configuration for the library
+libraryDebug = {
+    enabled: input.bool(true, "Enable Library Debugging", group="Debug Configuration"),
+    level: input.int(2, "Debug Level", 0, 3, group="Debug Configuration"),
+    profileMemory: input.bool(true, "Profile Memory", group="Debug Configuration"),
+    trackCoverage: input.bool(true, "Track Coverage", group="Debug Configuration"),
+    benchmark: input.bool(true, "Benchmark Performance", group="Debug Configuration")
+}
+
+// RSI configuration
+rsiConfig = {
+    defaultLength: input.int(14, "Default RSI Length", group="RSI Configuration"),
+    overbought: input.int(70, "Overbought Level", group="RSI Configuration"),
+    oversold: input.int(30, "Oversold Level", group="RSI Configuration"),
+    smoothing: input.bool(true, "Enable Smoothing", group="RSI Configuration")
+}
+
+// ===== DEBUG WRAPPERS =====
+// These wrappers add debugging to library functions
+
+// Memory profiling wrapper
+withMemoryProfiling(fn, label) =>
+    (args...) =>
+        if libraryDebug.enabled and libraryDebug.profileMemory and libraryDebug.level >= 2
+            debug.profileMemory("RSI Lib: " + label, () => fn(args...))
+        else
+            fn(args...)
+
+// Benchmarking wrapper  
+withBenchmarking(fn, label) =>
+    (args...) =>
+        if libraryDebug.enabled and libraryDebug.benchmark and libraryDebug.level >= 1
+            debug.benchmark("RSI Lib: " + label, () => fn(args...))
+        else
+            fn(args...)
+
+// Coverage tracking wrapper
+withCoverageTracking(fn, functionName) =>
+    (args...) =>
+        if libraryDebug.enabled and libraryDebug.trackCoverage and libraryDebug.level >= 2
+            debug.registerFunction(functionName)
+            result = fn(args...)
+            debug.markFunctionExecuted(functionName)
+            result
+        else
+            fn(args...)
+
+// Combined debug wrapper
+withDebugging(fn, functionName, label) =>
+    wrappedFn = withCoverageTracking(fn, functionName)
+    wrappedFn = withBenchmarking(wrappedFn, label)
+    wrappedFn = withMemoryProfiling(wrappedFn, label)
+    wrappedFn
+
+// ===== RSI LIBRARY FUNCTIONS =====
+
+// Basic RSI calculation
+rsiBasic = withDebugging((src, length) =>
+    up = ta.rma(math.max(ta.change(src), 0), length)
+    down = ta.rma(-math.min(ta.change(src), 0), length)
+    rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+    rsi
+, "rsiBasic", "Basic RSI")
+
+// Smoothed RSI
+rsiSmoothed = withDebugging((src, length, smoothPeriod) =>
+    rawRSI = rsiBasic(src, length)
+    smoothed = ta.sma(rawRSI, smoothPeriod)
+    smoothed
+, "rsiSmoothed", "Smoothed RSI")
+
+// RSI with divergence detection
+rsiWithDivergence = withDebugging((src, length, lookback) =>
+    rsiValue = rsiBasic(src, length)
+    
+    // Simple divergence detection
+    rsiHigh = ta.highest(rsiValue, lookback)
+    rsiLow = ta.lowest(rsiValue, lookback)
+    priceHigh = ta.highest(src, lookback)
+    priceLow = ta.lowest(src, lookback)
+    
+    bullishDiv = rsiValue > rsiLow and src <= priceLow
+    bearishDiv = rsiValue < rsiHigh and src >= priceHigh
+    
+    [rsiValue, bullishDiv, bearishDiv]
+, "rsiWithDivergence", "RSI with Divergence")
+
+// RSI-based signals
+rsiSignals = withDebugging((rsiValue, overbought, oversold) =>
+    oversoldSignal = rsiValue <= oversold
+    overboughtSignal = rsiValue >= overbought
+    neutral = not oversoldSignal and not overboughtSignal
+    
+    // Trend detection
+    rsiRising = rsiValue > rsiValue[1]
+    rsiFalling = rsiValue < rsiValue[1]
+    
+    {
+        "oversold": oversoldSignal,
+        "overbought": overboughtSignal,
+        "neutral": neutral,
+        "trend": rsiRising ? 1 : rsiFalling ? -1 : 0,
+        "value": rsiValue
+    }
+, "rsiSignals", "RSI Signals")
+
+// ===== LIBRARY USAGE EXAMPLES =====
+
+// Example 1: Basic RSI with debugging
+basicRSI = rsiBasic(close, rsiConfig.defaultLength)
+
+// Example 2: Smoothed RSI (if enabled)
+smoothedRSI = rsiConfig.smoothing ? 
+    rsiSmoothed(close, rsiConfig.defaultLength, 3) : 
+    basicRSI
+
+// Example 3: RSI with divergence
+[rsiDiv, bullishDiv, bearishDiv] = rsiWithDivergence(close, rsiConfig.defaultLength, 20)
+
+// Example 4: RSI signals
+signals = rsiSignals(smoothedRSI, rsiConfig.overbought, rsiConfig.oversold)
+
+// ===== VISUALIZATION =====
+
+// Plot RSI values
+plot(smoothedRSI, "RSI", color=color.new(color.blue, 0), linewidth=2)
+plot(basicRSI, "Basic RSI", color=color.new(color.blue, 70), linewidth=1)
+
+// Plot levels
+hline(rsiConfig.overbought, "Overbought", color=color.new(color.red, 50), linestyle=hline.style_dashed)
+hline(rsiConfig.oversold, "Oversold", color=color.new(color.green, 50), linestyle=hline.style_dashed)
+hline(50, "Midline", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
+
+// Plot signals
+plotshape(signals.oversold, "Oversold", shape.triangleup, location.bottom, 
+         color=color.new(color.green, 0), size=size.small)
+plotshape(signals.overbought, "Overbought", shape.triangledown, location.top,
+         color=color.new(color.red, 0), size=size.small)
+
+// Plot divergences
+plotshape(bullishDiv, "Bullish Div", shape.triangleup, location.bottom,
+         color=color.new(color.lime, 0), size=size.small)
+plotshape(bearishDiv, "Bearish Div", shape.triangledown, location.top,
+         color=color.new(color.maroon, 0), size=size.small)
+
+// ===== DEBUG VISUALIZATION =====
+
+if libraryDebug.enabled and libraryDebug.level >= 1
+    // Plot trend indicator
+    trendColor = signals.trend > 0 ? color.green : signals.trend < 0 ? color.red : color.gray
+    plot(signals.trend * 10, "RSI Trend", color=color.new(trendColor, 70), linewidth=1)
+
+if libraryDebug.enabled and libraryDebug.level >= 2 and barstate.islast
+    // Debug information table
+    tableText = "=== RSI LIBRARY DEBUG ===\n"
+    tableText := tableText + "RSI Value: " + str.tostring(smoothedRSI, "#.##") + "\n"
+    tableText := tableText + "Signal: " + (signals.oversold ? "OVERSOLD" : 
+                                         signals.overbought ? "OVERBOUGHT" : "NEUTRAL") + "\n"
+    tableText := tableText + "Trend: " + (signals.trend > 0 ? "UP" : 
+                                        signals.trend < 0 ? "DOWN" : "FLAT") + "\n"
+    tableText := tableText + "Bullish Div: " + str.tostring(bullishDiv) + "\n"
+    tableText := tableText + "Bearish Div: " + str.tostring(bearishDiv) + "\n"
+    
+    if libraryDebug.level >= 3
+        tableText := tableText + "\n=== CONFIGURATION ===\n"
+        tableText := tableText + "Length: " + str.tostring(rsiConfig.defaultLength) + "\n"
+        tableText := tableText + "Overbought: " + str.tostring(rsiConfig.overbought) + "\n"
+        tableText := tableText + "Oversold: " + str.tostring(rsiConfig.oversold) + "\n"
+        tableText := tableText + "Smoothing: " + str.tostring(rsiConfig.smoothing)
+    
+    label.new(bar_index, high, tableText,
+             color=color.new(color.blue, 90),
+             style=label.style_label_center,
+             textcolor=color.white,
+             size=size.normal)
+
+// ===== PERFORMANCE SUMMARY =====
+
+if libraryDebug.enabled and barstate.islast
+    summaryText = "=== RSI LIBRARY SUMMARY ===\n"
+    summaryText := summaryText + "Functions available:\n"
+    summaryText := summaryText + "1. rsiBasic() - Basic RSI calculation\n"
+    summaryText := summaryText + "2. rsiSmoothed() - Smoothed RSI\n"
+    summaryText := summaryText + "3. rsiWithDivergence() - RSI with divergence\n"
+    summaryText := summaryText + "4. rsiSignals() - RSI signal generation\n"
+    summaryText := summaryText + "\nDebug features enabled:\n"
+    summaryText := summaryText + "- Memory profiling: " + str.tostring(libraryDebug.profileMemory) + "\n"
+    summaryText := summaryText + "- Coverage tracking: " + str.tostring(libraryDebug.trackCoverage) + "\n"
+    summaryText := summaryText + "- Benchmarking: " + str.tostring(libraryDebug.benchmark) + "\n"
+    summaryText := summaryText + "- Debug level: " + str.tostring(libraryDebug.level)
+    
+    label.new(bar_index, high * 1.02, summaryText,
+             color=color.new(color.purple, 90),
+             style=label.style_label_down,
+             textcolor=color.white,
+             size=size.small,
+             yloc=yloc.price)
+
+// ===== EXPORT/IMPORT INTEGRATION =====
+// Example of how to prepare library data for session export
+
+if libraryDebug.enabled and barstate.islast
+    // Prepare library state for export
+    libraryState = {
+        "config": rsiConfig,
+        "currentValues": {
+            "rsi": smoothedRSI,
+            "signals": signals,
+            "divergences": {
+                "bullish": bullishDiv,
+                "bearish": bearishDiv
+            }
+        },
+        "calculations": {
+            "basicRSI": basicRSI,
+            "smoothedRSI": smoothedRSI
+        }
+    }
+    
+    // In a real implementation, this would be exported via debug server
+    // For now, just display it
+    if libraryDebug.level >= 3
+        stateText = "Library State (for export):\n"
+        stateText := stateText + "RSI: " + str.tostring(smoothedRSI, "#.##") + "\n"
+        stateText := stateText + "Signal: " + (signals.oversold ? "OVERSOLD" : 
+                                              signals.overbought ? "OVERBOUGHT" : "NEUTRAL")
+        
+        label.new(bar_index, low, stateText,
+                 color=color.new(color.green, 90),
+                 style=label.style_label_up,
+                 textcolor=color.white,
+                 size=size.small)
+
+// ===== TRADINGVIEW DEPLOYMENT NOTES =====
+// Comment block with deployment instructions
+
+/*
+TRADINGVIEW DEPLOYMENT INSTRUCTIONS:
+
+1. BEFORE DEPLOYMENT:
+   - Set libraryDebug.enabled to false
+   - Set libraryDebug.level to 0
+   - Consider removing debug visualization
+
+2. TV-OPTIMIZED VERSION:
+   - Keep only essential wrappers
+   - Use input.bool() for debug controls
+   - Limit debug visualization
+   - Test performance impact
+
+3. DEBUGGING IN TV:
+   - Enable via input controls
+   - Use level-based features
+   - Export data via labels
+   - Import to debug server for analysis
+
+4. PERFORMANCE TIPS:
+   - Disable memory profiling in TV
+   - Use benchmarking sparingly
+   - Limit coverage tracking
+   - Batch debug operations
+*/

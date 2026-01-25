@@ -1,0 +1,283 @@
+//@version=5
+indicator("AI Debugging Demo", overlay=true)
+
+// ============================================================================
+// AI DEBUGGING DEMONSTRATION
+// ============================================================================
+// This example demonstrates AI-assisted debugging features
+// Shows common PineScript patterns and how AI can help identify issues
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// EXAMPLE 1: COMMON ERRORS (AI will detect these)
+// ----------------------------------------------------------------------------
+
+// ❌ ERROR: Division by zero (AI pattern CE002)
+length = input(14, "Length")
+// This will cause division by zero on first bar
+roc_bad = (close - close[1]) / close[1]
+
+// ✅ FIXED: Add zero check
+roc_fixed = close[1] != 0 ? (close - close[1]) / close[1] : na
+
+// ❌ ERROR: Series index out of bounds (AI pattern CE001)
+// This will fail on early bars
+sma_early_bad = ta.sma(close, length)[bar_index - 20]
+
+// ✅ FIXED: Add boundary check
+sma_early_fixed = bar_index >= 20 ? ta.sma(close, length)[bar_index - 20] : na
+
+// ❌ ERROR: Na propagation (AI pattern CE003)
+value1 = na
+value2 = 10
+sum_bad = value1 + value2  // Result will be na
+
+// ✅ FIXED: Use nz() function
+sum_fixed = nz(value1) + nz(value2)
+
+// ----------------------------------------------------------------------------
+// EXAMPLE 2: PERFORMANCE ISSUES (AI will suggest optimizations)
+// ----------------------------------------------------------------------------
+
+// ❌ PERFORMANCE: Redundant calculations (AI pattern PI001)
+// Calculating same SMA twice
+sma1 = ta.sma(close, 14)
+sma2 = ta.sma(close, 14)  // Redundant!
+
+// ✅ OPTIMIZED: Store and reuse
+sma14 = ta.sma(close, 14)
+sma1_opt = sma14
+sma2_opt = sma14
+
+// ❌ PERFORMANCE: Inefficient array operations (AI pattern PI002)
+var float[] prices = array.new_float(0)
+// Adding to array on every bar
+array.push(prices, close)
+
+// ✅ OPTIMIZED: Only add on specific conditions
+var float[] prices_opt = array.new_float(0)
+if barstate.islast
+    array.push(prices_opt, close)
+
+// ----------------------------------------------------------------------------
+// EXAMPLE 3: BEST PRACTICES (AI will recommend improvements)
+// ----------------------------------------------------------------------------
+
+// ❌ PRACTICE: Input without validation (AI pattern BP001)
+bad_length = input(14, "Bad Length")  // No min/max validation
+
+// ✅ IMPROVED: Input with validation
+good_length = input.int(14, "Good Length", minval=1, maxval=200)
+
+// ❌ PRACTICE: Large arrays without need (AI pattern BP002)
+var float[] big_array = array.new_float(10000)  // Too large!
+
+// ✅ IMPROVED: Appropriate size
+var float[] sized_array = array.new_float(100)
+
+// ❌ PRACTICE: Missing error handling (AI pattern BP003)
+array_index = 50
+value_bad = array.get(prices, array_index)  // May fail if index out of bounds
+
+// ✅ IMPROVED: Defensive programming
+value_good = array_index < array.size(prices) ? array.get(prices, array_index) : na
+
+// ----------------------------------------------------------------------------
+// EXAMPLE 4: TRADINGVIEW SPECIFIC (AI will detect TV issues)
+// ----------------------------------------------------------------------------
+
+// ❌ TRADINGVIEW: Security function misuse (AI pattern TV001)
+// Calling security() on every bar
+higherTF_close_bad = security(syminfo.tickerid, "D", close)
+
+// ✅ OPTIMIZED: Cache security results
+var float higherTF_close = na
+if barstate.islastconfirmedhistory
+    higherTF_close := security(syminfo.tickerid, "D", close)
+
+// ❌ TRADINGVIEW: Potential repainting (AI pattern TV002)
+// Using current bar without confirmation
+signal_bad = close > close[1]
+
+// ✅ FIXED: Use barstate.isconfirmed
+signal_good = barstate.isconfirmed and close > close[1]
+
+// ----------------------------------------------------------------------------
+// DEMONSTRATION INDICATORS
+// ----------------------------------------------------------------------------
+
+// Show the fixed versions in action
+plot(roc_fixed, "ROC Fixed", color=color.blue)
+plot(sma_early_fixed, "SMA Early Fixed", color=color.green)
+
+// Calculate and plot optimized SMA crossover
+fast_sma = ta.sma(close, 10)
+slow_sma = ta.sma(close, 30)
+crossover_signal = ta.crossover(fast_sma, slow_sma)
+crossunder_signal = ta.crossunder(fast_sma, slow_sma)
+
+plotshape(crossover_signal, "Crossover", shape.triangleup, location.belowbar, color=color.green, size=size.small)
+plotshape(crossunder_signal, "Crossunder", shape.triangledown, location.abovebar, color=color.red, size=size.small)
+
+// ----------------------------------------------------------------------------
+// AI DEBUGGING INTEGRATION DEMO
+// ----------------------------------------------------------------------------
+
+// Simulate AI analysis output
+aiAnalysis = """
+=== AI DEBUGGING ANALYSIS ===
+
+🔴 HIGH PRIORITY ISSUES:
+1. Division by zero detected (Line 15)
+   Fix: Add zero check: close[1] != 0 ? (close - close[1]) / close[1] : na
+   
+2. Series index out of bounds (Line 22)
+   Fix: Add boundary check: bar_index >= 20 ? ta.sma(close, length)[bar_index - 20] : na
+
+🟡 MEDIUM PRIORITY ISSUES:
+1. Redundant calculations (Line 36)
+   Fix: Store result in variable and reuse
+   
+2. Security function misuse (Line 77)
+   Fix: Cache security results or call conditionally
+
+🟢 LOW PRIORITY ISSUES:
+1. Input without validation (Line 53)
+   Fix: Add min/max/step validation
+   
+2. Missing error handling (Line 65)
+   Fix: Add defensive programming with checks
+
+=== SUMMARY ===
+Total suggestions: 6
+High priority: 2 (Fix immediately)
+Medium priority: 2 (Optimize for performance)
+Low priority: 2 (Best practice improvements)
+"""
+
+// Display AI analysis in table
+var table aiTable = table.new(position.top_right, 4, 1, bgcolor=color.new(color.gray, 90), border_width=2)
+if barstate.islast
+    table.cell(aiTable, 0, 0, "🤖 AI Analysis Complete", text_color=color.white, text_size=size.normal)
+    table.cell(aiTable, 1, 0, "6 Issues Found", text_color=color.yellow)
+    table.cell(aiTable, 2, 0, "2 High Priority", text_color=color.red)
+    table.cell(aiTable, 3, 0, "View Details →", text_color=color.green)
+
+// ----------------------------------------------------------------------------
+// USING THE DEBUG-AI.PINE HELPER
+// ----------------------------------------------------------------------------
+
+// In a real scenario, you would include the debug-ai.pine helper:
+// //@include "debug-ai.pine"
+
+// And use it like this:
+/*
+// Load AI patterns
+patterns = loadAIPatterns()
+
+// Analyze code
+suggestions = analyzeCodeWithAI(aiAnalysis, "Demo analysis")
+
+// Generate comprehensive suggestions
+allSuggestions = generateAISuggestions(aiAnalysis)
+
+// Prioritize suggestions
+prioritized = prioritizeSuggestions(allSuggestions)
+
+// Track feedback (when user accepts/rejects suggestions)
+feedback = trackSuggestionFeedback("CE002", true, "Fixed division by zero")
+*/
+
+// ----------------------------------------------------------------------------
+// VISUAL FEEDBACK
+// ----------------------------------------------------------------------------
+
+// Color code bars based on issues
+barcolor(color.new(
+    crossover_signal ? color.green : 
+    crossunder_signal ? color.red : 
+    roc_fixed > 0 ? color.blue : 
+    color.gray, 
+    90
+))
+
+// Add labels for educational purposes
+if barstate.islast
+    label.new(bar_index, high * 1.02, 
+        text="AI Debugging Demo\nRed = Errors\nGreen = Optimized\nBlue = Fixed", 
+        color=color.new(color.purple, 90), 
+        textcolor=color.white,
+        style=label.style_label_down,
+        size=size.small)
+
+// ----------------------------------------------------------------------------
+// EXPORT FUNCTIONALITY
+// ----------------------------------------------------------------------------
+
+// Function to export code with AI suggestions
+exportCodeWithAISuggestions() =>
+    code = """
+    // Original code with issues
+    roc = (close - close[1]) / close[1]
+    sma_early = ta.sma(close, length)[bar_index - 20]
+    
+    // Fixed code
+    roc_fixed = close[1] != 0 ? (close - close[1]) / close[1] : na
+    sma_fixed = bar_index >= 20 ? ta.sma(close, length)[bar_index - 20] : na
+    """
+    
+    // In real use, this would call the AI analysis
+    // suggestions = exportAISuggestions(code)
+    "Export ready with AI suggestions"
+
+// ----------------------------------------------------------------------------
+// CONCLUSION
+// ----------------------------------------------------------------------------
+
+// Summary message
+if barstate.islast
+    debug.log("=== AI DEBUGGING DEMO COMPLETE ===")
+    debug.log("This demo shows how AI can help identify:")
+    debug.log("1. Common PineScript errors")
+    debug.log("2. Performance optimization opportunities")
+    debug.log("3. Best practice improvements")
+    debug.log("4. TradingView-specific issues")
+    debug.log("")
+    debug.log("Use /pine-debug ai --file <your-file.pine> to analyze your code")
+    debug.log("Or visit the debug server web interface for interactive AI suggestions")
+
+// ----------------------------------------------------------------------------
+// TEST THE AI DETECTION
+// ----------------------------------------------------------------------------
+
+// Uncomment to test AI pattern detection
+/*
+// Test case 1: Should trigger CE002
+test_division = close / 0
+
+// Test case 2: Should trigger CE001  
+test_index = close[bar_index - 100]
+
+// Test case 3: Should trigger PI001
+test_redundant1 = ta.sma(close, 14)
+test_redundant2 = ta.sma(close, 14)
+
+// Test case 4: Should trigger BP001
+test_input = input(14, "Test")
+*/
+
+// ----------------------------------------------------------------------------
+// FINAL PLOTS
+// ----------------------------------------------------------------------------
+
+// Plot the main indicators
+plot(fast_sma, "Fast SMA (10)", color=color.blue, linewidth=2)
+plot(slow_sma, "Slow SMA (30)", color=color.red, linewidth=2)
+
+// Add background color for visualization
+bgcolor(crossover_signal ? color.new(color.green, 90) : 
+        crossunder_signal ? color.new(color.red, 90) : na)
+
+// ----------------------------------------------------------------------------
+// END OF AI DEBUGGING DEMO
+// ----------------------------------------------------------------------------

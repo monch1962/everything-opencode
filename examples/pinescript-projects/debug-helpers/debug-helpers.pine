@@ -1,0 +1,417 @@
+// PineScript Debugging Helpers v1.0
+// Comprehensive debugging library for custom indicator development
+// Include in your PineScript with: //@include "debug-helpers.pine"
+
+// ========== CONFIGURATION ==========
+
+// Debugging levels: 0=off, 1=basic, 2=detailed, 3=verbose
+debugLevel = input.int(1, "Debug Level", minval=0, maxval=3, group="Debugging")
+
+// Output channels: plot, alert, table, all
+debugOutput = input.string("plot", "Debug Output", options=["plot", "alert", "table", "all"], group="Debugging")
+
+// Color scheme for debugging visuals
+debugColorGood = input.color(color.green, "Good Color", group="Debugging")
+debugColorBad = input.color(color.red, "Bad Color", group="Debugging")
+debugColorNeutral = input.color(color.blue, "Neutral Color", group="Debugging")
+debugColorWarning = input.color(color.orange, "Warning Color", group="Debugging")
+
+// ========== CORE DEBUGGING FUNCTIONS ==========
+
+/**
+ * Check if debugging is enabled at specified level
+ */
+debug.enabled(level) =>
+    debugLevel >= level
+
+/**
+ * Format value for debugging output with automatic precision
+ */
+debug.format(value, label = "") =>
+    if na(value)
+        label + ": na"
+    else
+        label + ": " + str.tostring(value, value > 1000 or value < 0.01 ? "#.####" : "#.##")
+
+/**
+ * Format array of values for table display
+ */
+debug.formatArray(values, labels) =>
+    array.new_string(array.size(values), "")
+    for i = 0 to array.size(values) - 1
+        array.set(array.new_string, i, debug.format(array.get(values, i), array.get(labels, i)))
+
+// ========== VISUAL DEBUGGING ==========
+
+/**
+ * Plot value with debug styling
+ */
+debug.plot(value, title, color = na, linewidth = 1) =>
+    if debug.enabled(1) and (debugOutput == "plot" or debugOutput == "all")
+        plotColor = color == na ? debugColorNeutral : color
+        plot(value, title, color = color.new(plotColor, 0), linewidth = linewidth, display = display.data_window)
+
+/**
+ * Plot character for discrete debugging values
+ */
+debug.plotchar(value, title, location = location.top, color = na) =>
+    if debug.enabled(1) and (debugOutput == "plot" or debugOutput == "all")
+        plotColor = color == na ? debugColorNeutral : color
+        plotchar(value, title, "", location, size = size.tiny, color = color.new(plotColor, 0))
+
+/**
+ * Plot shape for condition debugging
+ */
+debug.plotshape(condition, title, style = shape.triangleup, location = location.belowbar, color = na) =>
+    if debug.enabled(1) and (debugOutput == "plot" or debugOutput == "all")
+        plotColor = color == na ? debugColorGood : color
+        plotshape(condition, title, style, location, color = color.new(plotColor, 0), size = size.small)
+
+/**
+ * Plot arrow for directional debugging
+ */
+debug.plotarrow(condition, title, colorup = na, colordown = na) =>
+    if debug.enabled(1) and (debugOutput == "plot" or debugOutput == "all")
+        colorUp = colorup == na ? debugColorGood : colorup
+        colorDown = colordown == na ? debugColorBad : colordown
+        plotarrow(condition ? 1 : condition == false ? -1 : na, title, colorup = color.new(colorUp, 0), colordown = color.new(colorDown, 0))
+
+// ========== SERIES DEBUGGING ==========
+
+/**
+ * Debug a series variable with history tracking
+ */
+debug.series(value, title, lookback = 20, showHistory = true) =>
+    if debug.enabled(2)
+        // Current value
+        debug.plot(value, title)
+        
+        // Historical values if enabled
+        if showHistory
+            var debugHistory = array.new_float(lookback)
+            array.push(debugHistory, value)
+            if array.size(debugHistory) > lookback
+                array.shift(debugHistory)
+            
+            // Plot historical average
+            historicalAvg = array.avg(debugHistory)
+            debug.plot(historicalAvg, title + " (Avg)", color = color.new(color.gray, 0), linewidth = 1)
+            
+            // Plot historical range
+            historicalMin = array.min(debugHistory)
+            historicalMax = array.max(debugHistory)
+            debug.plot(historicalMin, title + " (Min)", color = color.new(color.red, 50), linewidth = 1)
+            debug.plot(historicalMax, title + " (Max)", color = color.new(color.green, 50), linewidth = 1)
+
+/**
+ * Monitor series for anomalies (outliers, jumps, flatlines)
+ */
+debug.monitorSeries(value, title, threshold = 2.0) =>
+    if debug.enabled(2)
+        var float lastValue = na
+        var int flatCount = 0
+        var float mean = na
+        var float stdDev = na
+        
+        if not na(value) and not na(lastValue)
+            // Detect jumps
+            jumpPct = math.abs(value - lastValue) / lastValue * 100
+            if jumpPct > threshold * 10
+                debug.plotshape(true, title + " Jump: " + str.tostring(jumpPct, "#.##") + "%", 
+                              shape.xcross, location.abovebar, debugColorWarning)
+            
+            // Detect flatlines
+            if math.abs(value - lastValue) / lastValue < 0.001
+                flatCount := flatCount + 1
+                if flatCount > 10
+                    debug.plotshape(true, title + " Flatline", 
+                                  shape.circle, location.belowbar, debugColorWarning)
+            else
+                flatCount := 0
+        
+        lastValue := value
+
+// ========== CONDITION DEBUGGING ==========
+
+/**
+ * Monitor condition with state tracking
+ */
+debug.monitorCondition(condition, title, alertOnChange = false) =>
+    if debug.enabled(2)
+        var bool lastState = na
+        var int trueCount = 0
+        var int falseCount = 0
+        
+        if not na(condition)
+            // Track state changes
+            if condition != lastState and not na(lastState)
+                debug.plotshape(true, title + " changed", 
+                              condition ? shape.triangleup : shape.triangledown, 
+                              condition ? location.belowbar : location.abovebar,
+                              condition ? debugColorGood : debugColorBad)
+                
+                if alertOnChange and (debugOutput == "alert" or debugOutput == "all")
+                    alert(title + " changed to: " + str.tostring(condition), alert.freq_once_per_bar)
+            
+            // Track statistics
+            if condition
+                trueCount := trueCount + 1
+            else
+                falseCount := falseCount + 1
+            
+            // Update display
+            if barstate.islast
+                debug.plotchar(trueCount, title + " True: " + str.tostring(trueCount))
+                debug.plotchar(falseCount, title + " False: " + str.tostring(falseCount))
+        
+        lastState := condition
+
+/**
+ * Debug complex condition with sub-condition breakdown
+ */
+debug.conditionBreakdown(condition, subConditions, labels) =>
+    if debug.enabled(3)
+        // Plot main condition
+        debug.plotshape(condition, "Main Condition", 
+                       condition ? shape.triangleup : shape.triangledown,
+                       condition ? location.belowbar : location.abovebar)
+        
+        // Plot sub-conditions
+        for i = 0 to array.size(subConditions) - 1
+            subCond = array.get(subConditions, i)
+            label = array.get(labels, i)
+            debug.plotchar(subCond, label + ": " + str.tostring(subCond),
+                          location = location.top - i - 1)
+
+// ========== PERFORMANCE DEBUGGING ==========
+
+/**
+ * Track calculation frequency (conceptual - PineScript doesn't have timers)
+ */
+debug.trackCalculation(label) =>
+    if debug.enabled(3)
+        var int count = 0
+        count := count + 1
+        
+        if barstate.islast
+            debug.plotchar(count, label + " calls: " + str.tostring(count))
+
+/**
+ * Monitor memory usage patterns (estimated)
+ */
+debug.memoryMonitor(values, labels) =>
+    if debug.enabled(3)
+        var int totalSize = 0
+        
+        for i = 0 to array.size(values) - 1
+            value = array.get(values, i)
+            // Estimate size based on value characteristics
+            sizeEstimate = not na(value) ? 1 : 0
+            totalSize := totalSize + sizeEstimate
+        
+        if barstate.islast
+            debug.plotchar(totalSize, "Memory est: " + str.tostring(totalSize))
+
+// ========== ALERT DEBUGGING ==========
+
+/**
+ * Debug alert with formatted message
+ */
+debug.alert(value, title, frequency = alert.freq_once_per_bar) =>
+    if debug.enabled(1) and (debugOutput == "alert" or debugOutput == "all")
+        alert(debug.format(value, title), frequency)
+
+/**
+ * Conditional alert with threshold checking
+ */
+debug.alertCondition(value, title, condition, threshold = na, direction = "above") =>
+    if debug.enabled(2) and condition and (debugOutput == "alert" or debugOutput == "all")
+        message = debug.format(value, title)
+        if not na(threshold)
+            if direction == "above" and value > threshold
+                alert(message + " > " + str.tostring(threshold, "#.##"), alert.freq_once_per_bar)
+            else if direction == "below" and value < threshold
+                alert(message + " < " + str.tostring(threshold, "#.##"), alert.freq_once_per_bar)
+        else
+            alert(message, alert.freq_once_per_bar)
+
+// ========== TABLE DEBUGGING ==========
+
+/**
+ * Create debug table in data window
+ */
+debug.table(values, labels, title = "Debug Table") =>
+    if debug.enabled(2) and (debugOutput == "table" or debugOutput == "all")
+        // Create table header
+        debug.plotchar(na, "=== " + title + " ===")
+        
+        // Add rows
+        for i = 0 to array.size(values) - 1
+            value = array.get(values, i)
+            label = array.get(labels, i)
+            debug.plotchar(value, label + ": " + str.tostring(value, "#.##"))
+
+/**
+ * Compare multiple series in table format
+ */
+debug.compareSeries(seriesArray, labels, comparison = "current") =>
+    if debug.enabled(3) and (debugOutput == "table" or debugOutput == "all")
+        var string[] tableRows = array.new_string(0)
+        
+        for i = 0 to array.size(seriesArray) - 1
+            series = array.get(seriesArray, i)
+            label = array.get(labels, i)
+            
+            if comparison == "current"
+                row = label + ": " + str.tostring(series, "#.##")
+            else if comparison == "change"
+                change = series - series[1]
+                row = label + ": " + str.tostring(change, "+#.##")
+            else if comparison == "pct"
+                pct = (series - series[1]) / series[1] * 100
+                row = label + ": " + str.tostring(pct, "+#.##%")
+            
+            array.push(tableRows, row)
+        
+        // Display table
+        for j = 0 to array.size(tableRows) - 1
+            debug.plotchar(na, array.get(tableRows, j))
+
+// ========== STATISTICAL DEBUGGING ==========
+
+/**
+ * Calculate and display basic statistics
+ */
+debug.stats(values, labels) =>
+    if debug.enabled(3)
+        var float[] means = array.new_float(0)
+        var float[] stddevs = array.new_float(0)
+        var float[] mins = array.new_float(0)
+        var float[] maxs = array.new_float(0)
+        
+        for i = 0 to array.size(values) - 1
+            value = array.get(values, i)
+            
+            // Simple rolling statistics (conceptual)
+            if not na(value)
+                // Update mean estimate
+                currentMean = array.get(means, i, 0)
+                newMean = (currentMean * 0.95) + (value * 0.05)
+                array.set(means, i, newMean)
+                
+                // Track min/max
+                currentMin = array.get(mins, i, value)
+                currentMax = array.get(maxs, i, value)
+                array.set(mins, i, math.min(currentMin, value))
+                array.set(maxs, i, math.max(currentMax, value))
+        
+        // Display statistics
+        if barstate.islast
+            for j = 0 to array.size(values) - 1
+                label = array.get(labels, j)
+                mean = array.get(means, j)
+                minVal = array.get(mins, j)
+                maxVal = array.get(maxs, j)
+                range = maxVal - minVal
+                
+                debug.plotchar(mean, label + " Mean: " + str.tostring(mean, "#.##"))
+                debug.plotchar(range, label + " Range: " + str.tostring(range, "#.##"))
+
+// ========== PATTERN DEBUGGING ==========
+
+/**
+ * Detect and debug common patterns
+ */
+debug.patterns(values, labels, patternType = "crossover") =>
+    if debug.enabled(3)
+        if patternType == "crossover"
+            for i = 0 to array.size(values) - 2
+                for j = i + 1 to array.size(values) - 1
+                    series1 = array.get(values, i)
+                    series2 = array.get(values, j)
+                    label1 = array.get(labels, i)
+                    label2 = array.get(labels, j)
+                    
+                    crossUp = ta.crossover(series1, series2)
+                    crossDown = ta.crossunder(series1, series2)
+                    
+                    if crossUp
+                        debug.plotshape(true, label1 + " xUp " + label2, 
+                                      shape.triangleup, location.belowbar, debugColorGood)
+                    if crossDown
+                        debug.plotshape(true, label1 + " xDown " + label2,
+                                      shape.triangledown, location.abovebar, debugColorBad)
+
+// ========== ERROR DETECTION ==========
+
+/**
+ * Check for common PineScript errors
+ */
+debug.errorCheck(value, label, checks = ["na", "inf", "zero"]) =>
+    errorFound = false
+    errorMessage = ""
+    
+    if array.includes(checks, "na") and na(value)
+        errorFound := true
+        errorMessage := "NA value"
+    
+    if array.includes(checks, "inf") and not na(value) and (value > 1e10 or value < -1e10)
+        errorFound := true
+        errorMessage := "Infinite value"
+    
+    if array.includes(checks, "zero") and not na(value) and math.abs(value) < 1e-10
+        errorFound := true
+        errorMessage := "Near-zero value"
+    
+    if errorFound and debug.enabled(2)
+        debug.plotshape(true, label + " Error: " + errorMessage,
+                      shape.xcross, location.abovebar, debugColorWarning)
+    
+    errorFound
+
+// ========== EXAMPLE USAGE ==========
+/*
+// Example 1: Basic debugging
+myIndicator = ta.sma(close, 14)
+debug.plot(myIndicator, "My Indicator")
+debug.plotchar(myIndicator, "Current Value")
+
+// Example 2: Condition monitoring
+buyCondition = rsi < 30 and volume > ta.sma(volume, 20)
+debug.monitorCondition(buyCondition, "Buy Signal", true)
+
+// Example 3: Series analysis
+priceSeries = close
+debug.series(priceSeries, "Price", 50, true)
+debug.monitorSeries(priceSeries, "Price Monitor")
+
+// Example 4: Statistical debugging
+indicators = array.new_float()
+array.push(indicators, rsi)
+array.push(indicators, macd)
+labels = array.new_string()
+array.push(labels, "RSI")
+array.push(labels, "MACD")
+debug.stats(indicators, labels)
+
+// Example 5: Table display
+values = array.new_float()
+array.push(values, close)
+array.push(values, high)
+array.push(values, low)
+tableLabels = array.new_string()
+array.push(tableLabels, "Close")
+array.push(tableLabels, "High")
+array.push(tableLabels, "Low")
+debug.table(values, tableLabels, "Price Data")
+*/
+
+// ========== INITIALIZATION ==========
+// Initialize debug namespace
+var debug = na
+debug := true
+
+// Display debug status
+if barstate.islast and debugLevel > 0
+    plotchar(debugLevel, "Debug Level: " + str.tostring(debugLevel), 
+            location = location.top, size = size.tiny, color = color.new(color.blue, 0))
