@@ -66,53 +66,71 @@ class GoCommandRunner {
    * Execute Go command with Go-specific improvements
    */
   async executeGoCommand(command, args = [], options = {}) {
+    // Ensure critical Go environment variables are set
+    const goEnv = {
+      ...process.env,
+      GO111MODULE: "on",
+    };
+
+    // Set HOME if not set (required for GOCACHE)
+    if (!goEnv.HOME) {
+      goEnv.HOME = require("os").homedir();
+    }
+
+    // Set GOCACHE if not set
+    if (!goEnv.GOCACHE) {
+      goEnv.GOCACHE = `${goEnv.HOME}/.cache/go-build`;
+    }
+
     const defaultOptions = {
       cwd: this.projectPath,
       stdio: "inherit",
-      env: { ...process.env, GO111MODULE: "on" },
+      env: goEnv,
       timeout: 300000, // 5 minutes for Go commands
     };
 
-    const finalOptions = { ...defaultOptions, ...options };
+    const finalOptions = {
+      ...defaultOptions,
+      ...options,
+      // Merge environment objects instead of overwriting
+      env: options.env
+        ? { ...defaultOptions.env, ...options.env }
+        : defaultOptions.env,
+    };
 
     console.log(`🚀 Executing: go ${command} ${args.join(" ")}`);
 
+    // Debug: Check if go is in PATH
+    if (finalOptions.verbose) {
+      console.log(`🔍 PATH: ${process.env.PATH}`);
+      console.log(
+        `🔍 Go executable check: ${require("child_process").execSync('which go || echo "go not found"').toString()}`,
+      );
+    }
+
     return new Promise((resolve, reject) => {
-      const process = spawn("go", [command, ...args], finalOptions);
+      const { exec } = require("child_process");
 
-      let stdout = "";
-      let stderr = "";
+      // Build the command string with full path to go
+      const goPath = "/opt/homebrew/bin/go"; // Default for Apple Silicon Homebrew
+      const cmd = `${goPath} ${command} ${args.join(" ")}`;
+      console.log(`🔍 Executing: ${cmd}`);
+      console.log(`🔍 CWD: ${finalOptions.cwd}`);
 
-      if (process.stdout) {
-        process.stdout.on("data", (data) => {
-          stdout += data.toString();
-          if (finalOptions.stdio === "inherit") {
-            process.stdout.write(data);
-          }
-        });
-      }
-
-      if (process.stderr) {
-        process.stderr.on("data", (data) => {
-          stderr += data.toString();
-          if (finalOptions.stdio === "inherit") {
-            process.stderr.write(data);
-          }
-        });
-      }
-
-      process.on("close", (code) => {
-        if (code === 0) {
-          resolve({ success: true, code, stdout, stderr });
-        } else {
+      exec(cmd, finalOptions, (error, stdout, stderr) => {
+        if (error) {
+          console.log(`🔍 Exec error: ${error.message}`);
           reject(
-            new Error(`Go ${command} failed with code ${code}: ${stderr}`),
+            new Error(`Failed to execute go ${command}: ${error.message}`),
           );
+        } else {
+          resolve({
+            success: error ? false : true,
+            code: error ? error.code : 0,
+            stdout,
+            stderr,
+          });
         }
-      });
-
-      process.on("error", (error) => {
-        reject(new Error(`Failed to execute go ${command}: ${error.message}`));
       });
     });
   }
@@ -121,7 +139,10 @@ class GoCommandRunner {
    * Build Go project with Go-specific improvements
    */
   async build(options = {}) {
-    await this.initialize();
+    // Only initialize if not already initialized
+    if (!this.detectedTools) {
+      await this.initialize();
+    }
 
     const args = [];
 
@@ -166,10 +187,19 @@ class GoCommandRunner {
       args.push("-buildmode", options.buildMode);
     }
 
-    // Add build target
+    // Handle cross-compilation via environment variables
     const target = options.target || this.detectBuildTarget();
     if (target) {
-      args.push("-target", target);
+      const [goos, goarch] = target.split("/");
+      if (goos && goarch) {
+        // Set environment variables for cross-compilation
+        options.env = {
+          ...(options.env || {}),
+          GOOS: goos,
+          GOARCH: goarch,
+          CGO_ENABLED: "0",
+        };
+      }
     }
 
     // Add verbose flag
@@ -718,7 +748,26 @@ class GoCommandRunner {
         env: { ...process.env, GO111MODULE: "on" },
       };
 
-      const finalOptions = { ...defaultOptions, ...options };
+      const finalOptions = {
+        ...defaultOptions,
+        ...options,
+        // Merge environment objects instead of overwriting
+        env: options.env
+          ? { ...defaultOptions.env, ...options.env }
+          : defaultOptions.env,
+      };
+
+      console.log(
+        `🔍 defaultOptions.env keys: ${Object.keys(defaultOptions.env || {}).join(", ")}`,
+      );
+      console.log(
+        `🔍 options.env keys: ${Object.keys(options.env || {}).join(", ")}`,
+      );
+      console.log(
+        `🔍 finalOptions.env keys: ${Object.keys(finalOptions.env || {}).join(", ")}`,
+      );
+      console.log(`🔍 finalOptions.env.HOME: ${finalOptions.env?.HOME}`);
+      console.log(`🔍 finalOptions.env.GOCACHE: ${finalOptions.env?.GOCACHE}`);
 
       return new Promise((resolve, reject) => {
         const process = spawn("godoc", args, finalOptions);

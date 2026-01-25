@@ -120,6 +120,8 @@ everything-opencode/
 |   |-- python-setup.md     # /python-setup - Configure Python project
 |   |-- pine-setup.md       # /pine-setup - Configure PineScript project
 |   |-- pine-validate.md    # /pine-validate - Validate PineScript syntax
+|   |-- go-setup.md         # /go-setup - Configure Go project with Go-specific improvements
+|   |-- go-build.md         # /go-build - Build Go projects with cross-compilation
 |
 |-- rules/            # Always-follow guidelines (copy to ~/.opencode/rules/)
 |   |-- security.md         # Mandatory security checks

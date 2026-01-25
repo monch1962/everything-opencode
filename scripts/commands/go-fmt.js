@@ -1,38 +1,38 @@
 #!/usr/bin/env node
 /**
  * /go-fmt command wrapper
- * 
+ *
  * Format Go code with Go-specific improvements
  */
 
-const GoCommandRunner = require('../go/command-runner');
+const GoCommandRunner = require("../go/command-runner");
 
 async function main() {
   const args = process.argv.slice(2);
   const options = {};
-  
+
   // Parse command line arguments
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
-    if (arg === '--write' || arg === '-w') {
+
+    if (arg === "--write" || arg === "-w") {
       options.write = true;
-    } else if (arg === '--diff' || arg === '-d') {
+    } else if (arg === "--diff" || arg === "-d") {
       options.diff = true;
-    } else if (arg === '--simplify' || arg === '-s') {
+    } else if (arg === "--simplify" || arg === "-s") {
       options.simplify = true;
-    } else if (arg === '--list' || arg === '-l') {
+    } else if (arg === "--list" || arg === "-l") {
       options.list = true;
-    } else if (arg === '--formatter') {
+    } else if (arg === "--formatter") {
       options.formatter = args[++i];
-    } else if (arg === '--verbose' || arg === '-v') {
+    } else if (arg === "--verbose" || arg === "-v") {
       options.verbose = true;
-    } else if (arg === '--check') {
+    } else if (arg === "--check") {
       options.check = true;
-    } else if (arg === '--help' || arg === '-h') {
+    } else if (arg === "--help" || arg === "-h") {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith('--')) {
+    } else if (arg.startsWith("--")) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -42,38 +42,37 @@ async function main() {
       options.paths.push(arg);
     }
   }
-  
+
   try {
     const runner = new GoCommandRunner(process.cwd());
     await runner.initialize();
-    
+
     // Override formatter from command line
     if (options.formatter && runner.goConfig.tools) {
       runner.goConfig.tools.formatter = options.formatter;
     }
-    
+
     // Handle check mode (dry run)
     if (options.check) {
       return runFormatCheck(runner, options);
     }
-    
-    console.log('🎨 Formatting Go code...');
+
+    console.log("🎨 Formatting Go code...");
     const result = await runner.format(options);
-    
+
     if (result.success) {
       if (options.write) {
-        console.log('\n✅ Code formatted successfully!');
+        console.log("\n✅ Code formatted successfully!");
       } else if (options.diff) {
         // Diff output is already shown by the formatter
-        console.log('\n📋 Formatting diff shown above');
+        console.log("\n📋 Formatting diff shown above");
       } else {
-        console.log('\n✅ Code is properly formatted!');
+        console.log("\n✅ Code is properly formatted!");
       }
     } else {
-      console.error('\n❌ Formatting failed');
+      console.error("\n❌ Formatting failed");
       process.exit(1);
     }
-    
   } catch (error) {
     console.error(`❌ Formatting failed: ${error.message}`);
     process.exit(1);
@@ -84,46 +83,47 @@ async function main() {
  * Run format check (dry run)
  */
 async function runFormatCheck(runner, options) {
-  console.log('🔍 Checking Go code formatting...');
-  
+  console.log("🔍 Checking Go code formatting...");
+
   try {
     // First check with gofmt
     const gofmtResult = await runner.format({
       ...options,
       diff: true,
       write: false,
-      stdio: 'pipe'
+      stdio: "pipe",
     });
-    
+
     if (gofmtResult.stdout && gofmtResult.stdout.trim()) {
-      console.log('\n⚠️ Formatting issues found:');
+      console.log("\n⚠️ Formatting issues found:");
       console.log(gofmtResult.stdout);
-      console.log('\n💡 Run /go-fmt --write to fix these issues');
+      console.log("\n💡 Run /go-fmt --write to fix these issues");
       process.exit(1);
     } else {
-      console.log('\n✅ All Go files are properly formatted!');
+      console.log("\n✅ All Go files are properly formatted!");
     }
-    
+
     // Also check imports if goimports is available
     if (runner.detectedTools.goimports?.installed) {
-      console.log('\n🔍 Checking import organization...');
-      
-      const { runCommand } = require('../lib/utils');
-      const importResult = runCommand('goimports -d .', {
+      console.log("\n🔍 Checking import organization...");
+
+      const { runCommand } = require("../lib/utils");
+      const importResult = runCommand("goimports -d .", {
         cwd: runner.projectPath,
-        stdio: 'pipe'
+        stdio: "pipe",
       });
-      
+
       if (importResult.stdout && importResult.stdout.trim()) {
-        console.log('\n⚠️ Import organization issues found:');
+        console.log("\n⚠️ Import organization issues found:");
         console.log(importResult.stdout);
-        console.log('\n💡 Run /go-fmt --write --formatter goimports to fix imports');
+        console.log(
+          "\n💡 Run /go-fmt --write --formatter goimports to fix imports",
+        );
         process.exit(1);
       } else {
-        console.log('✅ Imports are properly organized!');
+        console.log("✅ Imports are properly organized!");
       }
     }
-    
   } catch (error) {
     console.error(`❌ Format check failed: ${error.message}`);
     process.exit(1);
@@ -222,7 +222,7 @@ Tips:
 }
 
 if (require.main === module) {
-  main().catch((error) {
+  main().catch((error) => {
     console.error(`Fatal error: ${error.message}`);
     process.exit(1);
   });

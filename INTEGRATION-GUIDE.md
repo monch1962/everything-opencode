@@ -44,6 +44,7 @@ everything-opencode/
 - **Confidence scoring**: 0-0.95 based on multiple indicators
 - **Python project types**: FastAPI, Django, Flask, Data Science, ML, CLI, Library
 - **PineScript project types**: Indicator, Strategy, Library with version detection (v4, v5, v6)
+- **Go project types**: CLI, Web Service, Library, Module, Workspace (Go 1.18+)
 - **Automatic primary language determination**
 
 ### 2. Interactive Configuration
@@ -79,6 +80,15 @@ everything-opencode/
 - **/pine-optimize** - Optimize strategy parameters with grid search
 - **/pine-convert** - Convert between PineScript versions (v4 ↔ v5 ↔ v6)
 - **/pine-alert** - Configure alert system with webhooks and notifications
+
+#### Go Commands
+
+- **/go-setup** - Configure Go project with Go-specific improvements (CLI, web, library, workspace)
+- **/go-build** - Build Go projects with cross-compilation for 5 platforms and race detection
+- **/go-test** - Run comprehensive tests with coverage, benchmarks, and race detection
+- **/go-lint** - Lint code with multiple linter support (golangci-lint, staticcheck, revive)
+- **/go-fmt** - Format code with gofmt/goimports and formatting checks
+- **/go-deps** - Manage dependencies with security auditing and update management
 
 ## Quick Start
 
