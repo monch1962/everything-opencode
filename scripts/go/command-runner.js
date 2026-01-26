@@ -11,12 +11,14 @@ const { spawn } = require("child_process");
 const { runCommand, commandExists } = require("../lib/utils");
 const ConfigManager = require("../interactive/config-manager");
 const GoToolDetector = require("../../languages/go/tool-detector");
+const PlatformDetector = require("../lib/platform-detector");
 
 class GoCommandRunner {
   constructor(projectPath = process.cwd()) {
     this.projectPath = projectPath;
     this.configManager = new ConfigManager(projectPath);
     this.toolDetector = new GoToolDetector();
+    this.platformDetector = new PlatformDetector();
     this.config = null;
     this.goConfig = null;
     this.detectedTools = null;
@@ -111,11 +113,21 @@ class GoCommandRunner {
     return new Promise((resolve, reject) => {
       const { exec } = require("child_process");
 
-      // Build the command string with full path to go
-      const goPath = "/opt/homebrew/bin/go"; // Default for Apple Silicon Homebrew
+      // Build the command string with dynamic path to go
+      const goPath = this.platformDetector.getToolPath("go", {
+        required: true,
+        customLocations: [
+          // Additional Go installation locations
+          "/usr/local/go/bin/go",
+          "/usr/lib/go/bin/go",
+          "C:\\Go\\bin\\go.exe",
+        ],
+      });
+
       const cmd = `${goPath} ${command} ${args.join(" ")}`;
       console.log(`🔍 Executing: ${cmd}`);
       console.log(`🔍 CWD: ${finalOptions.cwd}`);
+      console.log(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
 
       exec(cmd, finalOptions, (error, stdout, stderr) => {
         if (error) {

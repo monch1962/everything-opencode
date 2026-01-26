@@ -7,15 +7,19 @@
 
 const fs = require("fs");
 const path = require("path");
+const fs = require("fs");
 const { spawn } = require("child_process");
+const { runCommand, commandExists } = require("../lib/utils");
 const ConfigManager = require("../interactive/config-manager");
 const ElixirToolDetector = require("../../languages/elixir/tool-detector");
+const PlatformDetector = require("../lib/platform-detector");
 
 class ElixirCommandRunner {
   constructor(projectPath = process.cwd()) {
     this.projectPath = projectPath;
     this.configManager = new ConfigManager(projectPath);
     this.toolDetector = new ElixirToolDetector();
+    this.platformDetector = new PlatformDetector();
     this.config = null;
     this.elixirConfig = null;
     this.detectedTools = null;
@@ -100,11 +104,21 @@ class ElixirCommandRunner {
     return new Promise((resolve, reject) => {
       const { exec } = require("child_process");
 
-      // Build the command string with full path to mix
-      const mixPath = "/opt/homebrew/bin/mix"; // Default for Homebrew on Apple Silicon
+      // Build the command string with dynamic path to mix
+      const mixPath = this.platformDetector.getToolPath("mix", {
+        required: true,
+        customLocations: [
+          // Additional Elixir installation locations
+          "/usr/local/bin/mix",
+          "/usr/bin/mix",
+          "C:\\Program Files\\Elixir\\bin\\mix.bat",
+        ],
+      });
+
       const cmd = `${mixPath} ${command} ${args.join(" ")}`;
       console.log(`🔍 Executing: ${cmd}`);
       console.log(`🔍 CWD: ${finalOptions.cwd}`);
+      console.log(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
 
       exec(cmd, finalOptions, (error, stdout, stderr) => {
         if (error) {
