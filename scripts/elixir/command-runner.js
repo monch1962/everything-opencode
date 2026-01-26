@@ -14,6 +14,15 @@ const ElixirToolDetector = require("../../languages/elixir/tool-detector");
 const PlatformDetector = require("../lib/platform-detector");
 const { defaultErrorHandler } = require("../lib/error-handler");
 
+// Import shared utilities
+const {
+  ConfigUtils,
+  FileUtils,
+  ProjectUtils,
+  LoggingUtils,
+  ensureDir,
+} = require("../lib");
+
 class ElixirCommandRunner {
   constructor(projectPath = process.cwd()) {
     this.projectPath = projectPath;
@@ -29,42 +38,132 @@ class ElixirCommandRunner {
    * Initialize command runner with Elixir-specific setup
    */
   async initialize() {
-    // Load configuration
-    this.config = this.configManager.loadConfig();
-    if (!this.config) {
-      throw new Error("Project not configured. Run /elixir-setup first.");
+    // First, validate that we're in an Elixir project using ProjectUtils
+    try {
+      const projectInfo = ProjectUtils.detectProjectType(this.projectPath);
+
+      if (projectInfo.type !== "elixir" && projectInfo.confidence < 0.7) {
+        LoggingUtils.warn(
+          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`,
+        );
+        LoggingUtils.warn(
+          "This may not be an Elixir project. Some features may not work correctly.",
+        );
+      } else if (projectInfo.type === "elixir") {
+        LoggingUtils.debug(
+          `Detected Elixir project: ${projectInfo.framework || "standard Elixir"}`,
+        );
+      }
+
+      // Log detected languages if available
+      if (projectInfo.languages && projectInfo.languages.length > 0) {
+        LoggingUtils.debug(
+          `Detected languages: ${projectInfo.languages.join(", ")}`,
+        );
+      }
+    } catch (error) {
+      LoggingUtils.debug("Project detection failed:", error.message);
     }
 
-    // Get Elixir configuration
-    this.elixirConfig = this.config.elixir;
-    if (!this.elixirConfig) {
-      throw new Error(
-        "Elixir configuration not found. Run /elixir-setup first.",
+    // Load configuration using ConfigUtils
+    try {
+      this.config = ConfigUtils.loadConfig(this.projectPath);
+      if (!this.config) {
+        throw new Error("Project not configured. Run /elixir-setup first.");
+      }
+
+      // Get Elixir configuration
+      this.elixirConfig = this.config.elixir;
+      if (!this.elixirConfig) {
+        throw new Error(
+          "Elixir configuration not found. Run /elixir-setup first.",
+        );
+      }
+
+      // Validate Elixir configuration schema
+      ConfigUtils.validateConfig(this.elixirConfig, "elixir");
+
+      // Detect tools
+      this.detectedTools = await this.toolDetector.detectTools();
+
+      return true;
+    } catch (error) {
+      // Use LoggingUtils for better error display
+      LoggingUtils.error(
+        "Failed to initialize Elixir command runner:",
+        error.message,
       );
+      LoggingUtils.info("Run /elixir-setup to configure your Elixir project");
+      throw error;
     }
-
-    // Detect tools
-    this.detectedTools = await this.toolDetector.detectTools();
-
-    return true;
   }
 
   /**
    * Check if a specific tool is available
    */
   hasTool(toolName, required = true) {
-    const toolInfo = this.elixirConfig.tools?.[toolName];
+    try {
+      // Use ConfigUtils to check if tool is installed
+      const isInstalled = ConfigUtils.checkToolInstalled(
+        this.elixirConfig,
+        toolName,
+        required,
+      );
 
-    if (!toolInfo || !toolInfo.installed) {
-      if (required) {
+      if (!isInstalled && required) {
         throw new Error(
           `Required Elixir tool '${toolName}' is not installed. Run /elixir-setup to install it.`,
         );
       }
-      return false;
-    }
 
-    return true;
+      return isInstalled;
+    } catch (error) {
+      // Use LoggingUtils for better error display
+      if (required) {
+        LoggingUtils.error(
+          `Elixir tool '${toolName}' check failed:`,
+          error.message,
+        );
+        LoggingUtils.info(`Run /elixir-setup to install '${toolName}'`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Find Elixir files in the project
+   */
+  findElixirFiles(pattern = "**/*.{ex,exs}", excludePatterns = []) {
+    try {
+      return FileUtils.findFilesByPattern(this.projectPath, [pattern], {
+        exclude: excludePatterns,
+        language: "elixir",
+      });
+    } catch (error) {
+      LoggingUtils.warn("Failed to find Elixir files:", error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Get Elixir project metadata
+   */
+  getElixirProjectInfo() {
+    try {
+      const info = {
+        hasMixExs: fs.existsSync(path.join(this.projectPath, "mix.exs")),
+        hasMixLock: fs.existsSync(path.join(this.projectPath, "mix.lock")),
+        hasConfig: fs.existsSync(path.join(this.projectPath, "config")),
+        hasLib: fs.existsSync(path.join(this.projectPath, "lib")),
+        hasTest: fs.existsSync(path.join(this.projectPath, "test")),
+        elixirFiles: this.findElixirFiles().length,
+      };
+
+      return info;
+    } catch (error) {
+      LoggingUtils.debug("Failed to get Elixir project info:", error.message);
+      return null;
+    }
   }
 
   /**
@@ -107,7 +206,7 @@ class ElixirCommandRunner {
           : defaultOptions.env,
       };
 
-      console.log(`🚀 Executing: mix ${command} ${args.join(" ")}`);
+      LoggingUtils.info(`🚀 Executing: mix ${command} ${args.join(" ")}`);
 
       return await new Promise((resolve, reject) => {
         const { exec } = require("child_process");
@@ -124,13 +223,15 @@ class ElixirCommandRunner {
         });
 
         const cmd = `${mixPath} ${command} ${args.join(" ")}`;
-        console.log(`🔍 Executing: ${cmd}`);
-        console.log(`🔍 CWD: ${finalOptions.cwd}`);
-        console.log(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
+        LoggingUtils.debug(`🔍 Executing: ${cmd}`);
+        LoggingUtils.debug(`🔍 CWD: ${finalOptions.cwd}`);
+        LoggingUtils.debug(
+          `🔍 Platform: ${this.platformDetector.getPlatformName()}`,
+        );
 
         exec(cmd, finalOptions, (error, stdout, stderr) => {
           if (error) {
-            console.log(`🔍 Exec error: ${error.message}`);
+            LoggingUtils.debug(`🔍 Exec error: ${error.message}`);
             reject(
               new Error(`Failed to execute mix ${command}: ${error.message}`),
             );
@@ -156,12 +257,16 @@ class ElixirCommandRunner {
 
       const errorInfo = defaultErrorHandler.handleError(error, context);
 
-      // Log user-friendly error message
-      console.error("\n" + errorInfo.userMessage);
-      console.error("\n💡 Recovery steps:");
-      errorInfo.recoverySteps.forEach((step, i) => {
-        console.error(`  ${i + 1}. ${step}`);
-      });
+      // Log user-friendly error message using LoggingUtils
+      LoggingUtils.error(errorInfo.userMessage);
+
+      // Log recovery steps using LoggingUtils
+      if (errorInfo.recoverySteps && errorInfo.recoverySteps.length > 0) {
+        LoggingUtils.info("💡 Recovery steps:");
+        errorInfo.recoverySteps.forEach((step, i) => {
+          LoggingUtils.info(`  ${i + 1}. ${step}`);
+        });
+      }
 
       // Re-throw enhanced error
       const enhancedError = new Error(errorInfo.userMessage);
@@ -214,6 +319,13 @@ class ElixirCommandRunner {
     }
 
     try {
+      // Log compilation information
+      const projectInfo = this.getElixirProjectInfo();
+      if (projectInfo) {
+        LoggingUtils.debug(`Elixir files: ${projectInfo.elixirFiles}`);
+        LoggingUtils.debug(`Has mix.exs: ${projectInfo.hasMixExs}`);
+      }
+
       const result = await this.executeMixCommand("compile", args, options);
 
       // Elixir-specific: Show compilation information
@@ -536,12 +648,12 @@ class ElixirCommandRunner {
         },
       );
 
-      console.log("\n📊 Compilation Information:");
-      console.log("=".repeat(50));
-      console.log(`Elixir: ${versionResult.stdout.trim()}`);
-      console.log(`Project: ${projectResult.stdout.trim()}`);
-      console.log(`Environment: ${options.env || "dev"}`);
-      console.log("=".repeat(50));
+      LoggingUtils.info("\n📊 Compilation Information:");
+      LoggingUtils.info("=".repeat(50));
+      LoggingUtils.info(`Elixir: ${versionResult.stdout.trim()}`);
+      LoggingUtils.info(`Project: ${projectResult.stdout.trim()}`);
+      LoggingUtils.info(`Environment: ${options.env || "dev"}`);
+      LoggingUtils.info("=".repeat(50));
     } catch (error) {
       // Silently fail - this is just informational
     }
@@ -562,23 +674,23 @@ class ElixirCommandRunner {
    * Suggest compilation fixes
    */
   suggestCompilationFix(errorMessage) {
-    console.log("\n💡 Compilation Error Suggestions:");
+    LoggingUtils.info("\n💡 Compilation Error Suggestions:");
 
     if (errorMessage.includes("Dependency")) {
-      console.log("   • Run 'mix deps.get' to fetch dependencies");
-      console.log("   • Check mix.exs for correct dependency versions");
+      LoggingUtils.info("   • Run 'mix deps.get' to fetch dependencies");
+      LoggingUtils.info("   • Check mix.exs for correct dependency versions");
     }
 
     if (errorMessage.includes("undefined function")) {
-      console.log("   • Check function name and arity");
-      console.log("   • Ensure module is compiled and available");
-      console.log("   • Check imports and aliases");
+      LoggingUtils.info("   • Check function name and arity");
+      LoggingUtils.info("   • Ensure module is compiled and available");
+      LoggingUtils.info("   • Check imports and aliases");
     }
 
     if (errorMessage.includes("module not found")) {
-      console.log("   • Check module name spelling");
-      console.log("   • Ensure file exists in lib/ directory");
-      console.log("   • Check file extension (.ex vs .exs)");
+      LoggingUtils.info("   • Check module name spelling");
+      LoggingUtils.info("   • Ensure file exists in lib/ directory");
+      LoggingUtils.info("   • Check file extension (.ex vs .exs)");
     }
   }
 
@@ -586,18 +698,24 @@ class ElixirCommandRunner {
    * Suggest test fixes
    */
   suggestTestFix(errorMessage) {
-    console.log("\n💡 Test Error Suggestions:");
+    LoggingUtils.info("\n💡 Test Error Suggestions:");
 
     if (errorMessage.includes("assert")) {
-      console.log("   • Check assertion values match expected");
-      console.log("   • Use assert_in_delta for floating point comparisons");
-      console.log("   • Check test setup and teardown");
+      LoggingUtils.info("   • Check assertion values match expected");
+      LoggingUtils.info(
+        "   • Use assert_in_delta for floating point comparisons",
+      );
+      LoggingUtils.info("   • Check test setup and teardown");
     }
 
     if (errorMessage.includes("timeout")) {
-      console.log("   • Increase timeout with --timeout option");
-      console.log("   • Check for infinite loops or long-running operations");
-      console.log("   • Consider using async: false for integration tests");
+      LoggingUtils.info("   • Increase timeout with --timeout option");
+      LoggingUtils.info(
+        "   • Check for infinite loops or long-running operations",
+      );
+      LoggingUtils.info(
+        "   • Consider using async: false for integration tests",
+      );
     }
   }
 
@@ -605,12 +723,12 @@ class ElixirCommandRunner {
    * Suggest formatting fixes
    */
   suggestFormatFix(errorMessage) {
-    console.log("\n💡 Formatting Error Suggestions:");
+    LoggingUtils.info("\n💡 Formatting Error Suggestions:");
 
     if (errorMessage.includes("not formatted")) {
-      console.log("   • Run 'mix format' to fix formatting");
-      console.log("   • Check .formatter.exs configuration");
-      console.log("   • Ensure line length is within limits");
+      LoggingUtils.info("   • Run 'mix format' to fix formatting");
+      LoggingUtils.info("   • Check .formatter.exs configuration");
+      LoggingUtils.info("   • Ensure line length is within limits");
     }
   }
 
@@ -618,12 +736,12 @@ class ElixirCommandRunner {
    * Suggest linting fixes
    */
   suggestLintFix(errorMessage) {
-    console.log("\n💡 Linting Error Suggestions:");
+    LoggingUtils.info("\n💡 Linting Error Suggestions:");
 
     if (errorMessage.includes("Credo")) {
-      console.log("   • Install Credo: mix archive.install hex credo");
-      console.log("   • Check .credo.exs configuration");
-      console.log("   • Run 'mix credo --strict' for detailed analysis");
+      LoggingUtils.info("   • Install Credo: mix archive.install hex credo");
+      LoggingUtils.info("   • Check .credo.exs configuration");
+      LoggingUtils.info("   • Run 'mix credo --strict' for detailed analysis");
     }
   }
 
@@ -631,14 +749,14 @@ class ElixirCommandRunner {
    * Suggest type checking fixes
    */
   suggestTypeCheckFix(errorMessage) {
-    console.log("\n💡 Type Checking Error Suggestions:");
+    LoggingUtils.info("\n💡 Type Checking Error Suggestions:");
 
     if (errorMessage.includes("Dialyzer")) {
-      console.log(
+      LoggingUtils.info(
         '   • Add dialyxir to mix.exs: {:dialyxir, "~> 1.4", only: [:dev]}',
       );
-      console.log("   • Run 'mix dialyzer --plt' to build PLT");
-      console.log("   • Check type specifications with @spec");
+      LoggingUtils.info("   • Run 'mix dialyzer --plt' to build PLT");
+      LoggingUtils.info("   • Check type specifications with @spec");
     }
   }
 
@@ -646,17 +764,17 @@ class ElixirCommandRunner {
    * Suggest dependency fixes
    */
   suggestDepsFix(errorMessage) {
-    console.log("\n💡 Dependency Error Suggestions:");
+    LoggingUtils.info("\n💡 Dependency Error Suggestions:");
 
     if (errorMessage.includes("Hex")) {
-      console.log("   • Install Hex: mix local.hex");
-      console.log("   • Check internet connection for Hex.pm");
-      console.log("   • Verify package name and version in mix.exs");
+      LoggingUtils.info("   • Install Hex: mix local.hex");
+      LoggingUtils.info("   • Check internet connection for Hex.pm");
+      LoggingUtils.info("   • Verify package name and version in mix.exs");
     }
 
     if (errorMessage.includes("lock")) {
-      console.log("   • Run 'mix deps.unlock --all' to clear lock");
-      console.log("   • Run 'mix deps.get' to refetch dependencies");
+      LoggingUtils.info("   • Run 'mix deps.unlock --all' to clear lock");
+      LoggingUtils.info("   • Run 'mix deps.get' to refetch dependencies");
     }
   }
 

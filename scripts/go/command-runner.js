@@ -102,14 +102,14 @@ class GoCommandRunner {
   /**
    * Check if required Go tool is installed
    */
-  async checkTool(toolName, required = true) {
+  checkTool(toolName, required = true) {
     try {
       // Use ConfigUtils to check if tool is installed
-      const isInstalled = await ConfigUtils.checkToolInstalled(toolName, {
-        config: this.goConfig,
-        language: "go",
+      const isInstalled = ConfigUtils.checkToolInstalled(
+        this.goConfig,
+        toolName,
         required,
-      });
+      );
 
       if (!isInstalled && required) {
         throw new Error(
