@@ -41,21 +41,21 @@ function runScript(scriptPath, input = '', env = {}) {
   return new Promise((resolve, reject) => {
     const proc = spawn('node', [scriptPath], {
       env: { ...process.env, ...env },
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
 
     let stdout = '';
     let stderr = '';
 
-    proc.stdout.on('data', data => stdout += data);
-    proc.stderr.on('data', data => stderr += data);
+    proc.stdout.on('data', (data) => stdout += data);
+    proc.stderr.on('data', (data) => stderr += data);
 
     if (input) {
       proc.stdin.write(input);
     }
     proc.stdin.end();
 
-    proc.on('close', code => {
+    proc.on('close', (code) => {
       resolve({ code, stdout, stderr });
     });
 
@@ -97,7 +97,7 @@ async function runTests() {
     assert.ok(
       result.stderr.includes('[SessionStart]') ||
       result.stderr.includes('Package manager'),
-      'Should output session info'
+      'Should output session info',
     );
   })) passed++; else failed++;
 
@@ -115,7 +115,7 @@ async function runTests() {
 
     // Check if session file was created
     const sessionsDir = path.join(os.homedir(), '.opencode', 'sessions');
-    
+
     // Get today's date in YYYY-MM-DD format (same as getDateString() in utils)
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -155,18 +155,18 @@ async function runTests() {
 
   if (await asyncTest('runs without error', async () => {
     const result = await runScript(path.join(scriptsDir, 'suggest-compact.js'), '', {
-      OPENCODE_SESSION_ID: 'test-session-' + Date.now()
+      OPENCODE_SESSION_ID: `test-session-${Date.now()}`,
     });
     assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
   })) passed++; else failed++;
 
   if (await asyncTest('increments counter on each call', async () => {
-    const sessionId = 'test-counter-' + Date.now();
+    const sessionId = `test-counter-${Date.now()}`;
 
     // Run multiple times
     for (let i = 0; i < 3; i++) {
       await runScript(path.join(scriptsDir, 'suggest-compact.js'), '', {
-        OPENCODE_SESSION_ID: sessionId
+        OPENCODE_SESSION_ID: sessionId,
       });
     }
 
@@ -180,7 +180,7 @@ async function runTests() {
   })) passed++; else failed++;
 
   if (await asyncTest('suggests compact at threshold', async () => {
-    const sessionId = 'test-threshold-' + Date.now();
+    const sessionId = `test-threshold-${Date.now()}`;
     const counterFile = path.join(os.tmpdir(), `opencode-tool-count-${sessionId}`);
 
     // Set counter to threshold - 1
@@ -188,12 +188,12 @@ async function runTests() {
 
     const result = await runScript(path.join(scriptsDir, 'suggest-compact.js'), '', {
       OPENCODE_SESSION_ID: sessionId,
-      COMPACT_THRESHOLD: '50'
+      COMPACT_THRESHOLD: '50',
     });
 
     assert.ok(
       result.stderr.includes('50 tool calls reached'),
-      'Should suggest compact at threshold'
+      'Should suggest compact at threshold',
     );
 
     // Cleanup
@@ -217,12 +217,12 @@ async function runTests() {
     fs.writeFileSync(transcriptPath, transcript);
 
     const result = await runScript(path.join(scriptsDir, 'evaluate-session.js'), '', {
-      OPENCODE_TRANSCRIPT_PATH: transcriptPath
+      OPENCODE_TRANSCRIPT_PATH: transcriptPath,
     });
 
     assert.ok(
       result.stderr.includes('Session too short'),
-      'Should indicate session is too short'
+      'Should indicate session is too short',
     );
 
     cleanupTestDir(testDir);
@@ -237,12 +237,12 @@ async function runTests() {
     fs.writeFileSync(transcriptPath, transcript);
 
     const result = await runScript(path.join(scriptsDir, 'evaluate-session.js'), '', {
-      OPENCODE_TRANSCRIPT_PATH: transcriptPath
+      OPENCODE_TRANSCRIPT_PATH: transcriptPath,
     });
 
     assert.ok(
       result.stderr.includes('15 messages'),
-      'Should report message count'
+      'Should report message count',
     );
 
     cleanupTestDir(testDir);
@@ -278,7 +278,7 @@ async function runTests() {
           if (hook.type === 'command') {
             assert.ok(
               hook.command.startsWith('node'),
-              `Hook command should start with 'node': ${hook.command.substring(0, 50)}...`
+              `Hook command should start with 'node': ${hook.command.substring(0, 50)}...`,
             );
           }
         }
@@ -302,7 +302,7 @@ async function runTests() {
             const hasPluginRoot = hook.command.includes('${OPENCODE_PLUGIN_ROOT}');
             assert.ok(
               hasPluginRoot,
-              `Script paths should use OPENCODE_PLUGIN_ROOT: ${hook.command.substring(0, 80)}...`
+              `Script paths should use OPENCODE_PLUGIN_ROOT: ${hook.command.substring(0, 80)}...`,
             );
           }
         }

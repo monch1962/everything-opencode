@@ -5,13 +5,13 @@
  * Base class for executing Python commands based on project configuration
  */
 
-const path = require("path");
-const fs = require("fs");
-const { spawn } = require("child_process");
-const { runCommand, commandExists } = require("../lib/utils");
-const ConfigManager = require("../interactive/config-manager");
-const PythonToolDetector = require("../../languages/python/tool-detector");
-const { defaultErrorHandler } = require("../lib/error-handler");
+const path = require('path');
+const fs = require('fs');
+const { spawn } = require('child_process');
+const { runCommand, commandExists } = require('../lib/utils');
+const ConfigManager = require('../interactive/config-manager');
+const PythonToolDetector = require('../../languages/python/tool-detector');
+const { defaultErrorHandler } = require('../lib/error-handler');
 
 // Import shared utilities
 const {
@@ -20,7 +20,7 @@ const {
   ProjectUtils,
   LoggingUtils,
   ensureDir,
-} = require("../lib");
+} = require('../lib');
 
 class PythonCommandRunner {
   constructor(projectPath = process.cwd()) {
@@ -39,55 +39,55 @@ class PythonCommandRunner {
     try {
       const projectInfo = ProjectUtils.detectProjectType(this.projectPath);
 
-      if (projectInfo.type !== "python" && projectInfo.confidence < 0.7) {
+      if (projectInfo.type !== 'python' && projectInfo.confidence < 0.7) {
         LoggingUtils.warn(
           `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`,
         );
         LoggingUtils.warn(
-          "This may not be a Python project. Some features may not work correctly.",
+          'This may not be a Python project. Some features may not work correctly.',
         );
-      } else if (projectInfo.type === "python") {
+      } else if (projectInfo.type === 'python') {
         LoggingUtils.debug(
-          `Detected Python project: ${projectInfo.framework || "standard Python"}`,
+          `Detected Python project: ${projectInfo.framework || 'standard Python'}`,
         );
       }
 
       // Log detected languages if available
       if (projectInfo.languages && projectInfo.languages.length > 0) {
         LoggingUtils.debug(
-          `Detected languages: ${projectInfo.languages.join(", ")}`,
+          `Detected languages: ${projectInfo.languages.join(', ')}`,
         );
       }
     } catch (error) {
-      LoggingUtils.debug("Project detection failed:", error.message);
+      LoggingUtils.debug('Project detection failed:', error.message);
     }
 
     // Load configuration using ConfigUtils
     try {
       this.config = ConfigUtils.loadConfig(this.projectPath);
       if (!this.config) {
-        throw new Error("Project not configured. Run /python-setup first.");
+        throw new Error('Project not configured. Run /python-setup first.');
       }
 
       // Get Python configuration
       this.pythonConfig = this.config.python;
       if (!this.pythonConfig) {
         throw new Error(
-          "Python configuration not found. Run /python-setup first.",
+          'Python configuration not found. Run /python-setup first.',
         );
       }
 
       // Validate Python configuration schema
-      ConfigUtils.validateConfig(this.pythonConfig, "python");
+      ConfigUtils.validateConfig(this.pythonConfig, 'python');
 
       return true;
     } catch (error) {
       // Use LoggingUtils for better error display
       LoggingUtils.error(
-        "Failed to initialize Python command runner:",
+        'Failed to initialize Python command runner:',
         error.message,
       );
-      LoggingUtils.info("Run /python-setup to configure your Python project");
+      LoggingUtils.info('Run /python-setup to configure your Python project');
       throw error;
     }
   }
@@ -100,7 +100,7 @@ class PythonCommandRunner {
       // Use ConfigUtils to check if tool is installed
       const isInstalled = await ConfigUtils.checkToolInstalled(toolName, {
         config: this.pythonConfig,
-        language: "python",
+        language: 'python',
         required,
       });
 
@@ -130,31 +130,31 @@ class PythonCommandRunner {
   getPythonExecutable() {
     // Check for python3 first, then python
     if (this.pythonConfig.tools?.python3?.installed) {
-      return "python3";
+      return 'python3';
     } else if (this.pythonConfig.tools?.python?.installed) {
-      return "python";
-    } else if (commandExists("python3")) {
-      return "python3";
-    } else if (commandExists("python")) {
-      return "python";
+      return 'python';
+    } else if (commandExists('python3')) {
+      return 'python3';
+    } else if (commandExists('python')) {
+      return 'python';
     }
 
     throw new Error(
-      "Python not found. Install Python 3.8+ and run /python-setup.",
+      'Python not found. Install Python 3.8+ and run /python-setup.',
     );
   }
 
   /**
    * Find Python files in the project
    */
-  findPythonFiles(pattern = "**/*.py", excludePatterns = []) {
+  findPythonFiles(pattern = '**/*.py', excludePatterns = []) {
     try {
       return FileUtils.findFilesByPattern(this.projectPath, [pattern], {
         exclude: excludePatterns,
-        language: "python",
+        language: 'python',
       });
     } catch (error) {
-      LoggingUtils.warn("Failed to find Python files:", error.message);
+      LoggingUtils.warn('Failed to find Python files:', error.message);
       return [];
     }
   }
@@ -166,19 +166,19 @@ class PythonCommandRunner {
     try {
       const info = {
         hasRequirements: fs.existsSync(
-          path.join(this.projectPath, "requirements.txt"),
+          path.join(this.projectPath, 'requirements.txt'),
         ),
-        hasPipfile: fs.existsSync(path.join(this.projectPath, "Pipfile")),
+        hasPipfile: fs.existsSync(path.join(this.projectPath, 'Pipfile')),
         hasPyproject: fs.existsSync(
-          path.join(this.projectPath, "pyproject.toml"),
+          path.join(this.projectPath, 'pyproject.toml'),
         ),
-        hasSetupPy: fs.existsSync(path.join(this.projectPath, "setup.py")),
+        hasSetupPy: fs.existsSync(path.join(this.projectPath, 'setup.py')),
         pythonFiles: this.findPythonFiles().length,
       };
 
       return info;
     } catch (error) {
-      LoggingUtils.debug("Failed to get Python project info:", error.message);
+      LoggingUtils.debug('Failed to get Python project info:', error.message);
       return null;
     }
   }
@@ -195,23 +195,23 @@ class PythonCommandRunner {
    */
   async _executeCommandWithErrorHandling(command, args = [], options = {}) {
     try {
-      const fullCommand = [command, ...args].join(" ");
+      const fullCommand = [command, ...args].join(' ');
       LoggingUtils.info(`🚀 Executing: ${fullCommand}`);
 
       return await new Promise((resolve, reject) => {
         const child = spawn(command, args, {
           cwd: this.projectPath,
-          stdio: "inherit",
+          stdio: 'inherit',
           shell: true,
           env: {
             ...process.env,
-            PYTHONPATH: `${this.projectPath}:${process.env.PYTHONPATH || ""}`,
+            PYTHONPATH: `${this.projectPath}:${process.env.PYTHONPATH || ''}`,
             ...options.env,
           },
           ...options,
         });
 
-        child.on("close", (code) => {
+        child.on('close', (code) => {
           if (code === 0) {
             resolve({ success: true, code: 0 });
           } else {
@@ -219,15 +219,15 @@ class PythonCommandRunner {
           }
         });
 
-        child.on("error", (error) => {
+        child.on('error', (error) => {
           reject(error);
         });
       });
     } catch (error) {
       // Enhance error with context
       const context = {
-        tool: "python",
-        command: `${command} ${args.join(" ")}`,
+        tool: 'python',
+        command: `${command} ${args.join(' ')}`,
         platform: process.platform,
         cwd: this.projectPath,
         options: options,
@@ -240,7 +240,7 @@ class PythonCommandRunner {
 
       // Log recovery steps using LoggingUtils
       if (errorInfo.recoverySteps && errorInfo.recoverySteps.length > 0) {
-        LoggingUtils.info("💡 Recovery steps:");
+        LoggingUtils.info('💡 Recovery steps:');
         errorInfo.recoverySteps.forEach((step, i) => {
           LoggingUtils.info(`  ${i + 1}. ${step}`);
         });
@@ -260,7 +260,7 @@ class PythonCommandRunner {
    */
   async executePythonModule(module, args = [], options = {}) {
     const python = this.getPythonExecutable();
-    return this.executeCommand(python, ["-m", module, ...args], options);
+    return this.executeCommand(python, ['-m', module, ...args], options);
   }
 
   /**
@@ -269,7 +269,7 @@ class PythonCommandRunner {
   async runTests(options = {}) {
     await this.initialize();
 
-    const testRunner = this.pythonConfig.testRunner || "pytest";
+    const testRunner = this.pythonConfig.testRunner || 'pytest';
     await this.checkTool(testRunner);
 
     // Log test information
@@ -282,16 +282,16 @@ class PythonCommandRunner {
 
     // Add coverage if requested
     if (options.coverage) {
-      if (testRunner === "pytest") {
-        args.push("--cov=.", "--cov-report=term", "--cov-report=html");
-        LoggingUtils.info("📊 Coverage reporting enabled");
+      if (testRunner === 'pytest') {
+        args.push('--cov=.', '--cov-report=term', '--cov-report=html');
+        LoggingUtils.info('📊 Coverage reporting enabled');
       }
     }
 
     // Add verbose flag
     if (options.verbose) {
-      args.push("-v");
-      LoggingUtils.debug("Verbose mode enabled");
+      args.push('-v');
+      LoggingUtils.debug('Verbose mode enabled');
     }
 
     // Add specific test file
@@ -302,10 +302,10 @@ class PythonCommandRunner {
 
     // Add test name pattern
     if (options.test) {
-      if (testRunner === "pytest") {
-        args.push("-k", options.test);
+      if (testRunner === 'pytest') {
+        args.push('-k', options.test);
         LoggingUtils.debug(`Test pattern: ${options.test}`);
-      } else if (testRunner === "unittest") {
+      } else if (testRunner === 'unittest') {
         args.push(options.test);
         LoggingUtils.debug(`Test pattern: ${options.test}`);
       }
@@ -315,10 +315,10 @@ class PythonCommandRunner {
     LoggingUtils.info(`Running tests with ${testRunner}...`);
 
     // Execute test runner
-    if (testRunner === "pytest") {
-      return this.executeCommand("pytest", args);
-    } else if (testRunner === "unittest") {
-      return this.executePythonModule("unittest", args);
+    if (testRunner === 'pytest') {
+      return this.executeCommand('pytest', args);
+    } else if (testRunner === 'unittest') {
+      return this.executePythonModule('unittest', args);
     } else {
       throw new Error(`Unsupported test runner: ${testRunner}`);
     }
@@ -330,44 +330,44 @@ class PythonCommandRunner {
   async runLinter(options = {}) {
     await this.initialize();
 
-    const linter = this.pythonConfig.linter || "ruff";
+    const linter = this.pythonConfig.linter || 'ruff';
     await this.checkTool(linter);
 
     // Log linter information
     LoggingUtils.info(`Running ${linter}...`);
     if (options.fix) {
-      LoggingUtils.debug("Fix mode enabled");
+      LoggingUtils.debug('Fix mode enabled');
     }
 
     const args = [];
 
     // Check or fix mode
     if (options.fix) {
-      if (linter === "ruff") {
-        args.push("check", "--fix");
-      } else if (linter === "flake8") {
+      if (linter === 'ruff') {
+        args.push('check', '--fix');
+      } else if (linter === 'flake8') {
         // flake8 doesn't have fix mode
-        args.push(".");
+        args.push('.');
         LoggingUtils.warn("flake8 doesn't support auto-fix mode");
-      } else if (linter === "pylint") {
-        args.push(".");
+      } else if (linter === 'pylint') {
+        args.push('.');
         LoggingUtils.warn("pylint doesn't support auto-fix mode");
       }
     } else {
-      if (linter === "ruff") {
-        args.push("check");
+      if (linter === 'ruff') {
+        args.push('check');
       } else {
-        args.push(".");
+        args.push('.');
       }
     }
 
     // Add specific file
     if (options.file) {
       args.length = 0; // Clear previous args
-      if (linter === "ruff" && options.fix) {
-        args.push("check", "--fix", options.file);
-      } else if (linter === "ruff") {
-        args.push("check", options.file);
+      if (linter === 'ruff' && options.fix) {
+        args.push('check', '--fix', options.file);
+      } else if (linter === 'ruff') {
+        args.push('check', options.file);
       } else {
         args.push(options.file);
       }
@@ -384,45 +384,45 @@ class PythonCommandRunner {
   async runFormatter(options = {}) {
     await this.initialize();
 
-    const formatter = this.pythonConfig.formatter || "ruff";
+    const formatter = this.pythonConfig.formatter || 'ruff';
     await this.checkTool(formatter);
 
     // Log formatter information
     LoggingUtils.info(`Running ${formatter}...`);
     if (options.check) {
-      LoggingUtils.debug("Check mode (no changes will be made)");
+      LoggingUtils.debug('Check mode (no changes will be made)');
     }
 
     const args = [];
 
     // Check or format mode
     if (options.check) {
-      if (formatter === "ruff") {
-        args.push("format", "--check");
-      } else if (formatter === "black") {
-        args.push("--check", ".");
-      } else if (formatter === "autopep8") {
-        args.push("--diff", ".");
-        LoggingUtils.debug("autopep8 showing diff only");
+      if (formatter === 'ruff') {
+        args.push('format', '--check');
+      } else if (formatter === 'black') {
+        args.push('--check', '.');
+      } else if (formatter === 'autopep8') {
+        args.push('--diff', '.');
+        LoggingUtils.debug('autopep8 showing diff only');
       }
     } else {
-      if (formatter === "ruff") {
-        args.push("format");
+      if (formatter === 'ruff') {
+        args.push('format');
       } else {
-        args.push(".");
+        args.push('.');
       }
     }
 
     // Add specific file
     if (options.file) {
       args.length = 0; // Clear previous args
-      if (formatter === "ruff" && options.check) {
-        args.push("format", "--check", options.file);
-      } else if (formatter === "ruff") {
-        args.push("format", options.file);
-      } else if (formatter === "black" && options.check) {
-        args.push("--check", options.file);
-      } else if (formatter === "black") {
+      if (formatter === 'ruff' && options.check) {
+        args.push('format', '--check', options.file);
+      } else if (formatter === 'ruff') {
+        args.push('format', options.file);
+      } else if (formatter === 'black' && options.check) {
+        args.push('--check', options.file);
+      } else if (formatter === 'black') {
         args.push(options.file);
       } else {
         args.push(options.file);
@@ -440,23 +440,23 @@ class PythonCommandRunner {
   async runTypeChecker(options = {}) {
     await this.initialize();
 
-    const typeChecker = this.pythonConfig.typeChecker || "pyright";
+    const typeChecker = this.pythonConfig.typeChecker || 'pyright';
     await this.checkTool(typeChecker);
 
     // Log type checker information
     LoggingUtils.info(`Running ${typeChecker}...`);
     if (options.strict) {
-      LoggingUtils.debug("Strict mode enabled");
+      LoggingUtils.debug('Strict mode enabled');
     }
 
     const args = [];
 
     // Add strict mode
     if (options.strict) {
-      if (typeChecker === "pyright") {
-        args.push("--strict");
-      } else if (typeChecker === "mypy") {
-        args.push("--strict");
+      if (typeChecker === 'pyright') {
+        args.push('--strict');
+      } else if (typeChecker === 'mypy') {
+        args.push('--strict');
       }
     }
 
@@ -465,7 +465,7 @@ class PythonCommandRunner {
       args.push(options.file);
       LoggingUtils.debug(`Type checking specific file: ${options.file}`);
     } else {
-      args.push(".");
+      args.push('.');
     }
 
     // Execute type checker
@@ -478,122 +478,122 @@ class PythonCommandRunner {
   async manageDependencies(action, packages = [], options = {}) {
     await this.initialize();
 
-    const manager = this.pythonConfig.dependencyManager || "uv";
+    const manager = this.pythonConfig.dependencyManager || 'uv';
     await this.checkTool(manager);
 
     // Log dependency manager information
     LoggingUtils.info(`Managing dependencies with ${manager}...`);
     LoggingUtils.debug(
-      `Action: ${action}, Packages: ${packages.join(", ") || "none"}`,
+      `Action: ${action}, Packages: ${packages.join(', ') || 'none'}`,
     );
 
     const args = [];
 
     // Handle different actions
     switch (action) {
-      case "install":
+      case 'install':
         if (packages.length > 0) {
-          if (manager === "uv") {
-            args.push("add", ...packages);
-          } else if (manager === "poetry") {
-            args.push("add", ...packages);
-          } else if (manager === "pip") {
-            args.push("install", ...packages);
+          if (manager === 'uv') {
+            args.push('add', ...packages);
+          } else if (manager === 'poetry') {
+            args.push('add', ...packages);
+          } else if (manager === 'pip') {
+            args.push('install', ...packages);
           }
-          LoggingUtils.debug(`Installing packages: ${packages.join(", ")}`);
+          LoggingUtils.debug(`Installing packages: ${packages.join(', ')}`);
         } else {
-          if (manager === "uv") {
-            args.push("sync");
-            LoggingUtils.debug("Syncing all dependencies");
-          } else if (manager === "poetry") {
-            args.push("install");
-            LoggingUtils.debug("Installing all dependencies");
-          } else if (manager === "pip") {
+          if (manager === 'uv') {
+            args.push('sync');
+            LoggingUtils.debug('Syncing all dependencies');
+          } else if (manager === 'poetry') {
+            args.push('install');
+            LoggingUtils.debug('Installing all dependencies');
+          } else if (manager === 'pip') {
             // pip needs requirements.txt
             const requirementsPath = path.join(
               this.projectPath,
-              "requirements.txt",
+              'requirements.txt',
             );
             if (fs.existsSync(requirementsPath)) {
-              args.push("install", "-r", "requirements.txt");
-              LoggingUtils.debug("Installing from requirements.txt");
+              args.push('install', '-r', 'requirements.txt');
+              LoggingUtils.debug('Installing from requirements.txt');
             } else {
-              throw new Error("requirements.txt not found");
+              throw new Error('requirements.txt not found');
             }
           }
         }
         break;
 
-      case "add":
+      case 'add':
         if (packages.length === 0) {
-          throw new Error("No package specified");
+          throw new Error('No package specified');
         }
-        if (manager === "uv") {
-          args.push("add", ...packages);
-          if (options.dev) args.push("--dev");
-        } else if (manager === "poetry") {
-          args.push("add", ...packages);
-          if (options.dev) args.push("--dev");
-        } else if (manager === "pip") {
-          args.push("install", ...packages);
+        if (manager === 'uv') {
+          args.push('add', ...packages);
+          if (options.dev) args.push('--dev');
+        } else if (manager === 'poetry') {
+          args.push('add', ...packages);
+          if (options.dev) args.push('--dev');
+        } else if (manager === 'pip') {
+          args.push('install', ...packages);
         }
         if (options.dev) {
           LoggingUtils.debug(
-            `Adding development packages: ${packages.join(", ")}`,
+            `Adding development packages: ${packages.join(', ')}`,
           );
         } else {
-          LoggingUtils.debug(`Adding packages: ${packages.join(", ")}`);
+          LoggingUtils.debug(`Adding packages: ${packages.join(', ')}`);
         }
         break;
 
-      case "remove":
+      case 'remove':
         if (packages.length === 0) {
-          throw new Error("No package specified");
+          throw new Error('No package specified');
         }
-        if (manager === "uv") {
-          args.push("remove", ...packages);
-        } else if (manager === "poetry") {
-          args.push("remove", ...packages);
-        } else if (manager === "pip") {
-          args.push("uninstall", ...packages);
+        if (manager === 'uv') {
+          args.push('remove', ...packages);
+        } else if (manager === 'poetry') {
+          args.push('remove', ...packages);
+        } else if (manager === 'pip') {
+          args.push('uninstall', ...packages);
         }
-        LoggingUtils.debug(`Removing packages: ${packages.join(", ")}`);
+        LoggingUtils.debug(`Removing packages: ${packages.join(', ')}`);
         break;
 
-      case "update":
+      case 'update':
         if (packages.length > 0) {
-          if (manager === "uv") {
-            args.push("update", ...packages);
-          } else if (manager === "poetry") {
-            args.push("update", ...packages);
-          } else if (manager === "pip") {
-            args.push("install", "--upgrade", ...packages);
+          if (manager === 'uv') {
+            args.push('update', ...packages);
+          } else if (manager === 'poetry') {
+            args.push('update', ...packages);
+          } else if (manager === 'pip') {
+            args.push('install', '--upgrade', ...packages);
           }
-          LoggingUtils.debug(`Updating packages: ${packages.join(", ")}`);
+          LoggingUtils.debug(`Updating packages: ${packages.join(', ')}`);
         } else {
-          if (manager === "uv") {
-            args.push("update");
-            LoggingUtils.debug("Updating all dependencies");
-          } else if (manager === "poetry") {
-            args.push("update");
-            LoggingUtils.debug("Updating all dependencies");
-          } else if (manager === "pip") {
+          if (manager === 'uv') {
+            args.push('update');
+            LoggingUtils.debug('Updating all dependencies');
+          } else if (manager === 'poetry') {
+            args.push('update');
+            LoggingUtils.debug('Updating all dependencies');
+          } else if (manager === 'pip') {
             // Update all packages (basic approach)
-            args.push("install", "--upgrade");
-            LoggingUtils.debug("Upgrading all packages");
+            args.push('install', '--upgrade');
+            LoggingUtils.debug('Upgrading all packages');
           }
         }
         break;
 
-      case "list":
-        if (manager === "uv") {
-          args.push("tree");
-        } else if (manager === "poetry") {
-          args.push("show", "--tree");
-        } else if (manager === "pip") {
-          args.push("list");
+      case 'list':
+        if (manager === 'uv') {
+          args.push('tree');
+        } else if (manager === 'poetry') {
+          args.push('show', '--tree');
+        } else if (manager === 'pip') {
+          args.push('list');
         }
-        LoggingUtils.debug("Listing dependencies");
+        LoggingUtils.debug('Listing dependencies');
         break;
 
       default:
@@ -608,7 +608,7 @@ class PythonCommandRunner {
    * Run setup wizard
    */
   async runSetup(options = {}) {
-    const PythonConfigWizard = require("../../languages/python/config-wizard");
+    const PythonConfigWizard = require('../../languages/python/config-wizard');
     const wizard = new PythonConfigWizard(this.projectPath);
 
     if (options.quick) {
@@ -751,25 +751,25 @@ if (require.main === module) {
 
   // Parse options
   for (let i = 1; i < args.length; i++) {
-    if (args[i] === "--file") {
+    if (args[i] === '--file') {
       options.file = args[++i];
-    } else if (args[i] === "--test") {
+    } else if (args[i] === '--test') {
       options.test = args[++i];
-    } else if (args[i] === "--coverage") {
+    } else if (args[i] === '--coverage') {
       options.coverage = true;
-    } else if (args[i] === "--verbose") {
+    } else if (args[i] === '--verbose') {
       options.verbose = true;
-    } else if (args[i] === "--fix") {
+    } else if (args[i] === '--fix') {
       options.fix = true;
-    } else if (args[i] === "--check") {
+    } else if (args[i] === '--check') {
       options.check = true;
-    } else if (args[i] === "--strict") {
+    } else if (args[i] === '--strict') {
       options.strict = true;
-    } else if (args[i] === "--dev") {
+    } else if (args[i] === '--dev') {
       options.dev = true;
-    } else if (args[i] === "--quick") {
+    } else if (args[i] === '--quick') {
       options.quick = true;
-    } else if (args[i] === "--help" || args[i] === "-h") {
+    } else if (args[i] === '--help' || args[i] === '-h') {
       runner.printHelp(command);
       process.exit(0);
     }
@@ -778,28 +778,28 @@ if (require.main === module) {
   async function runCommand() {
     try {
       switch (command) {
-        case "test":
+        case 'test':
           await runner.runTests(options);
           break;
-        case "lint":
+        case 'lint':
           await runner.runLinter(options);
           break;
-        case "typecheck":
+        case 'typecheck':
           await runner.runTypeChecker(options);
           break;
-        case "deps":
+        case 'deps':
           const action = args[1];
-          const packages = args.slice(2).filter((arg) => !arg.startsWith("--"));
+          const packages = args.slice(2).filter((arg) => !arg.startsWith('--'));
           await runner.manageDependencies(action, packages, options);
           break;
-        case "setup":
+        case 'setup':
           await runner.runSetup(options);
           break;
         default:
           runner.printHelp();
           process.exit(1);
       }
-      LoggingUtils.success("Command completed successfully");
+      LoggingUtils.success('Command completed successfully');
     } catch (error) {
       LoggingUtils.error(`Error: ${error.message}`);
       process.exit(1);

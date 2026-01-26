@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * /python-test command wrapper
- * 
+ *
  * Run Python tests with configured test runner
  */
 
@@ -11,11 +11,11 @@ async function main() {
   const args = process.argv.slice(2);
   const options = {};
   const extraArgs = [];
-  
+
   // Parse command line arguments
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     if (arg === '--file' || arg === '-f') {
       options.file = args[++i];
     } else if (arg === '--test' || arg === '-t') {
@@ -55,12 +55,12 @@ async function main() {
       extraArgs.push(arg);
     }
   }
-  
+
   // If extra args, treat as test pattern
   if (extraArgs.length > 0 && !options.test) {
     options.test = extraArgs.join(' ');
   }
-  
+
   try {
     const runner = new PythonCommandRunner();
     await runner.runTests(options);
@@ -111,7 +111,7 @@ Configuration:
 
 // Run main function
 if (require.main === module) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error(`Fatal error: ${error.message}`);
     process.exit(1);
   });

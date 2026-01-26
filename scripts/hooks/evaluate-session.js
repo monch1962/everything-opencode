@@ -18,7 +18,7 @@ const {
   ensureDir,
   readFile,
   countInFile,
-  log
+  log,
 } = require('../lib/utils');
 
 async function main() {
@@ -72,7 +72,7 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('[ContinuousLearning] Error:', err.message);
   process.exit(0);
 });

@@ -5,8 +5,8 @@
  * Configure Go project for opencode integration with Go-specific improvements
  */
 
-const GoConfigWizard = require("../../languages/go/config-wizard");
-const ConfigManager = require("../interactive/config-manager");
+const GoConfigWizard = require('../../languages/go/config-wizard');
+const ConfigManager = require('../interactive/config-manager');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -16,32 +16,32 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--quick" || arg === "-q") {
+    if (arg === '--quick' || arg === '-q') {
       options.quick = true;
-    } else if (arg === "--reconfigure" || arg === "-r") {
+    } else if (arg === '--reconfigure' || arg === '-r') {
       options.reconfigure = true;
-    } else if (arg === "--project-type") {
+    } else if (arg === '--project-type') {
       options.projectType = args[++i];
-    } else if (arg === "--module-name") {
+    } else if (arg === '--module-name') {
       options.moduleName = args[++i];
-    } else if (arg === "--go-version") {
+    } else if (arg === '--go-version') {
       options.goVersion = args[++i];
-    } else if (arg === "--linter") {
+    } else if (arg === '--linter') {
       options.linter = args[++i];
-    } else if (arg === "--formatter") {
+    } else if (arg === '--formatter') {
       options.formatter = args[++i];
-    } else if (arg === "--test-runner") {
+    } else if (arg === '--test-runner') {
       options.testRunner = args[++i];
-    } else if (arg === "--no-prompt" || arg === "-y") {
+    } else if (arg === '--no-prompt' || arg === '-y') {
       options.noPrompt = true;
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--dry-run") {
+    } else if (arg === '--dry-run') {
       options.dryRun = true;
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -55,24 +55,24 @@ async function main() {
     const projectPath = options.projectPath || process.cwd();
 
     console.log(`🚀 Configuring Go project at: ${projectPath}`);
-    console.log("=".repeat(60));
+    console.log('='.repeat(60));
 
     // Check if project is already configured
     const configManager = new ConfigManager(projectPath);
     const existingConfig = configManager.loadConfig();
 
     if (existingConfig?.go && !options.reconfigure) {
-      console.log("✅ Go project is already configured.");
-      console.log("   Use --reconfigure to reconfigure or update settings.");
+      console.log('✅ Go project is already configured.');
+      console.log('   Use --reconfigure to reconfigure or update settings.');
 
       // Show current configuration
-      console.log("\n📋 Current Go configuration:");
-      console.log(`   Module: ${existingConfig.go.module || "Not set"}`);
-      console.log(`   Go version: ${existingConfig.go.version || "Not set"}`);
+      console.log('\n📋 Current Go configuration:');
+      console.log(`   Module: ${existingConfig.go.module || 'Not set'}`);
+      console.log(`   Go version: ${existingConfig.go.version || 'Not set'}`);
       console.log(
-        `   Project type: ${existingConfig.go.projectType || "module"}`,
+        `   Project type: ${existingConfig.go.projectType || 'module'}`,
       );
-      console.log(`   Linter: ${existingConfig.go.linting?.tool || "Not set"}`);
+      console.log(`   Linter: ${existingConfig.go.linting?.tool || 'Not set'}`);
 
       process.exit(0);
     }
@@ -82,30 +82,30 @@ async function main() {
     const config = await wizard.runWizard(options);
 
     if (!config) {
-      console.error("❌ Configuration failed");
+      console.error('❌ Configuration failed');
       process.exit(1);
     }
 
     // Update main project config
     if (!options.dryRun) {
       const fullConfig = existingConfig || {
-        $schema: "https://json.schemastore.org/opencode-project-config.json",
+        $schema: 'https://json.schemastore.org/opencode-project-config.json',
         project: projectPath,
         timestamp: new Date().toISOString(),
       };
 
       fullConfig.go = config.go;
       fullConfig.languages = fullConfig.languages || [];
-      if (!fullConfig.languages.includes("go")) {
-        fullConfig.languages.push("go");
+      if (!fullConfig.languages.includes('go')) {
+        fullConfig.languages.push('go');
       }
 
       configManager.saveConfig(fullConfig);
 
-      console.log("\n✅ Go project configuration saved successfully!");
+      console.log('\n✅ Go project configuration saved successfully!');
       console.log(`   Configuration file: ${configManager.configPath}`);
     } else {
-      console.log("\n✅ Dry run completed. Configuration would be:");
+      console.log('\n✅ Dry run completed. Configuration would be:');
       console.log(JSON.stringify(config, null, 2));
     }
   } catch (error) {

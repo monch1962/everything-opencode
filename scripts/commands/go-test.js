@@ -5,7 +5,7 @@
  * Run Go tests with Go-specific improvements
  */
 
-const GoCommandRunner = require("../go/command-runner");
+const GoCommandRunner = require('../go/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -15,44 +15,44 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--coverage" || arg === "-c") {
+    if (arg === '--coverage' || arg === '-c') {
       options.coverage = true;
-    } else if (arg === "--coverage-profile") {
+    } else if (arg === '--coverage-profile') {
       options.coverageProfile = args[++i];
-    } else if (arg === "--coverage-mode") {
+    } else if (arg === '--coverage-mode') {
       options.coverageMode = args[++i];
-    } else if (arg === "--coverage-format") {
+    } else if (arg === '--coverage-format') {
       options.coverageFormat = args[++i];
-    } else if (arg === "--coverage-output") {
+    } else if (arg === '--coverage-output') {
       options.coverageOutput = args[++i];
-    } else if (arg === "--race") {
+    } else if (arg === '--race') {
       options.race = true;
-    } else if (arg === "--timeout") {
+    } else if (arg === '--timeout') {
       options.timeout = args[++i];
-    } else if (arg === "--count") {
+    } else if (arg === '--count') {
       options.count = parseInt(args[++i]);
-    } else if (arg === "--parallel") {
+    } else if (arg === '--parallel') {
       options.parallel = parseInt(args[++i]);
-    } else if (arg === "--bench" || arg === "-b") {
+    } else if (arg === '--bench' || arg === '-b') {
       options.bench = true;
-    } else if (arg === "--benchtime") {
+    } else if (arg === '--benchtime') {
       options.benchtime = args[++i];
-    } else if (arg === "--benchmem") {
+    } else if (arg === '--benchmem') {
       options.benchmem = true;
-    } else if (arg === "--cpu") {
+    } else if (arg === '--cpu') {
       options.cpu = args[++i];
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--short") {
+    } else if (arg === '--short') {
       options.short = true;
-    } else if (arg === "--fail-fast") {
+    } else if (arg === '--fail-fast') {
       options.failFast = true;
-    } else if (arg === "--json") {
+    } else if (arg === '--json') {
       options.json = true;
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -72,21 +72,21 @@ async function main() {
     }
 
     // Run tests
-    console.log("🧪 Running Go tests...");
+    console.log('🧪 Running Go tests...');
     const result = await runner.test(options);
 
     if (result.success) {
-      console.log("\n✅ All tests passed!");
+      console.log('\n✅ All tests passed!');
 
       // Generate coverage report if requested
       if (options.coverage) {
         await generateCoverageReport(runner, options);
       }
     } else if (result.hasIssues) {
-      console.log("\n⚠️ Tests completed with issues");
+      console.log('\n⚠️ Tests completed with issues');
       process.exit(1);
     } else {
-      console.error("\n❌ Tests failed");
+      console.error('\n❌ Tests failed');
       process.exit(1);
     }
   } catch (error) {
@@ -99,20 +99,20 @@ async function main() {
  * Run benchmarks
  */
 async function runBenchmarks(runner, options) {
-  console.log("⚡ Running Go benchmarks...");
+  console.log('⚡ Running Go benchmarks...');
 
   try {
     const result = await runner.benchmark(options);
 
     if (result.success) {
-      console.log("\n✅ Benchmarks completed!");
+      console.log('\n✅ Benchmarks completed!');
 
       // Parse and display benchmark results
       if (result.stdout) {
         displayBenchmarkResults(result.stdout);
       }
     } else {
-      console.error("\n❌ Benchmarks failed");
+      console.error('\n❌ Benchmarks failed');
       process.exit(1);
     }
   } catch (error) {
@@ -125,30 +125,30 @@ async function runBenchmarks(runner, options) {
  * Display formatted benchmark results
  */
 function displayBenchmarkResults(output) {
-  const lines = output.split("\n");
+  const lines = output.split('\n');
   let inBenchmarkSection = false;
-  let benchmarkResults = [];
+  const benchmarkResults = [];
 
-  console.log("\n📊 Benchmark Results:");
-  console.log("=".repeat(60));
+  console.log('\n📊 Benchmark Results:');
+  console.log('='.repeat(60));
 
   for (const line of lines) {
-    if (line.startsWith("Benchmark")) {
+    if (line.startsWith('Benchmark')) {
       inBenchmarkSection = true;
       benchmarkResults.push(line);
-    } else if (inBenchmarkSection && line.trim() === "") {
+    } else if (inBenchmarkSection && line.trim() === '') {
       break;
     }
   }
 
   // Parse and display benchmark results
   benchmarkResults.forEach((result) => {
-    const parts = result.split("\t");
+    const parts = result.split('\t');
     if (parts.length >= 3) {
       const name = parts[0].trim();
       const iterations = parts[1].trim();
       const timePerOp = parts[2].trim();
-      const memory = parts.length >= 4 ? parts[3].trim() : "";
+      const memory = parts.length >= 4 ? parts[3].trim() : '';
 
       console.log(`\n${name}:`);
       console.log(`  Iterations: ${iterations}`);
@@ -160,13 +160,13 @@ function displayBenchmarkResults(output) {
   });
 
   // Show summary
-  console.log("\n📈 Benchmark Summary:");
+  console.log('\n📈 Benchmark Summary:');
   console.log(`  Total benchmarks: ${benchmarkResults.length}`);
 
   // Calculate average time
   let totalTime = 0;
   benchmarkResults.forEach((result) => {
-    const parts = result.split("\t");
+    const parts = result.split('\t');
     if (parts.length >= 3) {
       const timeStr = parts[2].trim();
       const match = timeStr.match(/([\d.]+)\s*(ns|µs|ms|s)/);
@@ -176,13 +176,13 @@ function displayBenchmarkResults(output) {
 
         // Convert to nanoseconds for comparison
         switch (unit) {
-          case "s":
+          case 's':
             time *= 1e9;
             break;
-          case "ms":
+          case 'ms':
             time *= 1e6;
             break;
-          case "µs":
+          case 'µs':
             time *= 1e3;
             break;
           // ns stays the same
@@ -218,23 +218,23 @@ function formatTime(nanoseconds) {
  * Generate coverage report
  */
 async function generateCoverageReport(runner, options) {
-  console.log("\n📈 Generating coverage report...");
+  console.log('\n📈 Generating coverage report...');
 
   try {
     const result = await runner.coverage({
       profile: options.coverageProfile,
-      format: options.coverageFormat || "html",
+      format: options.coverageFormat || 'html',
       output: options.coverageOutput,
     });
 
     if (result.success) {
-      console.log("✅ Coverage report generated");
+      console.log('✅ Coverage report generated');
 
       // Show coverage statistics if available
-      if (options.coverageProfile || "coverage.out") {
+      if (options.coverageProfile || 'coverage.out') {
         await showCoverageStats(
           runner,
-          options.coverageProfile || "coverage.out",
+          options.coverageProfile || 'coverage.out',
         );
       }
     }
@@ -248,19 +248,19 @@ async function generateCoverageReport(runner, options) {
  */
 async function showCoverageStats(runner, profileFile) {
   try {
-    const { runCommand } = require("../lib/utils");
+    const { runCommand } = require('../lib/utils');
     const result = runCommand(`go tool cover -func=${profileFile}`, {
       cwd: runner.projectPath,
-      stdio: "pipe",
+      stdio: 'pipe',
     });
 
     if (result.success) {
-      const lines = result.output.split("\n");
-      let totalCoverage = "";
+      const lines = result.output.split('\n');
+      let totalCoverage = '';
 
       // Find total coverage line
       for (const line of lines) {
-        if (line.includes("total:")) {
+        if (line.includes('total:')) {
           totalCoverage = line.trim();
           break;
         }

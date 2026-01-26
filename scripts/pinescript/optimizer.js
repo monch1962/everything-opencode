@@ -5,9 +5,9 @@
  * Strategy parameter optimization utilities
  */
 
-const path = require("path");
-const fs = require("fs");
-const PineBacktester = require("./backtester");
+const path = require('path');
+const fs = require('fs');
+const PineBacktester = require('./backtester');
 
 class PineOptimizer {
   constructor(projectPath = process.cwd()) {
@@ -26,12 +26,12 @@ class PineOptimizer {
    */
   async optimizeStrategy(strategyFile, options = {}) {
     const {
-      method = "grid",
+      method = 'grid',
       params = null,
-      metric = "sharpe",
+      metric = 'sharpe',
       iterations = 100,
       walkForward = false,
-      dataSource = "csv",
+      dataSource = 'csv',
       dataFile = null,
       commission = 0.1,
       initialCapital = 10000,
@@ -41,7 +41,7 @@ class PineOptimizer {
     console.log(`   Method: ${method}`);
     console.log(`   Metric: ${metric}`);
     console.log(`   Iterations: ${iterations}`);
-    console.log(`   Walk-forward: ${walkForward ? "Yes" : "No"}`);
+    console.log(`   Walk-forward: ${walkForward ? 'Yes' : 'No'}`);
 
     // Validate strategy file
     if (!fs.existsSync(strategyFile)) {
@@ -54,7 +54,7 @@ class PineOptimizer {
     );
     if (Object.keys(paramSpace).length === 0) {
       throw new Error(
-        "No parameters specified for optimization. Use --params or add parameter comments.",
+        'No parameters specified for optimization. Use --params or add parameter comments.',
       );
     }
 
@@ -69,7 +69,7 @@ class PineOptimizer {
     const optimizeMethod = this.optimizationMethods[method];
     if (!optimizeMethod) {
       throw new Error(
-        `Unsupported optimization method: ${method}. Available: ${Object.keys(this.optimizationMethods).join(", ")}`,
+        `Unsupported optimization method: ${method}. Available: ${Object.keys(this.optimizationMethods).join(', ')}`,
       );
     }
 
@@ -112,13 +112,13 @@ class PineOptimizer {
     }
 
     // Format: "param1:min-max-step,param2:min-max-step"
-    const params = paramSpec.split(",");
+    const params = paramSpec.split(',');
 
     for (const param of params) {
-      const [name, rangeSpec] = param.split(":");
+      const [name, rangeSpec] = param.split(':');
       if (!rangeSpec) continue;
 
-      const rangeParts = rangeSpec.split("-");
+      const rangeParts = rangeSpec.split('-');
       if (rangeParts.length < 2) continue;
 
       const min = parseFloat(rangeParts[0]);
@@ -140,14 +140,14 @@ class PineOptimizer {
    * Detect parameters from PineScript file comments
    */
   detectParameters(strategyFile) {
-    const content = fs.readFileSync(strategyFile, "utf8");
-    const lines = content.split("\n");
+    const content = fs.readFileSync(strategyFile, 'utf8');
+    const lines = content.split('\n');
     const detectedParams = [];
 
     // Look for optimization comments
     // Format: // Optimization: rsi_length:7-21-1, rsi_overbought:70-90-5
     for (const line of lines) {
-      if (line.includes("Optimization:")) {
+      if (line.includes('Optimization:')) {
         const match = line.match(/Optimization:\s*(.+)/);
         if (match) {
           return match[1].trim();
@@ -155,18 +155,18 @@ class PineOptimizer {
       }
 
       // Also look for input parameters that could be optimized
-      if (line.includes("input.")) {
+      if (line.includes('input.')) {
         const inputMatch = line.match(
           /input\.(int|float)\([^,]+,\s*["']([^"']+)["']/,
         );
         if (inputMatch) {
-          const paramName = inputMatch[2].toLowerCase().replace(/\s+/g, "_");
+          const paramName = inputMatch[2].toLowerCase().replace(/\s+/g, '_');
           detectedParams.push(`${paramName}:1-100-1`);
         }
       }
     }
 
-    return detectedParams.join(",");
+    return detectedParams.join(',');
   }
 
   /**
@@ -182,7 +182,7 @@ class PineOptimizer {
       initialCapital,
     } = options;
 
-    console.log("\n🔍 Running grid search optimization...");
+    console.log('\n🔍 Running grid search optimization...');
 
     // Generate all parameter combinations
     const combinations = this.generateGridCombinations(paramSpace, iterations);
@@ -240,15 +240,15 @@ class PineOptimizer {
       }
 
       // Clean up temp file
-      if (fs.existsSync(tempStrategy) && tempStrategy.includes(".temp.")) {
+      if (fs.existsSync(tempStrategy) && tempStrategy.includes('.temp.')) {
         fs.unlinkSync(tempStrategy);
       }
     }
 
-    console.log("\n"); // New line after progress
+    console.log('\n'); // New line after progress
 
     return {
-      method: "grid",
+      method: 'grid',
       bestParams,
       bestScore,
       bestResult,
@@ -271,7 +271,7 @@ class PineOptimizer {
       initialCapital,
     } = options;
 
-    console.log("\n🎲 Running random search optimization...");
+    console.log('\n🎲 Running random search optimization...');
     console.log(`   Testing ${iterations} random parameter combinations`);
 
     const results = [];
@@ -327,15 +327,15 @@ class PineOptimizer {
       }
 
       // Clean up temp file
-      if (fs.existsSync(tempStrategy) && tempStrategy.includes(".temp.")) {
+      if (fs.existsSync(tempStrategy) && tempStrategy.includes('.temp.')) {
         fs.unlinkSync(tempStrategy);
       }
     }
 
-    console.log("\n"); // New line after progress
+    console.log('\n'); // New line after progress
 
     return {
-      method: "random",
+      method: 'random',
       bestParams,
       bestScore,
       bestResult,
@@ -350,7 +350,7 @@ class PineOptimizer {
    */
   async bayesianOptimization(strategyFile, paramSpace, options) {
     // Simplified implementation - in reality would use Bayesian optimization library
-    console.log("\n🤖 Running Bayesian optimization (simulated)...");
+    console.log('\n🤖 Running Bayesian optimization (simulated)...');
 
     // For now, use random search as placeholder
     return this.randomSearch(strategyFile, paramSpace, {
@@ -364,7 +364,7 @@ class PineOptimizer {
    */
   async geneticAlgorithm(strategyFile, paramSpace, options) {
     // Simplified implementation
-    console.log("\n🧬 Running genetic algorithm optimization (simulated)...");
+    console.log('\n🧬 Running genetic algorithm optimization (simulated)...');
 
     // For now, use random search as placeholder
     return this.randomSearch(strategyFile, paramSpace, {
@@ -465,8 +465,8 @@ class PineOptimizer {
    * Create parameterized strategy file
    */
   createParameterizedStrategy(originalFile, params) {
-    const content = fs.readFileSync(originalFile, "utf8");
-    const lines = content.split("\n");
+    const content = fs.readFileSync(originalFile, 'utf8');
+    const lines = content.split('\n');
     const newLines = [];
 
     for (const line of lines) {
@@ -477,7 +477,7 @@ class PineOptimizer {
         // Look for input.int or input.float with this parameter name
         const regex = new RegExp(
           `input\\.(int|float)\\([^,]+,\\s*["']([^"']*${paramName}[^"']*)["']`,
-          "i",
+          'i',
         );
         const match = line.match(regex);
 
@@ -498,8 +498,8 @@ class PineOptimizer {
     }
 
     // Create temporary file
-    const tempFile = originalFile.replace(".pine", `.temp.${Date.now()}.pine`);
-    fs.writeFileSync(tempFile, newLines.join("\n"));
+    const tempFile = originalFile.replace('.pine', `.temp.${Date.now()}.pine`);
+    fs.writeFileSync(tempFile, newLines.join('\n'));
 
     return tempFile;
   }
@@ -509,32 +509,32 @@ class PineOptimizer {
    */
   calculateMetricScore(performance, metric) {
     switch (metric.toLowerCase()) {
-      case "netprofit":
-      case "profit":
+      case 'netprofit':
+      case 'profit':
         return performance.netProfit;
 
-      case "winrate":
-      case "win":
+      case 'winrate':
+      case 'win':
         return performance.winRate;
 
-      case "profitfactor":
-      case "pf":
+      case 'profitfactor':
+      case 'pf':
         return performance.profitFactor;
 
-      case "sharpe":
-      case "sharperatio":
+      case 'sharpe':
+      case 'sharperatio':
         return performance.sharpeRatio;
 
-      case "sortino":
-      case "sortinoratio":
+      case 'sortino':
+      case 'sortinoratio':
         return performance.sortinoRatio;
 
-      case "calmar":
-      case "calmarratio":
+      case 'calmar':
+      case 'calmarratio':
         return performance.calmarRatio;
 
-      case "drawdown":
-      case "maxdrawdown":
+      case 'drawdown':
+      case 'maxdrawdown':
         return -performance.maxDrawdownPct; // Negative because lower is better
 
       default:
@@ -547,16 +547,16 @@ class PineOptimizer {
    */
   generateOptimizationReport(results, options) {
     const { method, bestParams, bestScore, bestResult, allResults } = results;
-    const { metric, outputFormat = "console" } = options;
+    const { metric, outputFormat = 'console' } = options;
 
     switch (outputFormat) {
-      case "json":
+      case 'json':
         return JSON.stringify(results, null, 2);
-      case "html":
+      case 'html':
         return this.generateHTMLOptimizationReport(results, options);
-      case "csv":
+      case 'csv':
         return this.generateCSVOptimizationReport(results);
-      case "console":
+      case 'console':
       default:
         return this.generateConsoleOptimizationReport(results, options);
     }
@@ -577,18 +577,18 @@ class PineOptimizer {
     } = results;
     const { metric } = options;
 
-    console.log("\n" + "=".repeat(60));
-    console.log("🏆 OPTIMIZATION RESULTS");
-    console.log("=".repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
+    console.log('🏆 OPTIMIZATION RESULTS');
+    console.log('='.repeat(60));
 
     console.log(`\nOptimization Method: ${method.toUpperCase()}`);
     console.log(`Optimization Metric: ${metric.toUpperCase()}`);
     console.log(
-      `Parameter Combinations: ${testedCombinations}/${totalCombinations || "N/A"}`,
+      `Parameter Combinations: ${testedCombinations}/${totalCombinations || 'N/A'}`,
     );
 
-    console.log("\n🎯 BEST PARAMETERS:");
-    console.log("─".repeat(40));
+    console.log('\n🎯 BEST PARAMETERS:');
+    console.log('─'.repeat(40));
     Object.entries(bestParams).forEach(([param, value]) => {
       console.log(`  ${param}: ${value}`);
     });
@@ -596,8 +596,8 @@ class PineOptimizer {
 
     if (bestResult) {
       const perf = bestResult.performance;
-      console.log("\n📊 PERFORMANCE WITH BEST PARAMETERS:");
-      console.log("─".repeat(40));
+      console.log('\n📊 PERFORMANCE WITH BEST PARAMETERS:');
+      console.log('─'.repeat(40));
       console.log(
         `  Net Profit: $${perf.netProfit.toFixed(2)} (${((perf.netProfit / bestResult.parameters.initialCapital) * 100).toFixed(2)}%)`,
       );
@@ -607,8 +607,8 @@ class PineOptimizer {
       console.log(`  Sharpe Ratio: ${perf.sharpeRatio.toFixed(2)}`);
     }
 
-    console.log("\n🏅 TOP 5 PARAMETER SETS:");
-    console.log("─".repeat(40));
+    console.log('\n🏅 TOP 5 PARAMETER SETS:');
+    console.log('─'.repeat(40));
 
     allResults.slice(0, 5).forEach((result, index) => {
       console.log(`\n${index + 1}. Score: ${result.score.toFixed(4)}`);
@@ -617,22 +617,22 @@ class PineOptimizer {
       });
     });
 
-    console.log("\n💡 RECOMMENDATIONS:");
-    console.log("─".repeat(40));
+    console.log('\n💡 RECOMMENDATIONS:');
+    console.log('─'.repeat(40));
 
     // Analyze parameter sensitivity
     if (allResults.length > 10) {
       const paramSensitivity = this.analyzeParameterSensitivity(allResults);
       Object.entries(paramSensitivity).forEach(([param, sensitivity]) => {
         console.log(
-          `  ${param}: ${sensitivity > 0.3 ? "High impact" : sensitivity > 0.1 ? "Medium impact" : "Low impact"} on performance`,
+          `  ${param}: ${sensitivity > 0.3 ? 'High impact' : sensitivity > 0.1 ? 'Medium impact' : 'Low impact'} on performance`,
         );
       });
     }
 
-    console.log("\n" + "=".repeat(60));
-    console.log("✅ Optimization completed successfully");
-    console.log("=".repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
+    console.log('✅ Optimization completed successfully');
+    console.log('='.repeat(60));
 
     return results;
   }
@@ -700,12 +700,12 @@ class PineOptimizer {
         <p>Score: <span class="score-good">${bestScore.toFixed(4)}</span></p>
         <div>
             ${Object.entries(bestParams)
-              .map(
-                ([param, value]) => `
+    .map(
+      ([param, value]) => `
             <div class="param">${param}: ${value}</div>
             `,
-              )
-              .join("")}
+    )
+    .join('')}
         </div>
     </div>
     
@@ -715,25 +715,25 @@ class PineOptimizer {
             <th>Rank</th>
             <th>Score</th>
             ${Object.keys(bestParams)
-              .map((param) => `<th>${param}</th>`)
-              .join("")}
+    .map((param) => `<th>${param}</th>`)
+    .join('')}
         </tr>
         ${allResults
-          .slice(0, 10)
-          .map(
-            (result, index) => `
+    .slice(0, 10)
+    .map(
+      (result, index) => `
         <tr>
             <td>${index + 1}</td>
-            <td class="${result.score > bestScore * 0.9 ? "score-good" : result.score > bestScore * 0.7 ? "score-avg" : "score-poor"}">
+            <td class="${result.score > bestScore * 0.9 ? 'score-good' : result.score > bestScore * 0.7 ? 'score-avg' : 'score-poor'}">
                 ${result.score.toFixed(4)}
             </td>
             ${Object.values(result.params)
-              .map((value) => `<td>${value}</td>`)
-              .join("")}
+    .map((value) => `<td>${value}</td>`)
+    .join('')}
         </tr>
         `,
-          )
-          .join("")}
+    )
+    .join('')}
     </table>
 </body>
 </html>`;
@@ -745,10 +745,10 @@ class PineOptimizer {
   generateCSVOptimizationReport(results) {
     const { allResults, bestParams } = results;
 
-    let csv = "Rank,Score," + Object.keys(bestParams).join(",") + "\n";
+    let csv = `Rank,Score,${Object.keys(bestParams).join(',')}\n`;
 
     allResults.forEach((result, index) => {
-      csv += `${index + 1},${result.score},${Object.values(result.params).join(",")}\n`;
+      csv += `${index + 1},${result.score},${Object.values(result.params).join(',')}\n`;
     });
 
     return csv;
@@ -764,7 +764,7 @@ if (require.main === module) {
 
   const args = process.argv.slice(2);
 
-  if (args.includes("--help") || args.includes("-h")) {
+  if (args.includes('--help') || args.includes('-h')) {
     console.log(`
 🔧 PineScript Optimizer
 
@@ -779,18 +779,18 @@ Examples:
   node scripts/pinescript/optimizer.js --test-params
     `);
     process.exit(0);
-  } else if (args.includes("--test-params")) {
+  } else if (args.includes('--test-params')) {
     const paramSpace = optimizer.parseParameterSpace(
-      "rsi_length:7-21-2,rsi_overbought:70-90-5",
+      'rsi_length:7-21-2,rsi_overbought:70-90-5',
     );
-    console.log("Parameter space:", paramSpace);
+    console.log('Parameter space:', paramSpace);
 
     const combinations = optimizer.generateGridCombinations(paramSpace, 50);
     console.log(`Generated ${combinations.length} combinations`);
 
     const randomParams = optimizer.generateRandomParameters(paramSpace);
-    console.log("Random parameters:", randomParams);
+    console.log('Random parameters:', randomParams);
   } else {
-    console.log("Use --help for usage information.");
+    console.log('Use --help for usage information.');
   }
 }

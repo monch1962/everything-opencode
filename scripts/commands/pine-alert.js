@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 
-const { PineCommandRunner } = require("../pinescript/command-runner");
-const fs = require("fs").promises;
-const path = require("path");
-const { exec } = require("child_process");
-const util = require("util");
+const { PineCommandRunner } = require('../pinescript/command-runner');
+const fs = require('fs').promises;
+const path = require('path');
+const { exec } = require('child_process');
+const util = require('util');
 const execPromise = util.promisify(exec);
 
 class PineAlertCommand extends PineCommandRunner {
   constructor() {
-    super("pine-alert", "Configure and manage PineScript alert systems");
+    super('pine-alert', 'Configure and manage PineScript alert systems');
   }
 
   async run(args) {
@@ -19,74 +19,74 @@ class PineAlertCommand extends PineCommandRunner {
 
       if (!pineConfig) {
         this.error(
-          "PineScript configuration not found. Run /pine-setup first.",
+          'PineScript configuration not found. Run /pine-setup first.',
         );
         return 1;
       }
 
       const options = this.parseArgs(args, {
         action: {
-          type: "string",
-          alias: "a",
+          type: 'string',
+          alias: 'a',
           description:
-            "Action to perform (setup, test, list, enable, disable, webhook)",
-          default: "setup",
+            'Action to perform (setup, test, list, enable, disable, webhook)',
+          default: 'setup',
         },
         file: {
-          type: "string",
-          alias: "f",
-          description: "PineScript file to configure alerts for",
+          type: 'string',
+          alias: 'f',
+          description: 'PineScript file to configure alerts for',
         },
         channel: {
-          type: "string",
-          alias: "c",
+          type: 'string',
+          alias: 'c',
           description:
-            "Alert channel (webhook, email, discord, telegram, slack)",
+            'Alert channel (webhook, email, discord, telegram, slack)',
         },
         webhookUrl: {
-          type: "string",
-          alias: "w",
-          description: "Webhook URL for alert delivery",
+          type: 'string',
+          alias: 'w',
+          description: 'Webhook URL for alert delivery',
         },
         email: {
-          type: "string",
-          alias: "e",
-          description: "Email address for alerts",
+          type: 'string',
+          alias: 'e',
+          description: 'Email address for alerts',
         },
         testMessage: {
-          type: "string",
-          alias: "m",
-          description: "Test message to send",
+          type: 'string',
+          alias: 'm',
+          description: 'Test message to send',
         },
         alertName: {
-          type: "string",
-          alias: "n",
-          description: "Specific alert name to manage",
+          type: 'string',
+          alias: 'n',
+          description: 'Specific alert name to manage',
         },
         frequency: {
-          type: "string",
+          type: 'string',
           description:
-            "Alert frequency (once_per_bar, once_per_bar_close, once_per_minute)",
+            'Alert frequency (once_per_bar, once_per_bar_close, once_per_minute)',
         },
-        verbose: { type: "boolean", alias: "v", description: "Verbose output" },
+        verbose: { type: 'boolean', alias: 'v', description: 'Verbose output' },
         force: {
-          type: "boolean",
-          description: "Force overwrite existing configuration",
+          type: 'boolean',
+          description: 'Force overwrite existing configuration',
         },
       });
 
       switch (options.action) {
-        case "setup":
+        case 'setup':
           return await this.setupAlerts(options);
-        case "test":
+        case 'test':
           return await this.testAlerts(options);
-        case "list":
+        case 'list':
           return await this.listAlerts(options);
-        case "enable":
+        case 'enable':
           return await this.enableAlert(options);
-        case "disable":
+        case 'disable':
           return await this.disableAlert(options);
-        case "webhook":
+        case 'webhook':
           return await this.setupWebhook(options);
         default:
           this.error(`Unknown action: ${options.action}`);
@@ -102,12 +102,12 @@ class PineAlertCommand extends PineCommandRunner {
   }
 
   async setupAlerts(options) {
-    this.log("Setting up PineScript alert system...");
+    this.log('Setting up PineScript alert system...');
 
     const pineFile = options.file || this.findPineScriptFile();
     if (!pineFile) {
       this.error(
-        "No PineScript file specified and none found in current directory.",
+        'No PineScript file specified and none found in current directory.',
       );
       return 1;
     }
@@ -117,12 +117,12 @@ class PineAlertCommand extends PineCommandRunner {
       return 1;
     }
 
-    const content = await fs.readFile(pineFile, "utf8");
+    const content = await fs.readFile(pineFile, 'utf8');
     const alerts = this.extractAlerts(content);
 
     if (alerts.length === 0) {
-      this.warn("No alert() calls found in the PineScript file.");
-      this.log("To add alerts, use alert() function in your PineScript code:");
+      this.warn('No alert() calls found in the PineScript file.');
+      this.log('To add alerts, use alert() function in your PineScript code:');
       this.log('  alert("Buy signal", alert.freq_once_per_bar)');
       this.log('  alert("Sell signal", alert.freq_once_per_bar_close)');
       return 0;
@@ -143,7 +143,7 @@ class PineAlertCommand extends PineCommandRunner {
       alerts: alerts.reduce((acc, alert) => {
         acc[alert.name] = {
           message: alert.message,
-          frequency: options.frequency || alert.frequency || "once_per_bar",
+          frequency: options.frequency || alert.frequency || 'once_per_bar',
           enabled: true,
           channels: [],
         };
@@ -156,33 +156,33 @@ class PineAlertCommand extends PineCommandRunner {
       this.log(`Configuring alert channel: ${options.channel}`);
 
       switch (options.channel) {
-        case "webhook":
+        case 'webhook':
           if (!options.webhookUrl) {
-            const webhookUrl = await this.prompt("Enter webhook URL: ");
+            const webhookUrl = await this.prompt('Enter webhook URL: ');
             alertConfig.channels.webhook = { url: webhookUrl };
           } else {
             alertConfig.channels.webhook = { url: options.webhookUrl };
           }
           break;
 
-        case "email":
+        case 'email':
           if (!options.email) {
-            const email = await this.prompt("Enter email address: ");
+            const email = await this.prompt('Enter email address: ');
             alertConfig.channels.email = { address: email };
           } else {
             alertConfig.channels.email = { address: options.email };
           }
           break;
 
-        case "discord":
+        case 'discord':
           alertConfig.channels.discord = await this.configureDiscord();
           break;
 
-        case "telegram":
+        case 'telegram':
           alertConfig.channels.telegram = await this.configureTelegram();
           break;
 
-        case "slack":
+        case 'slack':
           alertConfig.channels.slack = await this.configureSlack();
           break;
 
@@ -191,47 +191,47 @@ class PineAlertCommand extends PineCommandRunner {
           return 1;
       }
     } else {
-      this.log("No channel specified. You can add channels later with:");
-      this.log("  /pine-alert --action webhook --webhookUrl YOUR_URL");
+      this.log('No channel specified. You can add channels later with:');
+      this.log('  /pine-alert --action webhook --webhookUrl YOUR_URL');
     }
 
     config.pinescript.alerts[path.basename(pineFile)] = alertConfig;
     await this.saveConfig(config);
 
-    this.log("\n=== ALERT CONFIGURATION COMPLETE ===");
+    this.log('\n=== ALERT CONFIGURATION COMPLETE ===');
     this.log(`File: ${pineFile}`);
     this.log(`Alerts configured: ${alerts.length}`);
 
     if (Object.keys(alertConfig.channels).length > 0) {
-      this.log("Channels:");
+      this.log('Channels:');
       Object.keys(alertConfig.channels).forEach((channel) => {
         this.log(`  - ${channel}`);
       });
     }
 
-    this.log("\nNext steps:");
-    this.log("1. Test alerts: /pine-alert --action test");
-    this.log("2. List configured alerts: /pine-alert --action list");
+    this.log('\nNext steps:');
+    this.log('1. Test alerts: /pine-alert --action test');
+    this.log('2. List configured alerts: /pine-alert --action list');
     this.log(
-      "3. Enable/disable specific alerts: /pine-alert --action enable --alertName ALERT_NAME",
+      '3. Enable/disable specific alerts: /pine-alert --action enable --alertName ALERT_NAME',
     );
 
     return 0;
   }
 
   async testAlerts(options) {
-    this.log("Testing alert system...");
+    this.log('Testing alert system...');
 
     const config = await this.loadConfig();
     const pineConfig = config.pinescript;
 
     if (!pineConfig.alerts || Object.keys(pineConfig.alerts).length === 0) {
-      this.error("No alerts configured. Run /pine-alert --action setup first.");
+      this.error('No alerts configured. Run /pine-alert --action setup first.');
       return 1;
     }
 
     const testMessage =
-      options.testMessage || "Test alert from PineScript integration";
+      options.testMessage || 'Test alert from PineScript integration';
 
     for (const [fileName, alertConfig] of Object.entries(pineConfig.alerts)) {
       this.log(`\nTesting alerts for: ${fileName}`);
@@ -253,7 +253,7 @@ class PineAlertCommand extends PineCommandRunner {
               alertName,
               fileName,
               timestamp: new Date().toISOString(),
-              type: "test",
+              type: 'test',
             });
             this.log(`    ✓ ${channelName}: Sent successfully`);
           } catch (error) {
@@ -263,8 +263,8 @@ class PineAlertCommand extends PineCommandRunner {
       }
     }
 
-    this.log("\n=== ALERT TEST COMPLETE ===");
-    this.log("Check your configured channels for test messages.");
+    this.log('\n=== ALERT TEST COMPLETE ===');
+    this.log('Check your configured channels for test messages.');
 
     return 0;
   }
@@ -274,44 +274,44 @@ class PineAlertCommand extends PineCommandRunner {
     const pineConfig = config.pinescript;
 
     if (!pineConfig.alerts || Object.keys(pineConfig.alerts).length === 0) {
-      this.log("No alerts configured.");
+      this.log('No alerts configured.');
       return 0;
     }
 
-    this.log("=== CONFIGURED ALERTS ===");
+    this.log('=== CONFIGURED ALERTS ===');
 
     for (const [fileName, alertConfig] of Object.entries(pineConfig.alerts)) {
       this.log(`\nFile: ${fileName}`);
       this.log(`Source: ${alertConfig.file}`);
 
       if (Object.keys(alertConfig.alerts).length === 0) {
-        this.log("  No alerts defined");
+        this.log('  No alerts defined');
         continue;
       }
 
-      this.log("Alerts:");
+      this.log('Alerts:');
       for (const [alertName, alert] of Object.entries(alertConfig.alerts)) {
-        const status = alert.enabled ? "ENABLED" : "DISABLED";
+        const status = alert.enabled ? 'ENABLED' : 'DISABLED';
         this.log(`  ${alertName}:`);
         this.log(`    Message: ${alert.message}`);
         this.log(`    Frequency: ${alert.frequency}`);
         this.log(`    Status: ${status}`);
 
         if (alert.channels && alert.channels.length > 0) {
-          this.log(`    Channels: ${alert.channels.join(", ")}`);
+          this.log(`    Channels: ${alert.channels.join(', ')}`);
         }
       }
 
       if (Object.keys(alertConfig.channels).length > 0) {
-        this.log("\nChannels:");
+        this.log('\nChannels:');
         for (const [channelName, channelConfig] of Object.entries(
           alertConfig.channels,
         )) {
           this.log(`  ${channelName}:`);
           Object.entries(channelConfig).forEach(([key, value]) => {
             if (
-              key.toLowerCase().includes("token") ||
-              key.toLowerCase().includes("secret")
+              key.toLowerCase().includes('token') ||
+              key.toLowerCase().includes('secret')
             ) {
               this.log(`    ${key}: ********`);
             } else {
@@ -327,7 +327,7 @@ class PineAlertCommand extends PineCommandRunner {
 
   async enableAlert(options) {
     if (!options.alertName) {
-      this.error("Alert name required. Use --alertName ALERT_NAME");
+      this.error('Alert name required. Use --alertName ALERT_NAME');
       return 1;
     }
 
@@ -335,7 +335,7 @@ class PineAlertCommand extends PineCommandRunner {
     const pineConfig = config.pinescript;
 
     if (!pineConfig.alerts) {
-      this.error("No alerts configured.");
+      this.error('No alerts configured.');
       return 1;
     }
 
@@ -354,14 +354,14 @@ class PineAlertCommand extends PineCommandRunner {
     }
 
     await this.saveConfig(config);
-    this.log("Configuration updated.");
+    this.log('Configuration updated.');
 
     return 0;
   }
 
   async disableAlert(options) {
     if (!options.alertName) {
-      this.error("Alert name required. Use --alertName ALERT_NAME");
+      this.error('Alert name required. Use --alertName ALERT_NAME');
       return 1;
     }
 
@@ -369,7 +369,7 @@ class PineAlertCommand extends PineCommandRunner {
     const pineConfig = config.pinescript;
 
     if (!pineConfig.alerts) {
-      this.error("No alerts configured.");
+      this.error('No alerts configured.');
       return 1;
     }
 
@@ -388,27 +388,27 @@ class PineAlertCommand extends PineCommandRunner {
     }
 
     await this.saveConfig(config);
-    this.log("Configuration updated.");
+    this.log('Configuration updated.');
 
     return 0;
   }
 
   async setupWebhook(options) {
-    this.log("Setting up webhook alert channel...");
+    this.log('Setting up webhook alert channel...');
 
     const config = await this.loadConfig();
     const pineConfig = config.pinescript;
 
     if (!pineConfig.alerts) {
-      this.error("No alerts configured. Run /pine-alert --action setup first.");
+      this.error('No alerts configured. Run /pine-alert --action setup first.');
       return 1;
     }
 
     const webhookUrl =
-      options.webhookUrl || (await this.prompt("Enter webhook URL: "));
+      options.webhookUrl || (await this.prompt('Enter webhook URL: '));
 
-    if (!webhookUrl.startsWith("http")) {
-      this.error("Invalid webhook URL. Must start with http:// or https://");
+    if (!webhookUrl.startsWith('http')) {
+      this.error('Invalid webhook URL. Must start with http:// or https://');
       return 1;
     }
 
@@ -422,8 +422,8 @@ class PineAlertCommand extends PineCommandRunner {
         if (!alert.channels) {
           alert.channels = [];
         }
-        if (!alert.channels.includes("webhook")) {
-          alert.channels.push("webhook");
+        if (!alert.channels.includes('webhook')) {
+          alert.channels.push('webhook');
         }
       }
 
@@ -432,9 +432,9 @@ class PineAlertCommand extends PineCommandRunner {
 
     await this.saveConfig(config);
 
-    this.log("\n=== WEBHOOK CONFIGURATION COMPLETE ===");
+    this.log('\n=== WEBHOOK CONFIGURATION COMPLETE ===');
     this.log(`URL: ${webhookUrl}`);
-    this.log("Test with: /pine-alert --action test");
+    this.log('Test with: /pine-alert --action test');
 
     return 0;
   }
@@ -446,7 +446,7 @@ class PineAlertCommand extends PineCommandRunner {
     let match;
     while ((match = alertRegex.exec(content)) !== null) {
       const message = match[1];
-      const frequency = match[2] ? match[2].trim() : "alert.freq_once_per_bar";
+      const frequency = match[2] ? match[2].trim() : 'alert.freq_once_per_bar';
 
       const name = this.generateAlertName(message);
 
@@ -463,18 +463,18 @@ class PineAlertCommand extends PineCommandRunner {
   generateAlertName(message) {
     return message
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
       .substring(0, 50);
   }
 
   normalizeFrequency(frequency) {
     const freqMap = {
-      "alert.freq_once_per_bar": "once_per_bar",
-      "alert.freq_once_per_bar_close": "once_per_bar_close",
-      "alert.freq_once_per_minute": "once_per_minute",
-      "alert.freq_once_per_day": "once_per_day",
-      "alert.freq_once_per_week": "once_per_week",
+      'alert.freq_once_per_bar': 'once_per_bar',
+      'alert.freq_once_per_bar_close': 'once_per_bar_close',
+      'alert.freq_once_per_minute': 'once_per_minute',
+      'alert.freq_once_per_day': 'once_per_day',
+      'alert.freq_once_per_week': 'once_per_week',
     };
 
     return freqMap[frequency] || frequency;
@@ -482,15 +482,15 @@ class PineAlertCommand extends PineCommandRunner {
 
   async sendAlert(channel, config, data) {
     switch (channel) {
-      case "webhook":
+      case 'webhook':
         return await this.sendWebhookAlert(config, data);
-      case "email":
+      case 'email':
         return await this.sendEmailAlert(config, data);
-      case "discord":
+      case 'discord':
         return await this.sendDiscordAlert(config, data);
-      case "telegram":
+      case 'telegram':
         return await this.sendTelegramAlert(config, data);
-      case "slack":
+      case 'slack':
         return await this.sendSlackAlert(config, data);
       default:
         throw new Error(`Unsupported channel: ${channel}`);
@@ -499,14 +499,14 @@ class PineAlertCommand extends PineCommandRunner {
 
   async sendWebhookAlert(config, data) {
     const response = await fetch(config.url, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         ...data,
-        source: "pinescript",
-        version: "1.0",
+        source: 'pinescript',
+        version: '1.0',
       }),
     });
 
@@ -542,20 +542,20 @@ Type: ${data.type}
     const embed = {
       title: `PineScript Alert: ${data.alertName}`,
       description: data.message,
-      color: data.type === "test" ? 0x00ff00 : 0xff0000,
+      color: data.type === 'test' ? 0x00ff00 : 0xff0000,
       fields: [
         {
-          name: "File",
+          name: 'File',
           value: data.fileName,
           inline: true,
         },
         {
-          name: "Time",
+          name: 'Time',
           value: new Date(data.timestamp).toLocaleString(),
           inline: true,
         },
         {
-          name: "Type",
+          name: 'Type',
           value: data.type,
           inline: true,
         },
@@ -564,9 +564,9 @@ Type: ${data.type}
     };
 
     const response = await fetch(webhookUrl, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({ embeds: [embed] }),
     });
@@ -591,14 +591,14 @@ Type: ${data.type}
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
     const response = await fetch(url, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         chat_id: chatId,
         text: message,
-        parse_mode: "Markdown",
+        parse_mode: 'Markdown',
       }),
     });
 
@@ -612,32 +612,32 @@ Type: ${data.type}
 
     const blocks = [
       {
-        type: "header",
+        type: 'header',
         text: {
-          type: "plain_text",
+          type: 'plain_text',
           text: `PineScript Alert: ${data.alertName}`,
         },
       },
       {
-        type: "section",
+        type: 'section',
         text: {
-          type: "mrkdwn",
+          type: 'mrkdwn',
           text: `*Message:* ${data.message}`,
         },
       },
       {
-        type: "section",
+        type: 'section',
         fields: [
           {
-            type: "mrkdwn",
+            type: 'mrkdwn',
             text: `*File:*\n${data.fileName}`,
           },
           {
-            type: "mrkdwn",
+            type: 'mrkdwn',
             text: `*Time:*\n${new Date(data.timestamp).toLocaleString()}`,
           },
           {
-            type: "mrkdwn",
+            type: 'mrkdwn',
             text: `*Type:*\n${data.type}`,
           },
         ],
@@ -645,9 +645,9 @@ Type: ${data.type}
     ];
 
     const response = await fetch(webhookUrl, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({ blocks }),
     });
@@ -658,23 +658,23 @@ Type: ${data.type}
   }
 
   async configureDiscord() {
-    const webhookUrl = await this.prompt("Enter Discord webhook URL: ");
+    const webhookUrl = await this.prompt('Enter Discord webhook URL: ');
     return { webhookUrl };
   }
 
   async configureTelegram() {
-    const botToken = await this.prompt("Enter Telegram bot token: ");
-    const chatId = await this.prompt("Enter chat ID: ");
+    const botToken = await this.prompt('Enter Telegram bot token: ');
+    const chatId = await this.prompt('Enter chat ID: ');
     return { botToken, chatId };
   }
 
   async configureSlack() {
-    const webhookUrl = await this.prompt("Enter Slack webhook URL: ");
+    const webhookUrl = await this.prompt('Enter Slack webhook URL: ');
     return { webhookUrl };
   }
 
   async prompt(question) {
-    const readline = require("readline").createInterface({
+    const readline = require('readline').createInterface({
       input: process.stdin,
       output: process.stdout,
     });

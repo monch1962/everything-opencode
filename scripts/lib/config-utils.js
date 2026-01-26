@@ -5,16 +5,16 @@
  * Common configuration patterns for language tools
  */
 
-const path = require("path");
-const fs = require("fs");
-const { ensureDir, readFile, writeFile } = require("./utils");
+const path = require('path');
+const fs = require('fs');
+const { ensureDir, readFile, writeFile } = require('./utils');
 
 class ConfigUtils {
   /**
    * Get configuration for a specific language
    */
   static getLanguageConfig(projectPath, language) {
-    const configManager = require("../interactive/config-manager");
+    const configManager = require('../interactive/config-manager');
     const manager = new configManager(projectPath);
     const config = manager.loadConfig();
 
@@ -45,8 +45,8 @@ class ConfigUtils {
     if (!toolInfo || !toolInfo.installed) {
       if (required) {
         throw new Error(
-          `Required ${languageConfig.name || "language"} tool '${toolName}' is not installed. ` +
-            `Run /${languageConfig.name || "language"}-setup to install it.`,
+          `Required ${languageConfig.name || 'language'} tool '${toolName}' is not installed. ` +
+            `Run /${languageConfig.name || 'language'}-setup to install it.`,
         );
       }
       return false;
@@ -73,7 +73,7 @@ class ConfigUtils {
     // Use platform detector to find tool
     if (
       platformDetector &&
-      typeof platformDetector.getToolPath === "function"
+      typeof platformDetector.getToolPath === 'function'
     ) {
       return platformDetector.getToolPath(toolName, {
         required: true,
@@ -82,7 +82,7 @@ class ConfigUtils {
     }
 
     // Fallback to checking PATH
-    const { commandExists } = require("./utils");
+    const { commandExists } = require('./utils');
     if (commandExists(toolName)) {
       return toolName;
     }
@@ -98,7 +98,7 @@ class ConfigUtils {
   static createDefaultLanguageConfig(language, options = {}) {
     const defaults = {
       name: language,
-      version: "1.0.0",
+      version: '1.0.0',
       tools: {},
       configuredAt: new Date().toISOString(),
       ...options,
@@ -116,9 +116,9 @@ class ConfigUtils {
     for (const key in newConfig) {
       if (newConfig.hasOwnProperty(key)) {
         if (
-          typeof newConfig[key] === "object" &&
+          typeof newConfig[key] === 'object' &&
           newConfig[key] !== null &&
-          typeof result[key] === "object" &&
+          typeof result[key] === 'object' &&
           result[key] !== null &&
           !Array.isArray(newConfig[key]) &&
           !Array.isArray(result[key])
@@ -157,25 +157,25 @@ class ConfigUtils {
           const value = config[field];
           const expectedType = fieldSchema.type;
 
-          if (expectedType === "string" && typeof value !== "string") {
+          if (expectedType === 'string' && typeof value !== 'string') {
             errors.push(
               `Field '${field}' should be string, got ${typeof value}`,
             );
-          } else if (expectedType === "number" && typeof value !== "number") {
+          } else if (expectedType === 'number' && typeof value !== 'number') {
             errors.push(
               `Field '${field}' should be number, got ${typeof value}`,
             );
-          } else if (expectedType === "boolean" && typeof value !== "boolean") {
+          } else if (expectedType === 'boolean' && typeof value !== 'boolean') {
             errors.push(
               `Field '${field}' should be boolean, got ${typeof value}`,
             );
-          } else if (expectedType === "array" && !Array.isArray(value)) {
+          } else if (expectedType === 'array' && !Array.isArray(value)) {
             errors.push(
               `Field '${field}' should be array, got ${typeof value}`,
             );
           } else if (
-            expectedType === "object" &&
-            (typeof value !== "object" ||
+            expectedType === 'object' &&
+            (typeof value !== 'object' ||
               value === null ||
               Array.isArray(value))
           ) {
@@ -234,7 +234,7 @@ class ConfigUtils {
    */
   static getEnvironmentConfig(
     config,
-    environment = process.env.NODE_ENV || "development",
+    environment = process.env.NODE_ENV || 'development',
   ) {
     const envConfig = config.environments?.[environment] || {};
     return this.mergeConfigs(config, envConfig);
@@ -245,26 +245,26 @@ class ConfigUtils {
    */
   static createLanguageSchema(language, toolDefinitions = []) {
     const schema = {
-      type: "object",
-      required: ["name", "tools"],
+      type: 'object',
+      required: ['name', 'tools'],
       properties: {
-        name: { type: "string" },
-        version: { type: "string" },
+        name: { type: 'string' },
+        version: { type: 'string' },
         tools: {
-          type: "object",
+          type: 'object',
           additionalProperties: {
-            type: "object",
+            type: 'object',
             properties: {
-              installed: { type: "boolean" },
-              version: { type: "string" },
-              path: { type: "string" },
-              options: { type: "object" },
+              installed: { type: 'boolean' },
+              version: { type: 'string' },
+              path: { type: 'string' },
+              options: { type: 'object' },
             },
           },
         },
         environments: {
-          type: "object",
-          additionalProperties: { type: "object" },
+          type: 'object',
+          additionalProperties: { type: 'object' },
         },
       },
     };
@@ -273,11 +273,11 @@ class ConfigUtils {
     for (const tool of toolDefinitions) {
       if (schema.properties.tools.properties[tool.name]) {
         schema.properties.tools.properties[tool.name] = {
-          type: "object",
+          type: 'object',
           properties: {
-            installed: { type: "boolean" },
-            version: { type: "string" },
-            path: { type: "string" },
+            installed: { type: 'boolean' },
+            version: { type: 'string' },
+            path: { type: 'string' },
             ...tool.schema,
           },
         };

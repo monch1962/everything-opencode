@@ -5,10 +5,10 @@
  * Interactive configuration for Elixir projects with Elixir-specific improvements
  */
 
-const fs = require("fs");
-const path = require("path");
-const { runCommand, commandExists } = require("../../scripts/lib/utils");
-const ElixirToolDetector = require("./tool-detector");
+const fs = require('fs');
+const path = require('path');
+const { runCommand, commandExists } = require('../../scripts/lib/utils');
+const ElixirToolDetector = require('./tool-detector');
 
 class ElixirConfigWizard {
   constructor(projectPath = process.cwd()) {
@@ -21,7 +21,7 @@ class ElixirConfigWizard {
    * Run interactive configuration wizard with Elixir-specific improvements
    */
   async runWizard(options = {}) {
-    console.log("🧪 Elixir Project Configuration Wizard\n");
+    console.log('🧪 Elixir Project Configuration Wizard\n');
 
     // Detect tools first
     this.detectedTools = await this.toolDetector.detectTools();
@@ -34,8 +34,8 @@ class ElixirConfigWizard {
 
     // Check if Elixir is installed
     if (!report.summary.elixirInstalled) {
-      console.log("❌ Elixir is not installed. Please install Elixir first.");
-      this.showInstallationGuide("elixir");
+      console.log('❌ Elixir is not installed. Please install Elixir first.');
+      this.showInstallationGuide('elixir');
       return null;
     }
 
@@ -60,103 +60,103 @@ class ElixirConfigWizard {
    * Show environment report with Elixir-specific insights
    */
   showEnvironmentReport(report) {
-    console.log("🔍 Detecting Elixir tools...");
-    console.log("📊 Elixir Environment Report:");
-    console.log("=".repeat(50));
+    console.log('🔍 Detecting Elixir tools...');
+    console.log('📊 Elixir Environment Report:');
+    console.log('='.repeat(50));
 
     const { summary } = report;
 
     console.log(
-      `✅ Elixir ${this.detectedTools.elixir?.version || "?"} installed`,
+      `✅ Elixir ${this.detectedTools.elixir?.version || '?'} installed`,
     );
-    console.log(`📦 Using Mix: ${summary.mixInstalled ? "✅ Yes" : "❌ No"}`);
-    console.log(`📦 Using Hex: ${summary.hexInstalled ? "✅ Yes" : "❌ No"}`);
+    console.log(`📦 Using Mix: ${summary.mixInstalled ? '✅ Yes' : '❌ No'}`);
+    console.log(`📦 Using Hex: ${summary.hexInstalled ? '✅ Yes' : '❌ No'}`);
     console.log(
       `🔧 Tools detected: ${summary.toolsDetected}/${summary.totalTools}`,
     );
     console.log(`⭐ Recommended tools: ${summary.recommendedTools}`);
 
     // Show detected tools
-    console.log("\n📋 Detected Tools:");
+    console.log('\n📋 Detected Tools:');
     Object.entries(this.detectedTools).forEach(([name, tool]) => {
       if (tool.installed) {
-        const versionInfo = tool.version ? ` v${tool.version}` : "";
-        const recommended = tool.recommended ? " ⭐" : "";
+        const versionInfo = tool.version ? ` v${tool.version}` : '';
+        const recommended = tool.recommended ? ' ⭐' : '';
         console.log(`   • ${name}:${versionInfo}${recommended}`);
       }
     });
 
     // Show recommendations
     if (report.recommendations.length > 0) {
-      console.log("\n💡 Recommendations:");
+      console.log('\n💡 Recommendations:');
       report.recommendations.forEach((rec) => {
         const icon =
-          rec.type === "critical" ? "❌" : rec.type === "high" ? "⚠️" : "🔵";
+          rec.type === 'critical' ? '❌' : rec.type === 'high' ? '⚠️' : '🔵';
         console.log(`   ${icon} ${rec.message}`);
         if (rec.installGuide) {
           // Get platform-specific installation guide
           const platform =
-            process.platform === "darwin"
-              ? "macos"
-              : process.platform === "win32"
-                ? "windows"
-                : "linux";
+            process.platform === 'darwin'
+              ? 'macos'
+              : process.platform === 'win32'
+                ? 'windows'
+                : 'linux';
           const guide = rec.installGuide[platform] || rec.installGuide.linux;
           console.log(`      → ${guide}`);
         }
       });
     }
 
-    console.log("=".repeat(50));
+    console.log('='.repeat(50));
   }
 
   /**
    * Detect existing Elixir project or create new one
    */
   async detectOrCreateProject(options) {
-    const hasMixExs = fs.existsSync(path.join(this.projectPath, "mix.exs"));
-    const hasMixLock = fs.existsSync(path.join(this.projectPath, "mix.lock"));
+    const hasMixExs = fs.existsSync(path.join(this.projectPath, 'mix.exs'));
+    const hasMixLock = fs.existsSync(path.join(this.projectPath, 'mix.lock'));
 
     if (hasMixExs) {
-      console.log("\n✅ Existing Elixir project detected");
+      console.log('\n✅ Existing Elixir project detected');
 
       // Try to read mix.exs to determine project type
       try {
         const mixExsContent = fs.readFileSync(
-          path.join(this.projectPath, "mix.exs"),
-          "utf8",
+          path.join(this.projectPath, 'mix.exs'),
+          'utf8',
         );
 
-        if (mixExsContent.includes(":phoenix")) {
-          return "phoenix";
-        } else if (mixExsContent.includes(":umbrella")) {
-          return "umbrella";
-        } else if (mixExsContent.includes(":app")) {
-          return "application";
+        if (mixExsContent.includes(':phoenix')) {
+          return 'phoenix';
+        } else if (mixExsContent.includes(':umbrella')) {
+          return 'umbrella';
+        } else if (mixExsContent.includes(':app')) {
+          return 'application';
         } else {
-          return "library";
+          return 'library';
         }
       } catch (error) {
-        return "application"; // Default to application
+        return 'application'; // Default to application
       }
     } else {
-      console.log("\n📁 No existing Elixir project found");
+      console.log('\n📁 No existing Elixir project found');
 
       if (options.quick || options.noPrompt) {
-        return options.projectType || "application";
+        return options.projectType || 'application';
       }
 
       // Interactive project type selection
-      console.log("\n📝 Select project type:");
-      console.log("   1. Simple Application (mix new)");
-      console.log("   2. Phoenix Web Application");
-      console.log("   3. Umbrella Project (multiple apps)");
-      console.log("   4. Library/Package");
-      console.log("   5. OTP Application");
+      console.log('\n📝 Select project type:');
+      console.log('   1. Simple Application (mix new)');
+      console.log('   2. Phoenix Web Application');
+      console.log('   3. Umbrella Project (multiple apps)');
+      console.log('   4. Library/Package');
+      console.log('   5. OTP Application');
 
       // In a real implementation, we would use interactive prompts
       // For now, default to simple application
-      return "application";
+      return 'application';
     }
   }
 
@@ -169,45 +169,45 @@ class ElixirConfigWizard {
     const config = {
       projectType,
       elixir: {
-        version: this.detectedTools.elixir?.version || "1.19",
+        version: this.detectedTools.elixir?.version || '1.19',
         otpVersion: await this.detectOTPVersion(),
       },
       tools: {
-        formatter: this.detectedTools.formatter?.installed ? "formatter" : null,
-        linter: this.detectedTools.credo?.installed ? "credo" : null,
-        typeChecker: this.detectedTools.dialyzer?.installed ? "dialyzer" : null,
-        testRunner: "exunit",
+        formatter: this.detectedTools.formatter?.installed ? 'formatter' : null,
+        linter: this.detectedTools.credo?.installed ? 'credo' : null,
+        typeChecker: this.detectedTools.dialyzer?.installed ? 'dialyzer' : null,
+        testRunner: 'exunit',
       },
       testing: {
         async: true,
         coverage: true,
-        seed: "random",
+        seed: 'random',
       },
       formatting: {
         lineLength: 98,
-        inputs: ["*.{ex,exs}", "{config,lib,test}/**/*.{ex,exs}"],
+        inputs: ['*.{ex,exs}', '{config,lib,test}/**/*.{ex,exs}'],
       },
     };
 
     // Project type specific configurations
     switch (projectType) {
-      case "phoenix":
+      case 'phoenix':
         config.web = {
-          framework: "phoenix",
+          framework: 'phoenix',
           assets: true,
           database: this.detectedTools.ecto?.installed,
           liveView: true,
         };
         break;
 
-      case "umbrella":
+      case 'umbrella':
         config.umbrella = {
-          apps: ["app1", "app2"], // Would be detected from apps/ directory
+          apps: ['app1', 'app2'], // Would be detected from apps/ directory
           sharedDeps: true,
         };
         break;
 
-      case "library":
+      case 'library':
         config.library = {
           docs: true,
           exDoc: true,
@@ -215,7 +215,7 @@ class ElixirConfigWizard {
         };
         break;
 
-      case "application":
+      case 'application':
         config.application = {
           supervisionTree: true,
           release: true,
@@ -246,9 +246,9 @@ class ElixirConfigWizard {
       );
 
       const match = stdout.match(/"(\d+)"/);
-      return match ? match[1] : "26";
+      return match ? match[1] : '26';
     } catch (error) {
-      return "26"; // Default to OTP 26
+      return '26'; // Default to OTP 26
     }
   }
 
@@ -257,8 +257,8 @@ class ElixirConfigWizard {
    */
   generateConfiguration(config, report) {
     return {
-      language: "elixir",
-      version: "1.0",
+      language: 'elixir',
+      version: '1.0',
       config,
       environment: {
         detectedTools: this.detectedTools,
@@ -266,13 +266,13 @@ class ElixirConfigWizard {
         timestamp: new Date().toISOString(),
       },
       commands: {
-        setup: "/elixir-setup",
-        compile: "/elixir-compile",
-        test: "/elixir-test",
-        lint: "/elixir-lint",
-        format: "/elixir-format",
-        deps: "/elixir-deps",
-        typecheck: "/elixir-typecheck",
+        setup: '/elixir-setup',
+        compile: '/elixir-compile',
+        test: '/elixir-test',
+        lint: '/elixir-lint',
+        format: '/elixir-format',
+        deps: '/elixir-deps',
+        typecheck: '/elixir-typecheck',
       },
     };
   }
@@ -281,8 +281,8 @@ class ElixirConfigWizard {
    * Save configuration to .opencode directory
    */
   async saveConfiguration(config) {
-    const opencodeDir = path.join(this.projectPath, ".opencode");
-    const configFile = path.join(opencodeDir, "elixir-config.json");
+    const opencodeDir = path.join(this.projectPath, '.opencode');
+    const configFile = path.join(opencodeDir, 'elixir-config.json');
 
     // Create .opencode directory if it doesn't exist
     if (!fs.existsSync(opencodeDir)) {
@@ -293,7 +293,7 @@ class ElixirConfigWizard {
     fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
 
     // Create .gitignore for Elixir
-    const gitignorePath = path.join(this.projectPath, ".gitignore");
+    const gitignorePath = path.join(this.projectPath, '.gitignore');
     const elixirGitignore = `
 # Elixir specific
 /_build/
@@ -337,8 +337,8 @@ cover/
       fs.writeFileSync(gitignorePath, elixirGitignore.trim());
     } else {
       // Append if not already present
-      const existing = fs.readFileSync(gitignorePath, "utf8");
-      if (!existing.includes("# Elixir specific")) {
+      const existing = fs.readFileSync(gitignorePath, 'utf8');
+      if (!existing.includes('# Elixir specific')) {
         fs.appendFileSync(gitignorePath, elixirGitignore);
       }
     }
@@ -366,13 +366,13 @@ cover/
   getConfig() {
     const configFile = path.join(
       this.projectPath,
-      ".opencode",
-      "elixir-config.json",
+      '.opencode',
+      'elixir-config.json',
     );
 
     if (fs.existsSync(configFile)) {
       try {
-        return JSON.parse(fs.readFileSync(configFile, "utf8"));
+        return JSON.parse(fs.readFileSync(configFile, 'utf8'));
       } catch (error) {
         return null;
       }
@@ -388,8 +388,8 @@ cover/
     const currentConfig = this.getConfig() || {};
     const newConfig = { ...currentConfig, ...updates };
 
-    const opencodeDir = path.join(this.projectPath, ".opencode");
-    const configFile = path.join(opencodeDir, "elixir-config.json");
+    const opencodeDir = path.join(this.projectPath, '.opencode');
+    const configFile = path.join(opencodeDir, 'elixir-config.json');
 
     if (!fs.existsSync(opencodeDir)) {
       fs.mkdirSync(opencodeDir, { recursive: true });

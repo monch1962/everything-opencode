@@ -5,21 +5,21 @@
  * Manages project-specific configurations for opencode
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 const {
   getOpencodeDir,
   ensureDir,
   readFile,
   writeFile,
-} = require("../lib/utils");
+} = require('../lib/utils');
 
 class ConfigManager {
   constructor(projectPath = process.cwd()) {
     this.projectPath = projectPath;
-    this.configDir = path.join(projectPath, ".opencode");
-    this.configPath = path.join(this.configDir, "project-config.json");
-    this.globalConfigPath = path.join(getOpencodeDir(), "language-config.json");
+    this.configDir = path.join(projectPath, '.opencode');
+    this.configPath = path.join(this.configDir, 'project-config.json');
+    this.globalConfigPath = path.join(getOpencodeDir(), 'language-config.json');
   }
 
   /**
@@ -32,7 +32,7 @@ class ConfigManager {
         return JSON.parse(content);
       }
     } catch (error) {
-      console.error("Error loading config:", error.message);
+      console.error('Error loading config:', error.message);
     }
     return null;
   }
@@ -46,7 +46,7 @@ class ConfigManager {
 
       // Add metadata
       const fullConfig = {
-        $schema: "https://json.schemastore.org/opencode-project-config.json",
+        $schema: 'https://json.schemastore.org/opencode-project-config.json',
         project: this.projectPath,
         configuredAt: new Date().toISOString(),
         ...config,
@@ -55,7 +55,7 @@ class ConfigManager {
       writeFile(this.configPath, JSON.stringify(fullConfig, null, 2));
       return true;
     } catch (error) {
-      console.error("Error saving config:", error.message);
+      console.error('Error saving config:', error.message);
       return false;
     }
   }
@@ -137,7 +137,7 @@ class ConfigManager {
         return true;
       }
     } catch (error) {
-      console.error("Error removing config:", error.message);
+      console.error('Error removing config:', error.message);
     }
     return false;
   }
@@ -152,15 +152,15 @@ class ConfigManager {
         return JSON.parse(content);
       }
     } catch (error) {
-      console.error("Error loading global config:", error.message);
+      console.error('Error loading global config:', error.message);
     }
 
     // Return default global config
     return {
-      preferredLanguage: "auto",
-      detectionPriority: ["python", "typescript", "go", "rust", "pinescript"],
+      preferredLanguage: 'auto',
+      detectionPriority: ['python', 'typescript', 'go', 'rust', 'pinescript'],
       autoConfigure: true,
-      promptLevel: "moderate",
+      promptLevel: 'moderate',
     };
   }
 
@@ -172,7 +172,7 @@ class ConfigManager {
       ensureDir(path.dirname(this.globalConfigPath));
 
       const fullConfig = {
-        $schema: "https://json.schemastore.org/opencode-language-config.json",
+        $schema: 'https://json.schemastore.org/opencode-language-config.json',
         updatedAt: new Date().toISOString(),
         ...config,
       };
@@ -180,7 +180,7 @@ class ConfigManager {
       writeFile(this.globalConfigPath, JSON.stringify(fullConfig, null, 2));
       return true;
     } catch (error) {
-      console.error("Error saving global config:", error.message);
+      console.error('Error saving global config:', error.message);
       return false;
     }
   }
@@ -190,164 +190,164 @@ class ConfigManager {
    */
   getSchema() {
     return {
-      type: "object",
+      type: 'object',
       properties: {
-        project: { type: "string" },
-        configuredAt: { type: "string", format: "date-time" },
+        project: { type: 'string' },
+        configuredAt: { type: 'string', format: 'date-time' },
         primaryLanguage: {
-          type: "string",
-          enum: ["python", "typescript", "go", "rust", "pinescript", "auto"],
+          type: 'string',
+          enum: ['python', 'typescript', 'go', 'rust', 'pinescript', 'auto'],
         },
         secondaryLanguages: {
-          type: "array",
+          type: 'array',
           items: {
-            type: "string",
-            enum: ["python", "typescript", "go", "rust", "pinescript"],
+            type: 'string',
+            enum: ['python', 'typescript', 'go', 'rust', 'pinescript'],
           },
         },
         python: {
-          type: "object",
+          type: 'object',
           properties: {
             projectType: {
-              type: "string",
+              type: 'string',
               enum: [
-                "fastapi",
-                "django",
-                "flask",
-                "data-science",
-                "machine-learning",
-                "cli",
-                "library",
-                "unknown",
+                'fastapi',
+                'django',
+                'flask',
+                'data-science',
+                'machine-learning',
+                'cli',
+                'library',
+                'unknown',
               ],
             },
             dependencyManager: {
-              type: "string",
-              enum: ["uv", "poetry", "pip", "conda", "unknown"],
+              type: 'string',
+              enum: ['uv', 'poetry', 'pip', 'conda', 'unknown'],
             },
             testRunner: {
-              type: "string",
-              enum: ["pytest", "unittest", "none"],
+              type: 'string',
+              enum: ['pytest', 'unittest', 'none'],
             },
             linter: {
-              type: "string",
-              enum: ["ruff", "flake8", "pylint", "none"],
+              type: 'string',
+              enum: ['ruff', 'flake8', 'pylint', 'none'],
             },
             formatter: {
-              type: "string",
-              enum: ["ruff", "black", "autopep8", "none"],
+              type: 'string',
+              enum: ['ruff', 'black', 'autopep8', 'none'],
             },
             typeChecker: {
-              type: "string",
-              enum: ["pyright", "mypy", "none"],
+              type: 'string',
+              enum: ['pyright', 'mypy', 'none'],
             },
             tools: {
-              type: "object",
+              type: 'object',
               additionalProperties: {
-                type: "object",
+                type: 'object',
                 properties: {
-                  installed: { type: "boolean" },
-                  version: { type: "string" },
+                  installed: { type: 'boolean' },
+                  version: { type: 'string' },
                 },
               },
             },
-            userApproved: { type: "boolean" },
+            userApproved: { type: 'boolean' },
           },
         },
         pinescript: {
-          type: "object",
+          type: 'object',
           properties: {
             version: {
-              type: "string",
-              enum: ["4", "5", "6", "auto"],
+              type: 'string',
+              enum: ['4', '5', '6', 'auto'],
             },
             projectType: {
-              type: "string",
-              enum: ["indicator", "strategy", "library", "unknown"],
+              type: 'string',
+              enum: ['indicator', 'strategy', 'library', 'unknown'],
             },
             backtesting: {
-              type: "object",
+              type: 'object',
               properties: {
-                enabled: { type: "boolean" },
+                enabled: { type: 'boolean' },
                 dataSource: {
-                  type: "string",
-                  enum: ["tradingview", "csv", "api", "database"],
+                  type: 'string',
+                  enum: ['tradingview', 'csv', 'api', 'database'],
                 },
                 optimization: {
-                  type: "object",
+                  type: 'object',
                   properties: {
-                    enabled: { type: "boolean" },
+                    enabled: { type: 'boolean' },
                     method: {
-                      type: "string",
-                      enum: ["grid", "random", "bayesian", "genetic"],
+                      type: 'string',
+                      enum: ['grid', 'random', 'bayesian', 'genetic'],
                     },
-                    maxIterations: { type: "number", minimum: 1 },
-                    walkForward: { type: "boolean" },
+                    maxIterations: { type: 'number', minimum: 1 },
+                    walkForward: { type: 'boolean' },
                   },
                 },
                 metrics: {
-                  type: "array",
+                  type: 'array',
                   items: {
-                    type: "string",
+                    type: 'string',
                     enum: [
-                      "netProfit",
-                      "winRate",
-                      "profitFactor",
-                      "maxDrawdown",
-                      "sharpeRatio",
-                      "sortinoRatio",
-                      "calmarRatio",
+                      'netProfit',
+                      'winRate',
+                      'profitFactor',
+                      'maxDrawdown',
+                      'sharpeRatio',
+                      'sortinoRatio',
+                      'calmarRatio',
                     ],
                   },
                 },
               },
             },
             alerts: {
-              type: "object",
+              type: 'object',
               properties: {
-                enabled: { type: "boolean" },
+                enabled: { type: 'boolean' },
                 webhooks: {
-                  type: "array",
+                  type: 'array',
                   items: {
-                    type: "object",
+                    type: 'object',
                     properties: {
-                      url: { type: "string" },
-                      method: { type: "string", enum: ["POST", "GET"] },
-                      template: { type: "string" },
+                      url: { type: 'string' },
+                      method: { type: 'string', enum: ['POST', 'GET'] },
+                      template: { type: 'string' },
                       events: {
-                        type: "array",
-                        items: { type: "string" },
+                        type: 'array',
+                        items: { type: 'string' },
                       },
                     },
                   },
                 },
-                email: { type: "boolean" },
-                discord: { type: "boolean" },
-                telegram: { type: "boolean" },
+                email: { type: 'boolean' },
+                discord: { type: 'boolean' },
+                telegram: { type: 'boolean' },
               },
             },
             tradingview: {
-              type: "object",
+              type: 'object',
               properties: {
-                publish: { type: "boolean" },
-                apiKey: { type: "string" },
-                workspace: { type: "string" },
+                publish: { type: 'boolean' },
+                apiKey: { type: 'string' },
+                workspace: { type: 'string' },
               },
             },
             tools: {
-              type: "object",
+              type: 'object',
               properties: {
-                parser: { type: "string" },
-                backtester: { type: "string" },
-                optimizer: { type: "string" },
-                validator: { type: "string" },
+                parser: { type: 'string' },
+                backtester: { type: 'string' },
+                optimizer: { type: 'string' },
+                validator: { type: 'string' },
               },
             },
-            userApproved: { type: "boolean" },
+            userApproved: { type: 'boolean' },
           },
         },
       },
-      required: ["project", "configuredAt", "primaryLanguage"],
+      required: ['project', 'configuredAt', 'primaryLanguage'],
     };
   }
 
@@ -359,15 +359,15 @@ class ConfigManager {
     const errors = [];
 
     if (!config.project) {
-      errors.push("Missing project path");
+      errors.push('Missing project path');
     }
 
     if (!config.configuredAt) {
-      errors.push("Missing configuration timestamp");
+      errors.push('Missing configuration timestamp');
     }
 
     if (!config.primaryLanguage) {
-      errors.push("Missing primary language");
+      errors.push('Missing primary language');
     }
 
     return {
@@ -379,7 +379,7 @@ class ConfigManager {
   /**
    * Export configuration for sharing
    */
-  exportConfig(format = "json") {
+  exportConfig(format = 'json') {
     const config = this.loadConfig();
     if (!config) return null;
 
@@ -387,13 +387,13 @@ class ConfigManager {
     const exportConfig = { ...config };
     delete exportConfig.project;
 
-    if (format === "json") {
+    if (format === 'json') {
       return JSON.stringify(exportConfig, null, 2);
-    } else if (format === "yaml") {
+    } else if (format === 'yaml') {
       // Simple YAML conversion
       return Object.entries(exportConfig)
         .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-        .join("\n");
+        .join('\n');
     }
 
     return null;
@@ -402,19 +402,19 @@ class ConfigManager {
   /**
    * Import configuration
    */
-  importConfig(configData, format = "json") {
+  importConfig(configData, format = 'json') {
     let config;
 
     try {
-      if (format === "json") {
+      if (format === 'json') {
         config = JSON.parse(configData);
-      } else if (format === "yaml") {
+      } else if (format === 'yaml') {
         // Simple YAML parsing
         config = {};
-        configData.split("\n").forEach((line) => {
-          const [key, ...valueParts] = line.split(":");
+        configData.split('\n').forEach((line) => {
+          const [key, ...valueParts] = line.split(':');
           if (key && valueParts.length > 0) {
-            config[key.trim()] = JSON.parse(valueParts.join(":").trim());
+            config[key.trim()] = JSON.parse(valueParts.join(':').trim());
           }
         });
       } else {
@@ -427,7 +427,7 @@ class ConfigManager {
 
       return this.saveConfig(config);
     } catch (error) {
-      console.error("Error importing config:", error.message);
+      console.error('Error importing config:', error.message);
       return false;
     }
   }

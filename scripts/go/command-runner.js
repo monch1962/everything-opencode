@@ -5,26 +5,16 @@
  * Base class for executing Go commands with Go-specific improvements
  */
 
-const path = require("path");
-const fs = require("fs");
-const { spawn } = require("child_process");
-const { runCommand, commandExists } = require("../lib/utils");
-const ConfigManager = require("../interactive/config-manager");
-const GoToolDetector = require("../../languages/go/tool-detector");
-const PlatformDetector = require("../lib/platform-detector");
-const {
-  defaultErrorHandler,
-  createCommandRunner,
-} = require("../lib/error-handler");
+const path = require('path');
+const { spawn } = require('child_process');
+const { runCommand } = require('../lib/utils');
+const ConfigManager = require('../interactive/config-manager');
+const GoToolDetector = require('../../languages/go/tool-detector');
+const PlatformDetector = require('../lib/platform-detector');
+const { defaultErrorHandler } = require('../lib/error-handler');
 
 // Import shared utilities
-const {
-  ConfigUtils,
-  FileUtils,
-  ProjectUtils,
-  LoggingUtils,
-  ensureDir,
-} = require("../lib");
+const { ConfigUtils, FileUtils, ProjectUtils, LoggingUtils, ensureDir } = require('../lib');
 
 class GoCommandRunner {
   constructor(projectPath = process.cwd()) {
@@ -45,44 +35,38 @@ class GoCommandRunner {
     try {
       const projectInfo = ProjectUtils.detectProjectType(this.projectPath);
 
-      if (projectInfo.type !== "go" && projectInfo.confidence < 0.7) {
+      if (projectInfo.type !== 'go' && projectInfo.confidence < 0.7) {
         LoggingUtils.warn(
           `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`,
         );
-        LoggingUtils.warn(
-          "This may not be a Go project. Some features may not work correctly.",
-        );
-      } else if (projectInfo.type === "go") {
-        LoggingUtils.debug(
-          `Detected Go project: ${projectInfo.module || "unknown module"}`,
-        );
+        LoggingUtils.warn('This may not be a Go project. Some features may not work correctly.');
+      } else if (projectInfo.type === 'go') {
+        LoggingUtils.debug(`Detected Go project: ${projectInfo.module || 'unknown module'}`);
       }
 
       // Log detected languages if available
       if (projectInfo.languages && projectInfo.languages.length > 0) {
-        LoggingUtils.debug(
-          `Detected languages: ${projectInfo.languages.join(", ")}`,
-        );
+        LoggingUtils.debug(`Detected languages: ${projectInfo.languages.join(', ')}`);
       }
     } catch (error) {
-      LoggingUtils.debug("Project detection failed:", error.message);
+      LoggingUtils.debug('Project detection failed:', error.message);
     }
 
     // Load configuration using ConfigUtils
     try {
       this.config = ConfigUtils.loadConfig(this.projectPath);
       if (!this.config) {
-        throw new Error("Project not configured. Run /go-setup first.");
+        throw new Error('Project not configured. Run /go-setup first.');
       }
 
       // Get Go configuration
       this.goConfig = this.config.go;
       if (!this.goConfig) {
-        throw new Error("Go configuration not found. Run /go-setup first.");
+        throw new Error('Go configuration not found. Run /go-setup first.');
       }
 
       // Validate Go configuration schema
-      ConfigUtils.validateConfig(this.goConfig, "go");
+      ConfigUtils.validateConfig(this.goConfig, 'go');
 
       // Detect tools
       this.detectedTools = await this.toolDetector.detectTools();
@@ -90,11 +74,8 @@ class GoCommandRunner {
       return true;
     } catch (error) {
       // Use LoggingUtils for better error display
-      LoggingUtils.error(
-        "Failed to initialize Go command runner:",
-        error.message,
-      );
-      LoggingUtils.info("Run /go-setup to configure your Go project");
+      LoggingUtils.error('Failed to initialize Go command runner:', error.message);
+      LoggingUtils.info('Run /go-setup to configure your Go project');
       throw error;
     }
   }
@@ -105,11 +86,7 @@ class GoCommandRunner {
   checkTool(toolName, required = true) {
     try {
       // Use ConfigUtils to check if tool is installed
-      const isInstalled = ConfigUtils.checkToolInstalled(
-        this.goConfig,
-        toolName,
-        required,
-      );
+      const isInstalled = ConfigUtils.checkToolInstalled(this.goConfig, toolName, required);
 
       if (!isInstalled && required) {
         throw new Error(
@@ -121,10 +98,7 @@ class GoCommandRunner {
     } catch (error) {
       // Use LoggingUtils for better error display
       if (required) {
-        LoggingUtils.error(
-          `Go tool '${toolName}' check failed:`,
-          error.message,
-        );
+        LoggingUtils.error(`Go tool '${toolName}' check failed:`, error.message);
         LoggingUtils.info(`Run /go-setup to install '${toolName}'`);
       }
       throw error;
@@ -143,8 +117,8 @@ class GoCommandRunner {
    */
   async _executeGoCommandWithErrorHandling(command, args = [], options = {}) {
     const context = {
-      tool: "go",
-      command: `go ${command} ${args.join(" ")}`.trim(),
+      tool: 'go',
+      command: `go ${command} ${args.join(' ')}`.trim(),
       platform: this.platformDetector.getPlatformName(),
       cwd: this.projectPath,
     };
@@ -153,12 +127,12 @@ class GoCommandRunner {
       // Ensure critical Go environment variables are set
       const goEnv = {
         ...process.env,
-        GO111MODULE: "on",
+        GO111MODULE: 'on',
       };
 
       // Set HOME if not set (required for GOCACHE)
       if (!goEnv.HOME) {
-        goEnv.HOME = require("os").homedir();
+        goEnv.HOME = require('os').homedir();
       }
 
       // Set GOCACHE if not set
@@ -168,7 +142,7 @@ class GoCommandRunner {
 
       const defaultOptions = {
         cwd: this.projectPath,
-        stdio: "inherit",
+        stdio: 'inherit',
         env: goEnv,
         timeout: 300000, // 5 minutes for Go commands
       };
@@ -177,41 +151,37 @@ class GoCommandRunner {
         ...defaultOptions,
         ...options,
         // Merge environment objects instead of overwriting
-        env: options.env
-          ? { ...defaultOptions.env, ...options.env }
-          : defaultOptions.env,
+        env: options.env ? { ...defaultOptions.env, ...options.env } : defaultOptions.env,
       };
 
-      LoggingUtils.info(`🚀 Executing: go ${command} ${args.join(" ")}`);
+      LoggingUtils.info(`🚀 Executing: go ${command} ${args.join(' ')}`);
 
       // Debug: Check if go is in PATH
       if (finalOptions.verbose) {
         LoggingUtils.debug(`🔍 PATH: ${process.env.PATH}`);
         LoggingUtils.debug(
-          `🔍 Go executable check: ${require("child_process").execSync('which go || echo "go not found"').toString()}`,
+          `🔍 Go executable check: ${require('child_process').execSync('which go || echo "go not found"').toString()}`,
         );
       }
 
       return await new Promise((resolve, reject) => {
-        const { exec } = require("child_process");
+        const { exec } = require('child_process');
 
         // Build the command string with dynamic path to go
-        const goPath = this.platformDetector.getToolPath("go", {
+        const goPath = this.platformDetector.getToolPath('go', {
           required: true,
           customLocations: [
             // Additional Go installation locations
-            "/usr/local/go/bin/go",
-            "/usr/lib/go/bin/go",
-            "C:\\Go\\bin\\go.exe",
+            '/usr/local/go/bin/go',
+            '/usr/lib/go/bin/go',
+            'C:\\Go\\bin\\go.exe',
           ],
         });
 
-        const cmd = `${goPath} ${command} ${args.join(" ")}`;
+        const cmd = `${goPath} ${command} ${args.join(' ')}`;
         LoggingUtils.debug(`🔍 Executing: ${cmd}`);
         LoggingUtils.debug(`🔍 CWD: ${finalOptions.cwd}`);
-        LoggingUtils.debug(
-          `🔍 Platform: ${this.platformDetector.getPlatformName()}`,
-        );
+        LoggingUtils.debug(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
 
         exec(cmd, finalOptions, (error, stdout, stderr) => {
           if (error) {
@@ -239,7 +209,7 @@ class GoCommandRunner {
 
       // Log recovery steps using LoggingUtils
       if (errorInfo.recoverySteps && errorInfo.recoverySteps.length > 0) {
-        LoggingUtils.info("💡 Recovery steps:");
+        LoggingUtils.info('💡 Recovery steps:');
         errorInfo.recoverySteps.forEach((step, i) => {
           LoggingUtils.info(`  ${i + 1}. ${step}`);
         });
@@ -271,59 +241,56 @@ class GoCommandRunner {
 
     // Add output directory
     if (options.output) {
-      args.push("-o", options.output);
+      args.push('-o', options.output);
     } else {
       // Default output to ./bin/
-      const binDir = path.join(this.projectPath, "bin");
+      const binDir = path.join(this.projectPath, 'bin');
 
       // Use ensureDir to create directory if it doesn't exist
       ensureDir(binDir);
 
       const outputName = this.getOutputName();
-      args.push("-o", path.join(binDir, outputName));
+      args.push('-o', path.join(binDir, outputName));
     }
 
     // Add ldflags
-    if (
-      this.goConfig.build?.ldflags &&
-      this.goConfig.build.ldflags.length > 0
-    ) {
-      args.push("-ldflags", this.goConfig.build.ldflags.join(" "));
+    if (this.goConfig.build?.ldflags && this.goConfig.build.ldflags.length > 0) {
+      args.push('-ldflags', this.goConfig.build.ldflags.join(' '));
     }
 
     // Add tags
     if (options.tags) {
-      args.push("-tags", options.tags);
+      args.push('-tags', options.tags);
     }
 
     // Add race detector
     if (options.race) {
-      args.push("-race");
+      args.push('-race');
     }
 
     // Add build mode
     if (options.buildMode) {
-      args.push("-buildmode", options.buildMode);
+      args.push('-buildmode', options.buildMode);
     }
 
     // Handle cross-compilation via environment variables
     const target = options.target || this.detectBuildTarget();
     if (target) {
-      const [goos, goarch] = target.split("/");
+      const [goos, goarch] = target.split('/');
       if (goos && goarch) {
         // Set environment variables for cross-compilation
         options.env = {
           ...(options.env || {}),
           GOOS: goos,
           GOARCH: goarch,
-          CGO_ENABLED: "0",
+          CGO_ENABLED: '0',
         };
       }
     }
 
     // Add verbose flag
     if (options.verbose) {
-      args.push("-v");
+      args.push('-v');
     }
 
     try {
@@ -338,7 +305,7 @@ class GoCommandRunner {
         LoggingUtils.debug(`Building module: ${moduleInfo}`);
       }
 
-      const result = await this.executeGoCommand("build", args, options);
+      const result = await this.executeGoCommand('build', args, options);
 
       // Go-specific: Show build information
       if (result.success) {
@@ -357,8 +324,8 @@ class GoCommandRunner {
    * Get output name based on project type
    */
   getOutputName() {
-    if (this.goConfig.projectType === "cli") {
-      const moduleParts = (this.goConfig.module || "app").split("/");
+    if (this.goConfig.projectType === 'cli') {
+      const moduleParts = (this.goConfig.module || 'app').split('/');
       return moduleParts[moduleParts.length - 1];
     }
 
@@ -369,15 +336,15 @@ class GoCommandRunner {
   /**
    * Find Go files in the project
    */
-  findGoFiles(pattern = "**/*.go", excludePatterns = []) {
+  findGoFiles(pattern = '**/*.go', excludePatterns = []) {
     try {
       return FileUtils.findFilesByPattern(pattern, {
         cwd: this.projectPath,
         exclude: excludePatterns,
-        language: "go",
+        language: 'go',
       });
     } catch (error) {
-      LoggingUtils.warn("Failed to find Go files:", error.message);
+      LoggingUtils.warn('Failed to find Go files:', error.message);
       return [];
     }
   }
@@ -387,7 +354,7 @@ class GoCommandRunner {
    */
   getGoModuleInfo() {
     try {
-      const goModPath = path.join(this.projectPath, "go.mod");
+      const goModPath = path.join(this.projectPath, 'go.mod');
       if (FileUtils.fileExists(goModPath)) {
         const content = FileUtils.readFile(goModPath);
         const moduleMatch = content.match(/module\s+(\S+)/);
@@ -395,7 +362,7 @@ class GoCommandRunner {
       }
       return null;
     } catch (error) {
-      LoggingUtils.debug("Failed to read go.mod:", error.message);
+      LoggingUtils.debug('Failed to read go.mod:', error.message);
       return null;
     }
   }
@@ -409,17 +376,17 @@ class GoCommandRunner {
 
     const targetMap = {
       darwin: {
-        x64: "darwin/amd64",
-        arm64: "darwin/arm64",
+        x64: 'darwin/amd64',
+        arm64: 'darwin/arm64',
       },
       linux: {
-        x64: "linux/amd64",
-        arm64: "linux/arm64",
-        arm: "linux/arm",
+        x64: 'linux/amd64',
+        arm64: 'linux/arm64',
+        arm: 'linux/arm',
       },
       win32: {
-        x64: "windows/amd64",
-        ia32: "windows/386",
+        x64: 'windows/amd64',
+        ia32: 'windows/386',
       },
     };
 
@@ -432,10 +399,10 @@ class GoCommandRunner {
   async showBuildInfo(options) {
     try {
       // Get Go version
-      const versionResult = runCommand("go version", { cwd: this.projectPath });
+      const versionResult = runCommand('go version', { cwd: this.projectPath });
 
       // Get module info
-      const moduleResult = runCommand("go list -m", { cwd: this.projectPath });
+      const moduleResult = runCommand('go list -m', { cwd: this.projectPath });
 
       // Get build constraints
       const constraintsResult = runCommand('go list -f "{{.GoFiles}}" ./...', {
@@ -443,23 +410,30 @@ class GoCommandRunner {
       });
 
       // Use LoggingUtils for formatted output
-      LoggingUtils.info("\n📊 Build Information:");
-      LoggingUtils.info("=".repeat(40));
-      LoggingUtils.info("Go:", versionResult.output.trim());
-      LoggingUtils.info("Module:", moduleResult.output.trim());
+      LoggingUtils.info('\n📊 Build Information:');
+      LoggingUtils.info('='.repeat(40));
+      LoggingUtils.info('Go:', versionResult.output.trim());
+      LoggingUtils.info('Module:', moduleResult.output.trim());
+
+      // Show build constraints if available
+      if (constraintsResult && constraintsResult.output) {
+        const files = constraintsResult.output.trim();
+        if (files) {
+          LoggingUtils.info('Files:', `${files.split(/\s+/).length} Go files`);
+        }
+      }
 
       if (options.target) {
-        LoggingUtils.info("Target:", options.target);
+        LoggingUtils.info('Target:', options.target);
       }
 
       if (options.race) {
-        LoggingUtils.info("Race detector: enabled");
+        LoggingUtils.info('Race detector: enabled');
       }
 
       // Show output path
-      const outputArg =
-        options.output || path.join("bin", this.getOutputName());
-      LoggingUtils.info("Output:", path.resolve(this.projectPath, outputArg));
+      const outputArg = options.output || path.join('bin', this.getOutputName());
+      LoggingUtils.info('Output:', path.resolve(this.projectPath, outputArg));
     } catch (error) {
       // Ignore errors in info display
     }
@@ -469,31 +443,29 @@ class GoCommandRunner {
    * Suggest fixes for common build errors
    */
   suggestBuildFix(errorMessage) {
-    LoggingUtils.info("\n💡 Build Error Suggestions:");
+    LoggingUtils.info('\n💡 Build Error Suggestions:');
 
-    if (errorMessage.includes("cannot find module providing package")) {
-      LoggingUtils.info("  • Run: go mod tidy");
-      LoggingUtils.info("  • Run: go get <missing-package>");
+    if (errorMessage.includes('cannot find module providing package')) {
+      LoggingUtils.info('  • Run: go mod tidy');
+      LoggingUtils.info('  • Run: go get <missing-package>');
     }
 
-    if (errorMessage.includes("undefined:")) {
-      LoggingUtils.info("  • Check for typos in function/variable names");
-      LoggingUtils.info("  • Ensure all imports are correct");
+    if (errorMessage.includes('undefined:')) {
+      LoggingUtils.info('  • Check for typos in function/variable names');
+      LoggingUtils.info('  • Ensure all imports are correct');
     }
 
-    if (errorMessage.includes("imported and not used")) {
-      LoggingUtils.info(
-        "  • Remove unused imports or use blank identifier (_)",
-      );
+    if (errorMessage.includes('imported and not used')) {
+      LoggingUtils.info('  • Remove unused imports or use blank identifier (_)');
     }
 
-    if (errorMessage.includes("missing go.sum entry")) {
-      LoggingUtils.info("  • Run: go mod tidy");
-      LoggingUtils.info("  • Run: go mod download");
+    if (errorMessage.includes('missing go.sum entry')) {
+      LoggingUtils.info('  • Run: go mod tidy');
+      LoggingUtils.info('  • Run: go mod download');
     }
 
-    if (errorMessage.includes("CGO_ENABLED")) {
-      LoggingUtils.info("  • Install C compiler or disable CGO: CGO_ENABLED=0");
+    if (errorMessage.includes('CGO_ENABLED')) {
+      LoggingUtils.info('  • Install C compiler or disable CGO: CGO_ENABLED=0');
     }
   }
 
@@ -512,44 +484,44 @@ class GoCommandRunner {
 
     // Add coverage
     if (options.coverage || this.goConfig.testing?.coverage?.enabled) {
-      args.push("-cover");
+      args.push('-cover');
 
       if (options.coverageProfile) {
-        args.push("-coverprofile", options.coverageProfile);
+        args.push('-coverprofile', options.coverageProfile);
       } else {
-        args.push("-coverprofile", "coverage.out");
+        args.push('-coverprofile', 'coverage.out');
       }
 
       if (options.coverageMode) {
-        args.push("-covermode", options.coverageMode);
+        args.push('-covermode', options.coverageMode);
       }
     }
 
     // Add race detector
     if (options.race) {
-      args.push("-race");
+      args.push('-race');
     }
 
     // Add timeout
     if (options.timeout) {
-      args.push("-timeout", options.timeout);
+      args.push('-timeout', options.timeout);
     }
 
     // Add count for repeated tests
     if (options.count) {
-      args.push("-count", options.count);
+      args.push('-count', options.count);
     }
 
     // Add parallel execution
     if (options.parallel) {
-      args.push("-parallel", options.parallel);
+      args.push('-parallel', options.parallel);
     }
 
     // Add test pattern
     if (options.pattern) {
       args.push(options.pattern);
     } else {
-      args.push("./...");
+      args.push('./...');
     }
 
     // Use gotestsum if available
@@ -558,40 +530,40 @@ class GoCommandRunner {
     }
 
     // Use standard go test
-    return this.executeGoCommand("test", args, options);
+    return this.executeGoCommand('test', args, options);
   }
 
   /**
    * Run tests with gotestsum for better output
    */
   async runTestsWithGotestsum(args, options) {
-    LoggingUtils.info("📊 Running tests with gotestsum...");
+    LoggingUtils.info('📊 Running tests with gotestsum...');
 
-    const gotestsumArgs = ["--"];
+    const gotestsumArgs = ['--'];
 
     // Remove ./... from args for gotestsum
-    const testArgs = args.filter((arg) => arg !== "./...");
+    const testArgs = args.filter((arg) => arg !== './...');
     gotestsumArgs.push(...testArgs);
 
     // Add test pattern if specified
     if (options.pattern) {
       gotestsumArgs.push(options.pattern);
     } else {
-      gotestsumArgs.push("./...");
+      gotestsumArgs.push('./...');
     }
 
     const defaultOptions = {
       cwd: this.projectPath,
-      stdio: "inherit",
-      env: { ...process.env, GO111MODULE: "on" },
+      stdio: 'inherit',
+      env: { ...process.env, GO111MODULE: 'on' },
     };
 
     const finalOptions = { ...defaultOptions, ...options };
 
     return new Promise((resolve, reject) => {
-      const process = spawn("gotestsum", gotestsumArgs, finalOptions);
+      const process = spawn('gotestsum', gotestsumArgs, finalOptions);
 
-      process.on("close", (code) => {
+      process.on('close', (code) => {
         if (code === 0) {
           resolve({ success: true, code });
         } else {
@@ -599,7 +571,7 @@ class GoCommandRunner {
         }
       });
 
-      process.on("error", (error) => {
+      process.on('error', (error) => {
         reject(new Error(`Failed to execute gotestsum: ${error.message}`));
       });
     });
@@ -611,8 +583,8 @@ class GoCommandRunner {
   async coverage(options = {}) {
     await this.initialize();
 
-    const profileFile = options.profile || "coverage.out";
-    const outputFormat = options.format || "html";
+    const profileFile = options.profile || 'coverage.out';
+    const outputFormat = options.format || 'html';
     const outputFile = options.output || `coverage.${outputFormat}`;
 
     // Run tests with coverage
@@ -627,16 +599,16 @@ class GoCommandRunner {
     const args = [outputFormat];
 
     if (profileFile) {
-      args.push("-o", outputFile);
+      args.push('-o', outputFile);
       args.push(profileFile);
     }
 
     LoggingUtils.info(`📈 Generating ${outputFormat} coverage report...`);
 
     try {
-      const result = await this.executeGoCommand("tool", ["cover", ...args]);
+      const result = await this.executeGoCommand('tool', ['cover', ...args]);
 
-      if (result.success && outputFormat === "html") {
+      if (result.success && outputFormat === 'html') {
         LoggingUtils.success(`Coverage report generated: ${outputFile}`);
         LoggingUtils.info(
           `   Open in browser: file://${path.resolve(this.projectPath, outputFile)}`,
@@ -656,14 +628,14 @@ class GoCommandRunner {
   async lint(options = {}) {
     await this.initialize();
 
-    const linter = this.goConfig.linting?.tool || "golangci-lint";
+    const linter = this.goConfig.linting?.tool || 'golangci-lint';
 
     switch (linter) {
-      case "golangci-lint":
+      case 'golangci-lint':
         return this.lintWithGolangCILint(options);
-      case "staticcheck":
+      case 'staticcheck':
         return this.lintWithStaticcheck(options);
-      case "revive":
+      case 'revive':
         return this.lintWithRevive(options);
       default:
         return this.lintWithGofmt(options);
@@ -674,49 +646,49 @@ class GoCommandRunner {
    * Lint with golangci-lint
    */
   async lintWithGolangCILint(options = {}) {
-    await this.checkTool("golangci_lint", false);
+    await this.checkTool('golangci_lint', false);
 
-    const args = ["run"];
+    const args = ['run'];
 
     // Add config file if specified
     if (this.goConfig.linting?.configFile) {
-      args.push("--config", this.goConfig.linting.configFile);
+      args.push('--config', this.goConfig.linting.configFile);
     }
 
     // Add fix flag
     if (options.fix) {
-      args.push("--fix");
+      args.push('--fix');
     }
 
     // Add verbose flag
     if (options.verbose) {
-      args.push("--verbose");
+      args.push('--verbose');
     }
 
     // Add timeout
     if (options.timeout) {
-      args.push("--timeout", options.timeout);
+      args.push('--timeout', options.timeout);
     } else {
-      args.push("--timeout", "5m");
+      args.push('--timeout', '5m');
     }
 
     // Add path
-    args.push("./...");
+    args.push('./...');
 
-    LoggingUtils.info("🔍 Running golangci-lint...");
+    LoggingUtils.info('🔍 Running golangci-lint...');
 
     const defaultOptions = {
       cwd: this.projectPath,
-      stdio: "inherit",
-      env: { ...process.env, GO111MODULE: "on" },
+      stdio: 'inherit',
+      env: { ...process.env, GO111MODULE: 'on' },
     };
 
     const finalOptions = { ...defaultOptions, ...options };
 
     return new Promise((resolve, reject) => {
-      const process = spawn("golangci-lint", args, finalOptions);
+      const process = spawn('golangci-lint', args, finalOptions);
 
-      process.on("close", (code) => {
+      process.on('close', (code) => {
         if (code === 0) {
           resolve({ success: true, code });
         } else {
@@ -725,7 +697,7 @@ class GoCommandRunner {
         }
       });
 
-      process.on("error", (error) => {
+      process.on('error', (error) => {
         reject(new Error(`Failed to execute golangci-lint: ${error.message}`));
       });
     });
@@ -735,24 +707,24 @@ class GoCommandRunner {
    * Lint with staticcheck
    */
   async lintWithStaticcheck(options = {}) {
-    await this.checkTool("staticcheck", false);
+    await this.checkTool('staticcheck', false);
 
-    const args = ["./..."];
+    const args = ['./...'];
 
-    LoggingUtils.info("🔍 Running staticcheck...");
+    LoggingUtils.info('🔍 Running staticcheck...');
 
     const defaultOptions = {
       cwd: this.projectPath,
-      stdio: "inherit",
-      env: { ...process.env, GO111MODULE: "on" },
+      stdio: 'inherit',
+      env: { ...process.env, GO111MODULE: 'on' },
     };
 
     const finalOptions = { ...defaultOptions, ...options };
 
     return new Promise((resolve, reject) => {
-      const process = spawn("staticcheck", args, finalOptions);
+      const process = spawn('staticcheck', args, finalOptions);
 
-      process.on("close", (code) => {
+      process.on('close', (code) => {
         if (code === 0) {
           resolve({ success: true, code });
         } else {
@@ -760,7 +732,7 @@ class GoCommandRunner {
         }
       });
 
-      process.on("error", (error) => {
+      process.on('error', (error) => {
         reject(new Error(`Failed to execute staticcheck: ${error.message}`));
       });
     });
@@ -772,35 +744,35 @@ class GoCommandRunner {
   async format(options = {}) {
     await this.initialize();
 
-    const formatter = this.goConfig.tools?.formatter || "gofmt";
+    const formatter = this.goConfig.tools?.formatter || 'gofmt';
 
     const args = [];
 
     if (options.write) {
-      args.push("-w");
+      args.push('-w');
     }
 
     if (options.diff) {
-      args.push("-d");
+      args.push('-d');
     }
 
     if (options.simplify) {
-      args.push("-s");
+      args.push('-s');
     }
 
     // Add paths
     if (options.paths && options.paths.length > 0) {
       args.push(...options.paths);
     } else {
-      args.push(".");
+      args.push('.');
     }
 
     LoggingUtils.info(`🎨 Formatting with ${formatter}...`);
 
     const defaultOptions = {
       cwd: this.projectPath,
-      stdio: "inherit",
-      env: { ...process.env, GO111MODULE: "on" },
+      stdio: 'inherit',
+      env: { ...process.env, GO111MODULE: 'on' },
     };
 
     const finalOptions = { ...defaultOptions, ...options };
@@ -808,7 +780,7 @@ class GoCommandRunner {
     return new Promise((resolve, reject) => {
       const process = spawn(formatter, args, finalOptions);
 
-      process.on("close", (code) => {
+      process.on('close', (code) => {
         if (code === 0) {
           resolve({ success: true, code });
         } else {
@@ -816,7 +788,7 @@ class GoCommandRunner {
         }
       });
 
-      process.on("error", (error) => {
+      process.on('error', (error) => {
         reject(new Error(`Failed to execute ${formatter}: ${error.message}`));
       });
     });
@@ -828,24 +800,24 @@ class GoCommandRunner {
   async manageDependencies(options = {}) {
     await this.initialize();
 
-    const action = options.action || "tidy";
+    const action = options.action || 'tidy';
 
     switch (action) {
-      case "tidy":
-        return this.executeGoCommand("mod", ["tidy"], options);
-      case "download":
-        return this.executeGoCommand("mod", ["download"], options);
-      case "vendor":
-        return this.executeGoCommand("mod", ["vendor"], options);
-      case "verify":
-        return this.executeGoCommand("mod", ["verify"], options);
-      case "graph":
-        return this.executeGoCommand("mod", ["graph"], options);
-      case "why":
+      case 'tidy':
+        return this.executeGoCommand('mod', ['tidy'], options);
+      case 'download':
+        return this.executeGoCommand('mod', ['download'], options);
+      case 'vendor':
+        return this.executeGoCommand('mod', ['vendor'], options);
+      case 'verify':
+        return this.executeGoCommand('mod', ['verify'], options);
+      case 'graph':
+        return this.executeGoCommand('mod', ['graph'], options);
+      case 'why':
         if (!options.package) {
           throw new Error('Package name required for "why" action');
         }
-        return this.executeGoCommand("mod", ["why", options.package], options);
+        return this.executeGoCommand('mod', ['why', options.package], options);
       default:
         throw new Error(`Unknown dependency action: ${action}`);
     }
@@ -857,38 +829,38 @@ class GoCommandRunner {
   async benchmark(options = {}) {
     await this.initialize();
 
-    const args = ["-bench", "."];
+    const args = ['-bench', '.'];
 
     if (options.benchtime) {
-      args.push("-benchtime", options.benchtime);
+      args.push('-benchtime', options.benchtime);
     }
 
     if (options.count) {
-      args.push("-count", options.count);
+      args.push('-count', options.count);
     }
 
     if (options.cpu) {
-      args.push("-cpu", options.cpu);
+      args.push('-cpu', options.cpu);
     }
 
     if (options.benchmem) {
-      args.push("-benchmem");
+      args.push('-benchmem');
     }
 
     if (options.timeout) {
-      args.push("-timeout", options.timeout);
+      args.push('-timeout', options.timeout);
     }
 
     // Add test pattern
     if (options.pattern) {
       args.push(options.pattern);
     } else {
-      args.push("./...");
+      args.push('./...');
     }
 
-    LoggingUtils.info("⚡ Running benchmarks...");
+    LoggingUtils.info('⚡ Running benchmarks...');
 
-    return this.executeGoCommand("test", args, options);
+    return this.executeGoCommand('test', args, options);
   }
 
   /**
@@ -900,49 +872,43 @@ class GoCommandRunner {
     const args = [];
 
     if (options.html) {
-      args.push("-html");
+      args.push('-html');
     }
 
     if (options.http) {
-      args.push("-http", options.http);
+      args.push('-http', options.http);
     }
 
-    LoggingUtils.info("📚 Generating documentation...");
+    LoggingUtils.info('📚 Generating documentation...');
 
     if (this.detectedTools.godoc?.installed) {
       const defaultOptions = {
         cwd: this.projectPath,
-        stdio: "inherit",
-        env: { ...process.env, GO111MODULE: "on" },
+        stdio: 'inherit',
+        env: { ...process.env, GO111MODULE: 'on' },
       };
 
       const finalOptions = {
         ...defaultOptions,
         ...options,
         // Merge environment objects instead of overwriting
-        env: options.env
-          ? { ...defaultOptions.env, ...options.env }
-          : defaultOptions.env,
+        env: options.env ? { ...defaultOptions.env, ...options.env } : defaultOptions.env,
       };
 
       LoggingUtils.debug(
-        `🔍 defaultOptions.env keys: ${Object.keys(defaultOptions.env || {}).join(", ")}`,
+        `🔍 defaultOptions.env keys: ${Object.keys(defaultOptions.env || {}).join(', ')}`,
       );
+      LoggingUtils.debug(`🔍 options.env keys: ${Object.keys(options.env || {}).join(', ')}`);
       LoggingUtils.debug(
-        `🔍 options.env keys: ${Object.keys(options.env || {}).join(", ")}`,
-      );
-      LoggingUtils.debug(
-        `🔍 finalOptions.env keys: ${Object.keys(finalOptions.env || {}).join(", ")}`,
+        `🔍 finalOptions.env keys: ${Object.keys(finalOptions.env || {}).join(', ')}`,
       );
       LoggingUtils.debug(`🔍 finalOptions.env.HOME: ${finalOptions.env?.HOME}`);
-      LoggingUtils.debug(
-        `🔍 finalOptions.env.GOCACHE: ${finalOptions.env?.GOCACHE}`,
-      );
+      LoggingUtils.debug(`🔍 finalOptions.env.GOCACHE: ${finalOptions.env?.GOCACHE}`);
 
       return new Promise((resolve, reject) => {
-        const process = spawn("godoc", args, finalOptions);
+        const process = spawn('godoc', args, finalOptions);
 
-        process.on("close", (code) => {
+        process.on('close', (code) => {
           if (code === 0) {
             resolve({ success: true, code });
           } else {
@@ -950,17 +916,13 @@ class GoCommandRunner {
           }
         });
 
-        process.on("error", (error) => {
+        process.on('error', (error) => {
           reject(new Error(`Failed to execute godoc: ${error.message}`));
         });
       });
     } else {
       // Fallback to go doc
-      return this.executeGoCommand(
-        "doc",
-        options.package ? [options.package] : ["./..."],
-        options,
-      );
+      return this.executeGoCommand('doc', options.package ? [options.package] : ['./...'], options);
     }
   }
 
@@ -973,20 +935,20 @@ class GoCommandRunner {
     const args = [];
 
     if (options.cache) {
-      args.push("-cache");
+      args.push('-cache');
     }
 
     if (options.testcache) {
-      args.push("-testcache");
+      args.push('-testcache');
     }
 
     if (options.modcache) {
-      args.push("-modcache");
+      args.push('-modcache');
     }
 
-    LoggingUtils.info("🧹 Cleaning build artifacts...");
+    LoggingUtils.info('🧹 Cleaning build artifacts...');
 
-    return this.executeGoCommand("clean", args, options);
+    return this.executeGoCommand('clean', args, options);
   }
 }
 

@@ -5,9 +5,9 @@
  * Manage Go dependencies with Go-specific improvements and security scanning
  */
 
-const path = require("path");
-const fs = require("fs");
-const GoCommandRunner = require("../go/command-runner");
+const path = require('path');
+const fs = require('fs');
+const GoCommandRunner = require('../go/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -17,43 +17,43 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--tidy" || arg === "-t") {
-      options.action = "tidy";
-    } else if (arg === "--download" || arg === "-d") {
-      options.action = "download";
-    } else if (arg === "--vendor" || arg === "-v") {
-      options.action = "vendor";
-    } else if (arg === "--verify") {
-      options.action = "verify";
-    } else if (arg === "--graph") {
-      options.action = "graph";
-    } else if (arg === "--why") {
-      options.action = "why";
-    } else if (arg === "--package" || arg === "-p") {
+    if (arg === '--tidy' || arg === '-t') {
+      options.action = 'tidy';
+    } else if (arg === '--download' || arg === '-d') {
+      options.action = 'download';
+    } else if (arg === '--vendor' || arg === '-v') {
+      options.action = 'vendor';
+    } else if (arg === '--verify') {
+      options.action = 'verify';
+    } else if (arg === '--graph') {
+      options.action = 'graph';
+    } else if (arg === '--why') {
+      options.action = 'why';
+    } else if (arg === '--package' || arg === '-p') {
       options.package = args[++i];
-    } else if (arg === "--update") {
+    } else if (arg === '--update') {
       options.update = true;
-    } else if (arg === "--update-all") {
+    } else if (arg === '--update-all') {
       options.updateAll = true;
-    } else if (arg === "--dry-run") {
+    } else if (arg === '--dry-run') {
       options.dryRun = true;
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--security") {
+    } else if (arg === '--security') {
       options.security = true;
-    } else if (arg === "--audit") {
+    } else if (arg === '--audit') {
       options.audit = true;
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
     } else if (!options.action) {
       // First non-option argument is action
       options.action = arg;
-    } else if (options.action === "why" && !options.package) {
+    } else if (options.action === 'why' && !options.package) {
       options.package = arg;
     } else {
       // Additional arguments for specific actions
@@ -64,7 +64,7 @@ async function main() {
 
   // Default action
   if (!options.action) {
-    options.action = "tidy";
+    options.action = 'tidy';
   }
 
   try {
@@ -90,26 +90,26 @@ async function main() {
 
       // Show additional information for specific actions
       switch (options.action) {
-        case "tidy":
-          console.log("   • Added missing dependencies");
-          console.log("   • Removed unused dependencies");
-          console.log("   • Updated go.mod and go.sum");
+        case 'tidy':
+          console.log('   • Added missing dependencies');
+          console.log('   • Removed unused dependencies');
+          console.log('   • Updated go.mod and go.sum');
           break;
-        case "vendor":
-          console.log("   • Vendored dependencies to vendor/ directory");
+        case 'vendor':
+          console.log('   • Vendored dependencies to vendor/ directory');
           break;
-        case "verify":
-          console.log("   • Verified dependency integrity");
+        case 'verify':
+          console.log('   • Verified dependency integrity');
           break;
-        case "graph":
+        case 'graph':
           if (result.stdout) {
-            console.log("\n📊 Dependency graph:");
+            console.log('\n📊 Dependency graph:');
             console.log(result.stdout);
           }
           break;
-        case "why":
+        case 'why':
           if (result.stdout) {
-            console.log("\n🔍 Dependency explanation:");
+            console.log('\n🔍 Dependency explanation:');
             console.log(result.stdout);
           }
           break;
@@ -122,12 +122,12 @@ async function main() {
     console.error(`❌ Dependency management failed: ${error.message}`);
 
     // Provide helpful suggestions for common dependency errors
-    if (error.message.includes("go.mod")) {
-      console.log("\n💡 Try initializing go.mod:");
-      console.log("   go mod init <module-name>");
-    } else if (error.message.includes("checksum")) {
-      console.log("\n💡 Try cleaning module cache:");
-      console.log("   go clean -modcache");
+    if (error.message.includes('go.mod')) {
+      console.log('\n💡 Try initializing go.mod:');
+      console.log('   go mod init <module-name>');
+    } else if (error.message.includes('checksum')) {
+      console.log('\n💡 Try cleaning module cache:');
+      console.log('   go clean -modcache');
     }
 
     process.exit(1);
@@ -138,10 +138,10 @@ async function main() {
  * Run security audit on dependencies
  */
 async function runSecurityAudit(runner, options) {
-  console.log("🔒 Running comprehensive security audit on Go dependencies...");
+  console.log('🔒 Running comprehensive security audit on Go dependencies...');
 
   try {
-    const { runCommand, commandExists } = require("../lib/utils");
+    const { runCommand, commandExists } = require('../lib/utils');
     const securityTools = [];
     const results = {
       vulnerabilities: 0,
@@ -151,36 +151,36 @@ async function runSecurityAudit(runner, options) {
     };
 
     // 1. Check for gosec (Go Security Checker)
-    console.log("\n🔍 1. Running gosec (Go Security Checker)...");
-    if (!commandExists("gosec")) {
-      console.log("   ⚠️ gosec not installed. Installing...");
+    console.log('\n🔍 1. Running gosec (Go Security Checker)...');
+    if (!commandExists('gosec')) {
+      console.log('   ⚠️ gosec not installed. Installing...');
       const installResult = runCommand(
-        "go install github.com/securego/gosec/v2/cmd/gosec@latest",
+        'go install github.com/securego/gosec/v2/cmd/gosec@latest',
       );
       if (!installResult.success) {
-        console.log("   ❌ Failed to install gosec");
+        console.log('   ❌ Failed to install gosec');
       } else {
-        console.log("   ✅ gosec installed successfully");
+        console.log('   ✅ gosec installed successfully');
       }
     }
 
-    if (commandExists("gosec")) {
-      securityTools.push("gosec");
-      const gosecArgs = ["./...", "-fmt=json", "-out=gosec-report.json"];
+    if (commandExists('gosec')) {
+      securityTools.push('gosec');
+      const gosecArgs = ['./...', '-fmt=json', '-out=gosec-report.json'];
       if (options.verbose) {
-        gosecArgs.push("-verbose");
+        gosecArgs.push('-verbose');
       }
 
-      console.log("   📊 Running gosec analysis...");
-      const gosecResult = runCommand(`gosec ${gosecArgs.join(" ")}`, {
+      console.log('   📊 Running gosec analysis...');
+      const gosecResult = runCommand(`gosec ${gosecArgs.join(' ')}`, {
         cwd: runner.projectPath,
       });
 
-      if (fs.existsSync(path.join(runner.projectPath, "gosec-report.json"))) {
+      if (fs.existsSync(path.join(runner.projectPath, 'gosec-report.json'))) {
         const report = JSON.parse(
           fs.readFileSync(
-            path.join(runner.projectPath, "gosec-report.json"),
-            "utf8",
+            path.join(runner.projectPath, 'gosec-report.json'),
+            'utf8',
           ),
         );
         results.tools.gosec = {
@@ -193,42 +193,42 @@ async function runSecurityAudit(runner, options) {
         );
 
         // Clean up report file
-        fs.unlinkSync(path.join(runner.projectPath, "gosec-report.json"));
+        fs.unlinkSync(path.join(runner.projectPath, 'gosec-report.json'));
       }
     }
 
     // 2. Check for govulncheck (Go Vulnerability Checker)
-    console.log("\n🔍 2. Running govulncheck (Go Vulnerability Checker)...");
-    if (!commandExists("govulncheck")) {
-      console.log("   ⚠️ govulncheck not installed. Installing...");
+    console.log('\n🔍 2. Running govulncheck (Go Vulnerability Checker)...');
+    if (!commandExists('govulncheck')) {
+      console.log('   ⚠️ govulncheck not installed. Installing...');
       const installResult = runCommand(
-        "go install golang.org/x/vuln/cmd/govulncheck@latest",
+        'go install golang.org/x/vuln/cmd/govulncheck@latest',
       );
       if (!installResult.success) {
-        console.log("   ❌ Failed to install govulncheck");
+        console.log('   ❌ Failed to install govulncheck');
       } else {
-        console.log("   ✅ govulncheck installed successfully");
+        console.log('   ✅ govulncheck installed successfully');
       }
     }
 
-    if (commandExists("govulncheck")) {
-      securityTools.push("govulncheck");
-      console.log("   📊 Running govulncheck analysis...");
-      const vulnResult = runCommand("govulncheck ./...", {
+    if (commandExists('govulncheck')) {
+      securityTools.push('govulncheck');
+      console.log('   📊 Running govulncheck analysis...');
+      const vulnResult = runCommand('govulncheck ./...', {
         cwd: runner.projectPath,
-        stdio: "pipe",
+        stdio: 'pipe',
       });
 
       if (vulnResult.stdout) {
-        const lines = vulnResult.stdout.split("\n");
+        const lines = vulnResult.stdout.split('\n');
         const vulnCount = lines.filter((line) =>
-          line.includes("Vulnerability"),
+          line.includes('Vulnerability'),
         ).length;
         results.tools.govulncheck = {
           vulnerabilities: vulnCount,
           output:
             vulnResult.stdout.substring(0, 500) +
-            (vulnResult.stdout.length > 500 ? "..." : ""),
+            (vulnResult.stdout.length > 500 ? '...' : ''),
         };
         results.vulnerabilities += vulnCount;
         console.log(`   📈 Found ${vulnCount} known vulnerabilities`);
@@ -236,19 +236,19 @@ async function runSecurityAudit(runner, options) {
     }
 
     // 3. Check dependency licenses
-    console.log("\n🔍 3. Checking dependency licenses...");
+    console.log('\n🔍 3. Checking dependency licenses...');
     const licenseResult = runCommand(
       "go list -m -f '{{.Path}} {{.Version}} {{.Main}}' all",
       {
         cwd: runner.projectPath,
-        stdio: "pipe",
+        stdio: 'pipe',
       },
     );
 
     if (licenseResult.stdout) {
       const deps = licenseResult.stdout
-        .split("\n")
-        .filter((line) => line && !line.includes("true"));
+        .split('\n')
+        .filter((line) => line && !line.includes('true'));
       results.tools.licenses = {
         dependencies: deps.length,
         checked: true,
@@ -257,23 +257,23 @@ async function runSecurityAudit(runner, options) {
 
       // Check for problematic licenses (optional - would need license-check tool)
       console.log(
-        "   ℹ️  Consider using go-licenses for detailed license analysis",
+        '   ℹ️  Consider using go-licenses for detailed license analysis',
       );
     }
 
     // 4. Check for outdated dependencies with security implications
-    console.log("\n🔍 4. Checking for outdated dependencies...");
+    console.log('\n🔍 4. Checking for outdated dependencies...');
     const outdatedResult = runCommand(
       "go list -u -m -f '{{if .Update}}{{.}} -> {{.Update}}{{end}}' all",
       {
         cwd: runner.projectPath,
-        stdio: "pipe",
+        stdio: 'pipe',
       },
     );
 
     if (outdatedResult.stdout) {
       const updates = outdatedResult.stdout
-        .split("\n")
+        .split('\n')
         .filter((line) => line.trim());
       results.tools.outdated = {
         updates: updates.length,
@@ -286,9 +286,9 @@ async function runSecurityAudit(runner, options) {
       // Check for security-related updates
       const securityUpdates = updates.filter(
         (update) =>
-          update.includes("security") ||
-          update.includes("CVE") ||
-          update.includes("vulnerability"),
+          update.includes('security') ||
+          update.includes('CVE') ||
+          update.includes('vulnerability'),
       );
       if (securityUpdates.length > 0) {
         console.log(
@@ -299,11 +299,11 @@ async function runSecurityAudit(runner, options) {
     }
 
     // 5. Generate security report
-    console.log("\n" + "=".repeat(60));
-    console.log("📊 SECURITY AUDIT REPORT");
-    console.log("=".repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
+    console.log('📊 SECURITY AUDIT REPORT');
+    console.log('='.repeat(60));
 
-    console.log(`\n🔧 Tools used: ${securityTools.join(", ") || "None"}`);
+    console.log(`\n🔧 Tools used: ${securityTools.join(', ') || 'None'}`);
     console.log(`\n📈 Summary:`);
     console.log(`   • Vulnerabilities found: ${results.vulnerabilities}`);
     console.log(`   • Security warnings: ${results.warnings}`);
@@ -313,48 +313,48 @@ async function runSecurityAudit(runner, options) {
       console.log(
         `\n⚠️  CRITICAL: ${results.vulnerabilities} security vulnerabilities found!`,
       );
-      console.log("   Recommended actions:");
+      console.log('   Recommended actions:');
       console.log("   1. Run 'go get -u ./...' to update dependencies");
       console.log(
-        "   2. Review govulncheck output for specific vulnerabilities",
+        '   2. Review govulncheck output for specific vulnerabilities',
       );
       console.log(
-        "   3. Consider using dependency pinning for critical packages",
+        '   3. Consider using dependency pinning for critical packages',
       );
-      console.log("   4. Run security audit regularly in CI/CD pipeline");
+      console.log('   4. Run security audit regularly in CI/CD pipeline');
       process.exit(2); // Exit code 2 for security vulnerabilities
     } else if (results.warnings > 0) {
       console.log(`\n⚠️  WARNING: ${results.warnings} security warnings found`);
-      console.log("   Recommended actions:");
-      console.log("   1. Review outdated dependencies");
-      console.log("   2. Update dependencies with security implications");
-      console.log("   3. Monitor for new vulnerabilities");
+      console.log('   Recommended actions:');
+      console.log('   1. Review outdated dependencies');
+      console.log('   2. Update dependencies with security implications');
+      console.log('   3. Monitor for new vulnerabilities');
       process.exit(0); // Warning but not critical
     } else {
-      console.log("\n✅ SECURITY AUDIT PASSED");
-      console.log("   No critical vulnerabilities found");
-      console.log("\n💡 Security recommendations:");
-      console.log("   1. Enable Dependabot or Renovate for automatic updates");
-      console.log("   2. Add govulncheck to your CI/CD pipeline");
-      console.log("   3. Use go modules with checksum verification");
-      console.log("   4. Regularly audit third-party dependencies");
-      console.log("   5. Consider using a software bill of materials (SBOM)");
+      console.log('\n✅ SECURITY AUDIT PASSED');
+      console.log('   No critical vulnerabilities found');
+      console.log('\n💡 Security recommendations:');
+      console.log('   1. Enable Dependabot or Renovate for automatic updates');
+      console.log('   2. Add govulncheck to your CI/CD pipeline');
+      console.log('   3. Use go modules with checksum verification');
+      console.log('   4. Regularly audit third-party dependencies');
+      console.log('   5. Consider using a software bill of materials (SBOM)');
       process.exit(0);
     }
   } catch (error) {
     console.error(`\n❌ Security audit failed: ${error.message}`);
 
     // Use error handler for better error messages
-    const { defaultErrorHandler } = require("../lib/error-handler");
+    const { defaultErrorHandler } = require('../lib/error-handler');
     const errorInfo = defaultErrorHandler.handleError(error, {
-      tool: "go",
-      command: "security audit",
+      tool: 'go',
+      command: 'security audit',
       platform: process.platform,
       cwd: runner.projectPath,
     });
 
-    console.error("\n" + errorInfo.userMessage);
-    console.error("\n💡 Recovery steps:");
+    console.error(`\n${errorInfo.userMessage}`);
+    console.error('\n💡 Recovery steps:');
     errorInfo.recoverySteps.forEach((step, i) => {
       console.error(`  ${i + 1}. ${step}`);
     });
@@ -367,27 +367,27 @@ async function runSecurityAudit(runner, options) {
  * Update dependencies
  */
 async function updateDependencies(runner, options) {
-  console.log("🔄 Updating dependencies...");
+  console.log('🔄 Updating dependencies...');
 
   try {
-    const { runCommand } = require("../lib/utils");
+    const { runCommand } = require('../lib/utils');
 
     if (options.updateAll) {
       // Update all dependencies
-      console.log("📦 Updating all dependencies to latest versions...");
-      const result = runCommand("go get -u ./...", {
+      console.log('📦 Updating all dependencies to latest versions...');
+      const result = runCommand('go get -u ./...', {
         cwd: runner.projectPath,
-        stdio: "inherit",
+        stdio: 'inherit',
       });
 
       if (result.success) {
-        console.log("\n✅ All dependencies updated");
+        console.log('\n✅ All dependencies updated');
 
         // Run go mod tidy
-        console.log("🧹 Tidying up...");
-        await runner.manageDependencies({ action: "tidy" });
+        console.log('🧹 Tidying up...');
+        await runner.manageDependencies({ action: 'tidy' });
       } else {
-        console.error("\n❌ Failed to update dependencies");
+        console.error('\n❌ Failed to update dependencies');
         process.exit(1);
       }
     } else if (options.package) {
@@ -395,15 +395,15 @@ async function updateDependencies(runner, options) {
       console.log(`📦 Updating package: ${options.package}`);
       const result = runCommand(`go get -u ${options.package}`, {
         cwd: runner.projectPath,
-        stdio: "inherit",
+        stdio: 'inherit',
       });
 
       if (result.success) {
         console.log(`\n✅ Package updated: ${options.package}`);
 
         // Run go mod tidy
-        console.log("🧹 Tidying up...");
-        await runner.manageDependencies({ action: "tidy" });
+        console.log('🧹 Tidying up...');
+        await runner.manageDependencies({ action: 'tidy' });
       } else {
         console.error(`\n❌ Failed to update package: ${options.package}`);
         process.exit(1);

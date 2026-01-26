@@ -5,13 +5,13 @@
  * Interactive wizard for configuring Python projects in opencode
  */
 
-const path = require("path");
-const fs = require("fs");
-const { commandExists, runCommand } = require("../../scripts/lib/utils");
-const InteractivePrompts = require("../../scripts/interactive/prompts");
-const ProjectDetector = require("../../scripts/interactive/project-detector");
-const ConfigManager = require("../../scripts/interactive/config-manager");
-const PythonToolDetector = require("./tool-detector");
+const path = require('path');
+const fs = require('fs');
+const { commandExists, runCommand } = require('../../scripts/lib/utils');
+const InteractivePrompts = require('../../scripts/interactive/prompts');
+const ProjectDetector = require('../../scripts/interactive/project-detector');
+const ConfigManager = require('../../scripts/interactive/config-manager');
+const PythonToolDetector = require('./tool-detector');
 
 class PythonConfigWizard {
   constructor(projectPath = process.cwd()) {
@@ -28,12 +28,12 @@ class PythonConfigWizard {
    */
   async run() {
     try {
-      this.prompts.header("🐍 Python Project Configuration");
+      this.prompts.header('🐍 Python Project Configuration');
 
       // Step 1: Detect Python project
       const pythonDetection = await this.detectPythonProject();
       if (!pythonDetection.isPython) {
-        this.prompts.error("This does not appear to be a Python project.");
+        this.prompts.error('This does not appear to be a Python project.');
         return false;
       }
 
@@ -68,11 +68,11 @@ class PythonConfigWizard {
    * Detect if this is a Python project
    */
   async detectPythonProject() {
-    this.prompts.info("Detecting Python project...");
+    this.prompts.info('Detecting Python project...');
 
     const summary = await this.detector.getProjectSummary();
     const pythonResult = summary.languages.find(
-      (lang) => lang.language === "python",
+      (lang) => lang.language === 'python',
     );
 
     if (!pythonResult || pythonResult.confidence < 0.3) {
@@ -88,7 +88,7 @@ class PythonConfigWizard {
     );
 
     if (pythonResult.indicators.length > 0) {
-      this.prompts.info("Indicators found:");
+      this.prompts.info('Indicators found:');
       pythonResult.indicators.slice(0, 5).forEach((indicator) => {
         console.log(`  • ${indicator}`);
       });
@@ -106,25 +106,25 @@ class PythonConfigWizard {
    * Detect Python project type
    */
   async detectProjectType() {
-    this.prompts.info("Detecting project type...");
+    this.prompts.info('Detecting project type...');
 
     const projectType = await this.detector.detectPythonProjectType();
 
     const typeDescriptions = {
-      fastapi: "FastAPI web application",
-      django: "Django web framework",
-      flask: "Flask microframework",
-      "data-science": "Data science/analysis project",
-      "machine-learning": "Machine learning project",
-      cli: "Command-line interface tool",
-      library: "Python library/package",
-      unknown: "General Python project",
+      fastapi: 'FastAPI web application',
+      django: 'Django web framework',
+      flask: 'Flask microframework',
+      'data-science': 'Data science/analysis project',
+      'machine-learning': 'Machine learning project',
+      cli: 'Command-line interface tool',
+      library: 'Python library/package',
+      unknown: 'General Python project',
     };
 
-    if (projectType !== "unknown") {
+    if (projectType !== 'unknown') {
       this.prompts.success(`Detected: ${typeDescriptions[projectType]}`);
     } else {
-      this.prompts.warning("Could not determine specific project type");
+      this.prompts.warning('Could not determine specific project type');
     }
 
     return projectType;
@@ -134,7 +134,7 @@ class PythonConfigWizard {
    * Detect installed Python tools using the Python tool detector
    */
   async detectTools() {
-    this.prompts.info("Detecting Python tools...");
+    this.prompts.info('Detecting Python tools...');
 
     // Use the Python tool detector for consistent detection
     const detectedTools = await this.toolDetector.detectAll();
@@ -149,14 +149,14 @@ class PythonConfigWizard {
 
     // Show installed tools
     if (report.summary.toolsDetected > 0) {
-      this.prompts.info("Installed tools:");
+      this.prompts.info('Installed tools:');
       for (const [toolName, toolInfo] of Object.entries(detectedTools)) {
         if (toolInfo.installed) {
           const versionText = toolInfo.version
             ? `v${toolInfo.version}`
-            : "unknown version";
+            : 'unknown version';
           // Check if tool is recommended (some tools may not have this property)
-          const recommended = toolInfo.recommended ? " ⭐" : "";
+          const recommended = toolInfo.recommended ? ' ⭐' : '';
           this.prompts.item(`${toolName}: ${versionText}${recommended}`);
         }
       }
@@ -164,10 +164,10 @@ class PythonConfigWizard {
 
     // Show recommendations if any
     if (report.recommendations.length > 0) {
-      this.prompts.info("Recommendations:");
+      this.prompts.info('Recommendations:');
       report.recommendations.forEach((rec) => {
         const icon =
-          rec.type === "critical" ? "❌" : rec.type === "high" ? "⚠️" : "🔵";
+          rec.type === 'critical' ? '❌' : rec.type === 'high' ? '⚠️' : '🔵';
         this.prompts.item(`${icon} ${rec.message}`);
       });
     }
@@ -179,15 +179,15 @@ class PythonConfigWizard {
    * Interactive configuration based on project type
    */
   async interactiveConfiguration(projectType, detectedTools) {
-    this.prompts.section("Configuration Options");
+    this.prompts.section('Configuration Options');
 
     const config = {
       projectType,
-      dependencyManager: "unknown",
-      testRunner: "none",
-      linter: "none",
-      formatter: "none",
-      typeChecker: "none",
+      dependencyManager: 'unknown',
+      testRunner: 'none',
+      linter: 'none',
+      formatter: 'none',
+      typeChecker: 'none',
       tools: {},
       userApproved: false,
     };
@@ -195,188 +195,188 @@ class PythonConfigWizard {
     // 1. Dependency manager selection
     const depManagerChoices = [
       {
-        title: "uv",
+        title: 'uv',
         description:
-          "Modern, fast Python package manager (recommended for new projects)",
-        value: "uv",
+          'Modern, fast Python package manager (recommended for new projects)',
+        value: 'uv',
         recommended: true,
       },
       {
-        title: "poetry",
-        description: "Dependency management and packaging tool",
-        value: "poetry",
+        title: 'poetry',
+        description: 'Dependency management and packaging tool',
+        value: 'poetry',
         recommended: detectedTools.poetry?.installed,
       },
       {
-        title: "pip",
-        description: "Standard Python package installer",
-        value: "pip",
+        title: 'pip',
+        description: 'Standard Python package installer',
+        value: 'pip',
         recommended:
           detectedTools.pip?.installed && !detectedTools.uv?.installed,
       },
       {
-        title: "conda",
-        description: "Package and environment manager (for data science/ML)",
-        value: "conda",
+        title: 'conda',
+        description: 'Package and environment manager (for data science/ML)',
+        value: 'conda',
         recommended:
-          projectType === "data-science" || projectType === "machine-learning",
+          projectType === 'data-science' || projectType === 'machine-learning',
       },
       {
-        title: "Skip for now",
-        description: "Configure dependency manager later",
-        value: "unknown",
+        title: 'Skip for now',
+        description: 'Configure dependency manager later',
+        value: 'unknown',
       },
     ];
 
     config.dependencyManager = await this.prompts.selectWithDescriptions(
-      "Select dependency manager:",
+      'Select dependency manager:',
       depManagerChoices,
     );
 
     // 2. Test runner selection
     const testRunnerChoices = [
       {
-        title: "pytest",
-        description: "Feature-rich testing framework (recommended)",
-        value: "pytest",
+        title: 'pytest',
+        description: 'Feature-rich testing framework (recommended)',
+        value: 'pytest',
         recommended: true,
       },
       {
-        title: "unittest",
-        description: "Python built-in testing framework",
-        value: "unittest",
+        title: 'unittest',
+        description: 'Python built-in testing framework',
+        value: 'unittest',
         recommended:
           detectedTools.unittest?.installed && !detectedTools.pytest?.installed,
       },
       {
-        title: "Skip testing",
-        description: "No testing framework",
-        value: "none",
+        title: 'Skip testing',
+        description: 'No testing framework',
+        value: 'none',
       },
     ];
 
     config.testRunner = await this.prompts.selectWithDescriptions(
-      "Select testing framework:",
+      'Select testing framework:',
       testRunnerChoices,
     );
 
     // 3. Linter selection
     const linterChoices = [
       {
-        title: "ruff",
-        description: "Extremely fast Python linter (recommended)",
-        value: "ruff",
+        title: 'ruff',
+        description: 'Extremely fast Python linter (recommended)',
+        value: 'ruff',
         recommended: true,
       },
       {
-        title: "flake8",
-        description: "Popular Python style guide enforcement",
-        value: "flake8",
+        title: 'flake8',
+        description: 'Popular Python style guide enforcement',
+        value: 'flake8',
         recommended:
           detectedTools.flake8?.installed && !detectedTools.ruff?.installed,
       },
       {
-        title: "pylint",
-        description: "Comprehensive Python code analysis",
-        value: "pylint",
+        title: 'pylint',
+        description: 'Comprehensive Python code analysis',
+        value: 'pylint',
         recommended: detectedTools.pylint?.installed,
       },
       {
-        title: "Skip linting",
-        description: "No linter",
-        value: "none",
+        title: 'Skip linting',
+        description: 'No linter',
+        value: 'none',
       },
     ];
 
     config.linter = await this.prompts.selectWithDescriptions(
-      "Select linter:",
+      'Select linter:',
       linterChoices,
     );
 
     // 4. Formatter selection
     const formatterChoices = [
       {
-        title: "ruff format",
-        description: "Ruff formatter (if ruff selected as linter)",
-        value: "ruff",
-        recommended: config.linter === "ruff",
+        title: 'ruff format',
+        description: 'Ruff formatter (if ruff selected as linter)',
+        value: 'ruff',
+        recommended: config.linter === 'ruff',
       },
       {
-        title: "black",
-        description: "Uncompromising code formatter",
-        value: "black",
+        title: 'black',
+        description: 'Uncompromising code formatter',
+        value: 'black',
         recommended: detectedTools.black?.installed,
       },
       {
-        title: "autopep8",
-        description: "Automatically formats Python code to conform to PEP 8",
-        value: "autopep8",
+        title: 'autopep8',
+        description: 'Automatically formats Python code to conform to PEP 8',
+        value: 'autopep8',
         recommended: detectedTools.autopep8?.installed,
       },
       {
-        title: "Skip formatting",
-        description: "No formatter",
-        value: "none",
+        title: 'Skip formatting',
+        description: 'No formatter',
+        value: 'none',
       },
     ];
 
     config.formatter = await this.prompts.selectWithDescriptions(
-      "Select code formatter:",
+      'Select code formatter:',
       formatterChoices,
     );
 
     // 5. Type checker selection (for typed projects)
     const typeCheckerChoices = [
       {
-        title: "pyright",
-        description: "Fast type checker with good editor integration",
-        value: "pyright",
+        title: 'pyright',
+        description: 'Fast type checker with good editor integration',
+        value: 'pyright',
         recommended: true,
       },
       {
-        title: "mypy",
-        description: "Optional static typing for Python",
-        value: "mypy",
+        title: 'mypy',
+        description: 'Optional static typing for Python',
+        value: 'mypy',
         recommended:
           detectedTools.mypy?.installed && !detectedTools.pyright?.installed,
       },
       {
-        title: "Skip type checking",
-        description: "No type checker",
-        value: "none",
+        title: 'Skip type checking',
+        description: 'No type checker',
+        value: 'none',
       },
     ];
 
     config.typeChecker = await this.prompts.selectWithDescriptions(
-      "Select type checker:",
+      'Select type checker:',
       typeCheckerChoices,
     );
 
     // 6. Project-specific options based on type
-    if (projectType === "fastapi") {
+    if (projectType === 'fastapi') {
       const includeDocs = await this.prompts.confirm(
-        "Include automatic API documentation (Swagger/ReDoc)?",
+        'Include automatic API documentation (Swagger/ReDoc)?',
         true,
       );
       config.fastapiOptions = { includeDocs };
     }
 
-    if (projectType === "data-science" || projectType === "machine-learning") {
+    if (projectType === 'data-science' || projectType === 'machine-learning') {
       const includeNotebooks = await this.prompts.confirm(
-        "Include Jupyter notebook support?",
+        'Include Jupyter notebook support?',
         true,
       );
       config.dataScienceOptions = { includeNotebooks };
     }
 
-    if (projectType === "cli") {
+    if (projectType === 'cli') {
       const cliFramework = await this.prompts.select(
-        "Select CLI framework:",
-        ["click", "typer", "argparse", "none"],
+        'Select CLI framework:',
+        ['click', 'typer', 'argparse', 'none'],
         0,
       );
       config.cliOptions = {
-        framework: ["click", "typer", "argparse", "none"][cliFramework],
+        framework: ['click', 'typer', 'argparse', 'none'][cliFramework],
       };
     }
 
@@ -384,9 +384,9 @@ class PythonConfigWizard {
     config.tools = detectedTools;
 
     // 8. Get user approval
-    this.prompts.section("Configuration Summary");
+    this.prompts.section('Configuration Summary');
 
-    console.log("\nConfiguration to be saved:");
+    console.log('\nConfiguration to be saved:');
     console.log(`  • Project type: ${projectType}`);
     console.log(`  • Dependency manager: ${config.dependencyManager}`);
     console.log(`  • Test runner: ${config.testRunner}`);
@@ -395,7 +395,7 @@ class PythonConfigWizard {
     console.log(`  • Type checker: ${config.typeChecker}`);
 
     config.userApproved = await this.prompts.confirm(
-      "\nSave this configuration?",
+      '\nSave this configuration?',
       true,
     );
 
@@ -407,25 +407,25 @@ class PythonConfigWizard {
    */
   async saveConfiguration(config) {
     if (!config.userApproved) {
-      this.prompts.warning("Configuration not saved (user declined)");
+      this.prompts.warning('Configuration not saved (user declined)');
       return false;
     }
 
-    this.prompts.info("Saving configuration...");
+    this.prompts.info('Saving configuration...');
 
     // Update config manager with Python configuration
-    const saved = this.configManager.updateLanguageConfig("python", config);
+    const saved = this.configManager.updateLanguageConfig('python', config);
 
     if (saved) {
       // Set Python as primary language
-      this.configManager.setPrimaryLanguage("python");
+      this.configManager.setPrimaryLanguage('python');
 
       this.prompts.success(
-        "Configuration saved to .opencode/project-config.json",
+        'Configuration saved to .opencode/project-config.json',
       );
       return true;
     } else {
-      this.prompts.error("Failed to save configuration");
+      this.prompts.error('Failed to save configuration');
       return false;
     }
   }
@@ -434,13 +434,13 @@ class PythonConfigWizard {
    * Provide next steps and recommendations
    */
   async provideNextSteps(config, detectedTools) {
-    this.prompts.header("🎯 Next Steps");
+    this.prompts.header('🎯 Next Steps');
 
     const recommendations = [];
 
     // Check for missing recommended tools
     if (
-      config.dependencyManager !== "unknown" &&
+      config.dependencyManager !== 'unknown' &&
       !detectedTools[config.dependencyManager]?.installed
     ) {
       recommendations.push(
@@ -449,7 +449,7 @@ class PythonConfigWizard {
     }
 
     if (
-      config.testRunner !== "none" &&
+      config.testRunner !== 'none' &&
       !detectedTools[config.testRunner]?.installed
     ) {
       recommendations.push(
@@ -457,14 +457,14 @@ class PythonConfigWizard {
       );
     }
 
-    if (config.linter !== "none" && !detectedTools[config.linter]?.installed) {
+    if (config.linter !== 'none' && !detectedTools[config.linter]?.installed) {
       recommendations.push(
         `Install ${config.linter}: Required for code linting`,
       );
     }
 
     if (
-      config.formatter !== "none" &&
+      config.formatter !== 'none' &&
       !detectedTools[config.formatter]?.installed
     ) {
       recommendations.push(
@@ -473,7 +473,7 @@ class PythonConfigWizard {
     }
 
     if (
-      config.typeChecker !== "none" &&
+      config.typeChecker !== 'none' &&
       !detectedTools[config.typeChecker]?.installed
     ) {
       recommendations.push(
@@ -482,32 +482,32 @@ class PythonConfigWizard {
     }
 
     // Project type specific recommendations
-    if (config.projectType === "fastapi") {
+    if (config.projectType === 'fastapi') {
       recommendations.push(
-        "Run: `uv add fastapi[all]` to install FastAPI with all dependencies",
+        'Run: `uv add fastapi[all]` to install FastAPI with all dependencies',
       );
       recommendations.push(
-        "Check out: https://fastapi.tiangolo.com for documentation",
+        'Check out: https://fastapi.tiangolo.com for documentation',
       );
     }
 
-    if (config.projectType === "data-science") {
+    if (config.projectType === 'data-science') {
       recommendations.push(
-        "Run: `uv add pandas numpy matplotlib seaborn` for data analysis",
+        'Run: `uv add pandas numpy matplotlib seaborn` for data analysis',
       );
-      recommendations.push("Run: `uv add jupyter` for notebook support");
+      recommendations.push('Run: `uv add jupyter` for notebook support');
     }
 
-    if (config.projectType === "machine-learning") {
-      recommendations.push("Run: `uv add scikit-learn` for traditional ML");
+    if (config.projectType === 'machine-learning') {
+      recommendations.push('Run: `uv add scikit-learn` for traditional ML');
       recommendations.push(
-        "Run: `uv add torch` or `uv add tensorflow` for deep learning",
+        'Run: `uv add torch` or `uv add tensorflow` for deep learning',
       );
     }
 
     if (
-      config.projectType === "cli" &&
-      config.cliOptions?.framework !== "none"
+      config.projectType === 'cli' &&
+      config.cliOptions?.framework !== 'none'
     ) {
       recommendations.push(
         `Run: \`uv add ${config.cliOptions.framework}\` for CLI framework`,
@@ -515,42 +515,42 @@ class PythonConfigWizard {
     }
 
     // General recommendations
-    recommendations.push("Create virtual environment: `python -m venv .venv`");
+    recommendations.push('Create virtual environment: `python -m venv .venv`');
     recommendations.push(
-      "Activate virtual environment: `source .venv/bin/activate` (Linux/Mac) or `.venv\\Scripts\\activate` (Windows)",
+      'Activate virtual environment: `source .venv/bin/activate` (Linux/Mac) or `.venv\\Scripts\\activate` (Windows)',
     );
     recommendations.push(
-      "Initialize git: `git init` (if not already a git repository)",
+      'Initialize git: `git init` (if not already a git repository)',
     );
 
     // Display recommendations
     if (recommendations.length > 0) {
-      this.prompts.info("Recommended actions:");
+      this.prompts.info('Recommended actions:');
       recommendations.forEach((rec, index) => {
         console.log(`  ${index + 1}. ${rec}`);
       });
     }
 
     // Available opencode commands
-    this.prompts.info("Available opencode commands:");
-    console.log("  • /python-test    - Run tests with configured test runner");
-    console.log("  • /python-lint    - Run linter and formatter");
-    console.log("  • /python-typecheck - Run type checker");
-    console.log("  • /python-deps    - Manage dependencies");
-    console.log("  • /python-setup   - Re-run configuration wizard");
+    this.prompts.info('Available opencode commands:');
+    console.log('  • /python-test    - Run tests with configured test runner');
+    console.log('  • /python-lint    - Run linter and formatter');
+    console.log('  • /python-typecheck - Run type checker');
+    console.log('  • /python-deps    - Manage dependencies');
+    console.log('  • /python-setup   - Re-run configuration wizard');
 
-    this.prompts.success("\nPython configuration complete! 🎉");
+    this.prompts.success('\nPython configuration complete! 🎉');
   }
 
   /**
    * Quick setup with minimal prompts
    */
   async quickSetup() {
-    this.prompts.header("⚡ Python Quick Setup");
+    this.prompts.header('⚡ Python Quick Setup');
 
     const pythonDetection = await this.detectPythonProject();
     if (!pythonDetection.isPython) {
-      this.prompts.error("This does not appear to be a Python project.");
+      this.prompts.error('This does not appear to be a Python project.');
       return false;
     }
 
@@ -561,37 +561,37 @@ class PythonConfigWizard {
     const config = {
       projectType,
       dependencyManager: detectedTools.uv?.installed
-        ? "uv"
+        ? 'uv'
         : detectedTools.poetry?.installed
-          ? "poetry"
+          ? 'poetry'
           : detectedTools.pip?.installed
-            ? "pip"
-            : "unknown",
+            ? 'pip'
+            : 'unknown',
       testRunner: detectedTools.pytest?.installed
-        ? "pytest"
+        ? 'pytest'
         : detectedTools.unittest?.installed
-          ? "unittest"
-          : "none",
+          ? 'unittest'
+          : 'none',
       linter: detectedTools.ruff?.installed
-        ? "ruff"
+        ? 'ruff'
         : detectedTools.flake8?.installed
-          ? "flake8"
-          : "none",
+          ? 'flake8'
+          : 'none',
       formatter: detectedTools.ruff?.installed
-        ? "ruff"
+        ? 'ruff'
         : detectedTools.black?.installed
-          ? "black"
-          : "none",
+          ? 'black'
+          : 'none',
       typeChecker: detectedTools.pyright?.installed
-        ? "pyright"
+        ? 'pyright'
         : detectedTools.mypy?.installed
-          ? "mypy"
-          : "none",
+          ? 'mypy'
+          : 'none',
       tools: detectedTools,
       userApproved: true,
     };
 
-    this.prompts.info("Using automatic configuration:");
+    this.prompts.info('Using automatic configuration:');
     console.log(`  • Dependency manager: ${config.dependencyManager}`);
     console.log(`  • Test runner: ${config.testRunner}`);
     console.log(`  • Linter: ${config.linter}`);
@@ -599,17 +599,17 @@ class PythonConfigWizard {
     console.log(`  • Type checker: ${config.typeChecker}`);
 
     const approved = await this.prompts.confirm(
-      "Apply this configuration?",
+      'Apply this configuration?',
       true,
     );
 
     if (approved) {
       config.userApproved = true;
-      const saved = this.configManager.updateLanguageConfig("python", config);
-      this.configManager.setPrimaryLanguage("python");
+      const saved = this.configManager.updateLanguageConfig('python', config);
+      this.configManager.setPrimaryLanguage('python');
 
       if (saved) {
-        this.prompts.success("Quick setup complete!");
+        this.prompts.success('Quick setup complete!');
         return true;
       }
     }
@@ -627,7 +627,7 @@ if (require.main === module) {
 
   const args = process.argv.slice(2);
 
-  if (args.includes("--help") || args.includes("-h")) {
+  if (args.includes('--help') || args.includes('-h')) {
     console.log(`
 🐍 Python Configuration Wizard
 
@@ -643,7 +643,7 @@ Examples:
   node languages/python/config-wizard.js --quick  # Quick automatic setup
     `);
     process.exit(0);
-  } else if (args.includes("--quick") || args.includes("-q")) {
+  } else if (args.includes('--quick') || args.includes('-q')) {
     wizard.quickSetup().then((success) => {
       process.exit(success ? 0 : 1);
     });

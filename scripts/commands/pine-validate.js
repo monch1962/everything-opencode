@@ -5,7 +5,7 @@
  * Validate PineScript syntax and version compatibility
  */
 
-const PineCommandRunner = require("../pinescript/command-runner");
+const PineCommandRunner = require('../pinescript/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -16,24 +16,24 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--fix" || arg === "-f") {
+    if (arg === '--fix' || arg === '-f') {
       options.fix = true;
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--quiet" || arg === "-q") {
+    } else if (arg === '--quiet' || arg === '-q') {
       options.quiet = true;
-    } else if (arg === "--json") {
+    } else if (arg === '--json') {
       options.json = true;
-    } else if (arg === "--html") {
+    } else if (arg === '--html') {
       options.html = true;
-    } else if (arg === "--version" || arg === "-V") {
+    } else if (arg === '--version' || arg === '-V') {
       options.version = args[++i];
-    } else if (arg === "--strict") {
+    } else if (arg === '--strict') {
       options.strict = true;
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -44,15 +44,15 @@ async function main() {
 
   // If no files specified, validate all .pine files in current directory
   if (files.length === 0) {
-    const fs = require("fs");
-    const path = require("path");
+    const fs = require('fs');
+    const path = require('path');
 
     try {
       const allFiles = fs.readdirSync(process.cwd());
-      const pineFiles = allFiles.filter((file) => file.endsWith(".pine"));
+      const pineFiles = allFiles.filter((file) => file.endsWith('.pine'));
 
       if (pineFiles.length === 0) {
-        console.error("No .pine files found in current directory");
+        console.error('No .pine files found in current directory');
         process.exit(1);
       }
 
@@ -100,18 +100,18 @@ async function main() {
 
     // Summary
     if (!options.quiet) {
-      console.log("\n" + "=".repeat(50));
-      console.log("📊 Validation Summary:");
+      console.log(`\n${'='.repeat(50)}`);
+      console.log('📊 Validation Summary:');
       console.log(`  Files validated: ${files.length}`);
       console.log(`  Total errors: ${totalErrors}`);
       console.log(`  Total warnings: ${totalWarnings}`);
 
       if (totalErrors === 0 && totalWarnings === 0) {
-        console.log("\n✅ All files passed validation!");
+        console.log('\n✅ All files passed validation!');
       } else if (totalErrors === 0) {
-        console.log("\n⚠️  Validation completed with warnings");
+        console.log('\n⚠️  Validation completed with warnings');
       } else {
-        console.log("\n❌ Validation failed with errors");
+        console.log('\n❌ Validation failed with errors');
       }
     }
 

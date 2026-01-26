@@ -5,7 +5,7 @@
  * Build Go projects with Go-specific improvements
  */
 
-const GoCommandRunner = require("../go/command-runner");
+const GoCommandRunner = require('../go/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -15,28 +15,28 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--output" || arg === "-o") {
+    if (arg === '--output' || arg === '-o') {
       options.output = args[++i];
-    } else if (arg === "--target") {
+    } else if (arg === '--target') {
       options.target = args[++i];
-    } else if (arg === "--race") {
+    } else if (arg === '--race') {
       options.race = true;
-    } else if (arg === "--tags") {
+    } else if (arg === '--tags') {
       options.tags = args[++i];
-    } else if (arg === "--build-mode") {
+    } else if (arg === '--build-mode') {
       options.buildMode = args[++i];
-    } else if (arg === "--ldflags") {
+    } else if (arg === '--ldflags') {
       options.ldflags = args[++i];
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--clean") {
+    } else if (arg === '--clean') {
       options.clean = true;
-    } else if (arg === "--cross-compile") {
+    } else if (arg === '--cross-compile') {
       options.crossCompile = true;
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -52,7 +52,7 @@ async function main() {
 
     // Clean build artifacts if requested
     if (options.clean) {
-      console.log("🧹 Cleaning build artifacts...");
+      console.log('🧹 Cleaning build artifacts...');
       await runner.clean({ cache: true, testcache: true });
     }
 
@@ -63,11 +63,11 @@ async function main() {
     }
 
     // Build the project
-    console.log("🔨 Building Go project...");
+    console.log('🔨 Building Go project...');
     const result = await runner.build(options);
 
     if (result.success) {
-      console.log("\n✅ Build successful!");
+      console.log('\n✅ Build successful!');
 
       // Show build summary
       if (options.output) {
@@ -79,10 +79,10 @@ async function main() {
       }
 
       if (options.race) {
-        console.log("   Race detector: enabled");
+        console.log('   Race detector: enabled');
       }
     } else {
-      console.error("\n❌ Build failed");
+      console.error('\n❌ Build failed');
       process.exit(1);
     }
   } catch (error) {
@@ -95,14 +95,14 @@ async function main() {
  * Handle cross-compilation for multiple platforms
  */
 async function handleCrossCompilation(runner, options) {
-  console.log("🌍 Cross-compiling for multiple platforms...");
+  console.log('🌍 Cross-compiling for multiple platforms...');
 
   const platforms = [
-    { os: "linux", arch: "amd64" },
-    { os: "linux", arch: "arm64" },
-    { os: "darwin", arch: "amd64" },
-    { os: "darwin", arch: "arm64" },
-    { os: "windows", arch: "amd64" },
+    { os: 'linux', arch: 'amd64' },
+    { os: 'linux', arch: 'arm64' },
+    { os: 'darwin', arch: 'amd64' },
+    { os: 'darwin', arch: 'arm64' },
+    { os: 'windows', arch: 'amd64' },
   ];
 
   const builds = [];
@@ -110,7 +110,7 @@ async function handleCrossCompilation(runner, options) {
   for (const platform of platforms) {
     const target = `${platform.os}/${platform.arch}`;
     const output = options.output
-      ? `${options.output}-${platform.os}-${platform.arch}${platform.os === "windows" ? ".exe" : ""}`
+      ? `${options.output}-${platform.os}-${platform.arch}${platform.os === 'windows' ? '.exe' : ''}`
       : undefined;
 
     console.log(`\n🔨 Building for ${target}...`);
@@ -124,7 +124,7 @@ async function handleCrossCompilation(runner, options) {
           ...process.env,
           GOOS: platform.os,
           GOARCH: platform.arch,
-          CGO_ENABLED: "0",
+          CGO_ENABLED: '0',
         },
       });
 
@@ -135,7 +135,7 @@ async function handleCrossCompilation(runner, options) {
         builds.push({
           platform: target,
           success: false,
-          error: "Build failed",
+          error: 'Build failed',
         });
         console.log(`   ❌ Failed`);
       }
@@ -146,8 +146,8 @@ async function handleCrossCompilation(runner, options) {
   }
 
   // Show cross-compilation summary
-  console.log("\n📊 Cross-compilation summary:");
-  console.log("=".repeat(50));
+  console.log('\n📊 Cross-compilation summary:');
+  console.log('='.repeat(50));
 
   const successful = builds.filter((b) => b.success).length;
   const failed = builds.filter((b) => !b.success).length;
@@ -156,18 +156,18 @@ async function handleCrossCompilation(runner, options) {
   console.log(`❌ Failed: ${failed}`);
 
   if (successful > 0) {
-    console.log("\n📁 Built binaries:");
+    console.log('\n📁 Built binaries:');
     builds
       .filter((b) => b.success)
       .forEach((build) => {
         console.log(
-          `   • ${build.platform}: ${build.output || "default location"}`,
+          `   • ${build.platform}: ${build.output || 'default location'}`,
         );
       });
   }
 
   if (failed > 0) {
-    console.log("\n⚠️ Failed builds:");
+    console.log('\n⚠️ Failed builds:');
     builds
       .filter((b) => !b.success)
       .forEach((build) => {

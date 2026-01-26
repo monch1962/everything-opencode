@@ -6,15 +6,15 @@
  */
 
 // Core utilities
-const utils = require("./utils");
-const errorHandler = require("./error-handler");
+const utils = require('./utils');
+const errorHandler = require('./error-handler');
 
 // New shared utilities
-const ConfigUtils = require("./config-utils");
-const FileUtils = require("./file-utils");
-const ProjectUtils = require("./project-utils");
-const TemplateUtils = require("./template-utils");
-const LoggingUtils = require("./logging-utils");
+const ConfigUtils = require('./config-utils');
+const FileUtils = require('./file-utils');
+const ProjectUtils = require('./project-utils');
+const TemplateUtils = require('./template-utils');
+const LoggingUtils = require('./logging-utils');
 
 // Re-export everything
 module.exports = {

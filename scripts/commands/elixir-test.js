@@ -5,7 +5,7 @@
  * Run Elixir tests with ExUnit and Elixir-specific improvements
  */
 
-const ElixirCommandRunner = require("../elixir/command-runner");
+const ElixirCommandRunner = require('../elixir/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -15,32 +15,32 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--file" || arg === "-f") {
+    if (arg === '--file' || arg === '-f') {
       options.file = args[++i];
-    } else if (arg === "--directory" || arg === "-d") {
+    } else if (arg === '--directory' || arg === '-d') {
       options.directory = args[++i];
-    } else if (arg === "--only") {
+    } else if (arg === '--only') {
       options.only = args[++i];
-    } else if (arg === "--exclude") {
+    } else if (arg === '--exclude') {
       options.exclude = args[++i];
-    } else if (arg === "--seed") {
+    } else if (arg === '--seed') {
       options.seed = args[++i];
-    } else if (arg === "--coverage" || arg === "-c") {
+    } else if (arg === '--coverage' || arg === '-c') {
       options.coverage = true;
-    } else if (arg === "--trace" || arg === "-t") {
+    } else if (arg === '--trace' || arg === '-t') {
       options.trace = true;
-    } else if (arg === "--max-failures") {
+    } else if (arg === '--max-failures') {
       options.maxFailures = args[++i];
-    } else if (arg === "--timeout") {
+    } else if (arg === '--timeout') {
       options.timeout = args[++i];
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--slowest") {
+    } else if (arg === '--slowest') {
       options.slowest = args[++i];
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -55,11 +55,11 @@ async function main() {
     await runner.initialize();
 
     // Run tests
-    console.log("🧪 Running Elixir tests...");
+    console.log('🧪 Running Elixir tests...');
     const result = await runner.test(options);
 
     if (result.success) {
-      console.log("\n✅ All tests passed!");
+      console.log('\n✅ All tests passed!');
     } else {
       console.log(`\n❌ Tests failed with code ${result.code}`);
       if (result.stderr) {

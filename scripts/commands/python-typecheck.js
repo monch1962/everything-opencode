@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * /python-typecheck command wrapper
- * 
+ *
  * Run Python type checker based on project configuration
  */
 
@@ -10,11 +10,11 @@ const PythonCommandRunner = require('./python-command-runner');
 async function main() {
   const args = process.argv.slice(2);
   const options = {};
-  
+
   // Parse command line arguments
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     if (arg === '--strict' || arg === '-s') {
       options.strict = true;
     } else if (arg === '--warn-unused') {
@@ -71,7 +71,7 @@ async function main() {
       options.file = arg;
     }
   }
-  
+
   try {
     const runner = new PythonCommandRunner();
     await runner.runTypeChecker(options);
@@ -131,7 +131,7 @@ Configuration:
 
 // Run main function
 if (require.main === module) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error(`Fatal error: ${error.message}`);
     process.exit(1);
   });

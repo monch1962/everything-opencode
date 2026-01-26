@@ -5,7 +5,7 @@
  * Type check Elixir code with Dialyzer
  */
 
-const ElixirCommandRunner = require("../elixir/command-runner");
+const ElixirCommandRunner = require('../elixir/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -15,18 +15,18 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--ignore-warnings") {
+    if (arg === '--ignore-warnings') {
       options.ignoreWarnings = true;
-    } else if (arg === "--format") {
+    } else if (arg === '--format') {
       options.format = args[++i];
-    } else if (arg === "--list-unused") {
+    } else if (arg === '--list-unused') {
       options.listUnused = true;
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -38,11 +38,11 @@ async function main() {
     await runner.initialize();
 
     // Type check code
-    console.log("🔍 Type checking Elixir code...");
+    console.log('🔍 Type checking Elixir code...');
     const result = await runner.typecheck(options);
 
     if (result.success) {
-      console.log("\n✅ Type checking passed!");
+      console.log('\n✅ Type checking passed!');
       if (result.stdout && options.verbose) {
         console.log(result.stdout);
       }
@@ -65,14 +65,14 @@ async function main() {
 
     // Check if Dialyzer/dialyxir is not installed
     if (
-      error.message.includes("Dialyzer") ||
-      error.message.includes("dialyxir")
+      error.message.includes('Dialyzer') ||
+      error.message.includes('dialyxir')
     ) {
-      console.log("\n💡 Dialyzer/dialyxir is not configured. Add to mix.exs:");
+      console.log('\n💡 Dialyzer/dialyxir is not configured. Add to mix.exs:');
       console.log('   {:dialyxir, "~> 1.4", only: [:dev], runtime: false}');
-      console.log("\nThen run:");
-      console.log("   mix deps.get");
-      console.log("   mix dialyzer --plt");
+      console.log('\nThen run:');
+      console.log('   mix deps.get');
+      console.log('   mix dialyzer --plt');
     }
 
     process.exit(1);

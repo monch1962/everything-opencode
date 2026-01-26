@@ -20,7 +20,7 @@ const {
   getAvailablePackageManagers,
   detectFromLockFile,
   detectFromPackageJson,
-  getSelectionPrompt
+  getSelectionPrompt,
 } = require('./lib/package-manager');
 const { log } = require('./lib/utils');
 

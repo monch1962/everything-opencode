@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * /python-lint command wrapper
- * 
+ *
  * Run Python linter and formatter based on project configuration
  */
 
@@ -10,11 +10,11 @@ const PythonCommandRunner = require('./python-command-runner');
 async function main() {
   const args = process.argv.slice(2);
   const options = {};
-  
+
   // Parse command line arguments
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     if (arg === '--check') {
       options.check = true;
     } else if (arg === '--fix' || arg === '-f') {
@@ -69,10 +69,10 @@ async function main() {
       options.file = arg;
     }
   }
-  
+
   try {
     const runner = new PythonCommandRunner();
-    
+
     // Determine what to run
     if (options.format || options.checkFormat) {
       // Run formatter
@@ -142,7 +142,7 @@ Configuration:
 
 // Run main function
 if (require.main === module) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error(`Fatal error: ${error.message}`);
     process.exit(1);
   });

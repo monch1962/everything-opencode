@@ -14,7 +14,7 @@ const {
   getLearnedSkillsDir,
   findFiles,
   ensureDir,
-  log
+  log,
 } = require('../lib/utils');
 const { getPackageManager, getSelectionPrompt } = require('../lib/package-manager');
 
@@ -55,7 +55,7 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('[SessionStart] Error:', err.message);
   process.exit(0); // Don't block on errors
 });

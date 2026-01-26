@@ -18,7 +18,7 @@ const {
   readFile,
   writeFile,
   replaceInFile,
-  log
+  log,
 } = require('../lib/utils');
 
 async function main() {
@@ -35,7 +35,7 @@ async function main() {
     const success = replaceInFile(
       sessionFile,
       /\*\*Last Updated:\*\*.*/,
-      `**Last Updated:** ${currentTime}`
+      `**Last Updated:** ${currentTime}`,
     );
 
     if (success) {
@@ -76,7 +76,7 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('[SessionEnd] Error:', err.message);
   process.exit(0);
 });

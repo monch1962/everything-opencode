@@ -13,7 +13,7 @@ const testsDir = __dirname;
 const testFiles = [
   'lib/utils.test.js',
   'lib/package-manager.test.js',
-  'hooks/hooks.test.js'
+  'hooks/hooks.test.js',
 ];
 
 console.log('╔══════════════════════════════════════════════════════════╗');
@@ -38,7 +38,7 @@ for (const testFile of testFiles) {
   try {
     const output = execSync(`node "${testPath}"`, {
       encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
     console.log(output);
 

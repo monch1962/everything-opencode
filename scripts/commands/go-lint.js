@@ -5,7 +5,7 @@
  * Lint Go code with Go-specific improvements
  */
 
-const GoCommandRunner = require("../go/command-runner");
+const GoCommandRunner = require('../go/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -15,28 +15,28 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--fix") {
+    if (arg === '--fix') {
       options.fix = true;
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--timeout") {
+    } else if (arg === '--timeout') {
       options.timeout = args[++i];
-    } else if (arg === "--config") {
+    } else if (arg === '--config') {
       options.config = args[++i];
-    } else if (arg === "--linter") {
+    } else if (arg === '--linter') {
       options.linter = args[++i];
-    } else if (arg === "--fast") {
+    } else if (arg === '--fast') {
       options.fast = true;
-    } else if (arg === "--no-config") {
+    } else if (arg === '--no-config') {
       options.noConfig = true;
-    } else if (arg === "--out-format") {
+    } else if (arg === '--out-format') {
       options.outFormat = args[++i];
-    } else if (arg === "--issues-exit-code") {
+    } else if (arg === '--issues-exit-code') {
       options.issuesExitCode = parseInt(args[++i]);
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -61,30 +61,30 @@ async function main() {
       runner.goConfig.linting.configFile = options.config;
     }
 
-    console.log("🔍 Linting Go code...");
+    console.log('🔍 Linting Go code...');
     const result = await runner.lint(options);
 
     if (result.success) {
-      console.log("\n✅ No linting issues found!");
+      console.log('\n✅ No linting issues found!');
     } else if (result.hasIssues) {
-      console.log("\n⚠️ Linting issues found");
+      console.log('\n⚠️ Linting issues found');
       process.exit(options.issuesExitCode || 1);
     } else {
-      console.error("\n❌ Linting failed");
+      console.error('\n❌ Linting failed');
       process.exit(1);
     }
   } catch (error) {
     console.error(`❌ Linting failed: ${error.message}`);
 
     // Provide helpful suggestions for common linting errors
-    if (error.message.includes("golangci-lint")) {
-      console.log("\n💡 Try installing golangci-lint:");
+    if (error.message.includes('golangci-lint')) {
+      console.log('\n💡 Try installing golangci-lint:');
       console.log(
-        "   go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
+        '   go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest',
       );
-    } else if (error.message.includes("staticcheck")) {
-      console.log("\n💡 Try installing staticcheck:");
-      console.log("   go install honnef.co/go/tools/cmd/staticcheck@latest");
+    } else if (error.message.includes('staticcheck')) {
+      console.log('\n💡 Try installing staticcheck:');
+      console.log('   go install honnef.co/go/tools/cmd/staticcheck@latest');
     }
 
     process.exit(1);

@@ -6,14 +6,14 @@
  * breakpoints, step-through debugging, and live charts.
  */
 
-const express = require("express");
-const http = require("http");
-const socketIo = require("socket.io");
-const path = require("path");
-const fs = require("fs").promises;
-const { spawn } = require("child_process");
-const fileUpload = require("express-fileupload");
-const PineCommandRunner = require("./command-runner");
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const path = require('path');
+const fs = require('fs').promises;
+const { spawn } = require('child_process');
+const fileUpload = require('express-fileupload');
+const PineCommandRunner = require('./command-runner');
 
 class PineScriptDebugServer {
   constructor(options = {}) {
@@ -25,8 +25,8 @@ class PineScriptDebugServer {
     this.server = http.createServer(this.app);
     this.io = socketIo(this.server, {
       cors: {
-        origin: "*",
-        methods: ["GET", "POST"],
+        origin: '*',
+        methods: ['GET', 'POST'],
       },
     });
 
@@ -34,7 +34,7 @@ class PineScriptDebugServer {
     this.security = {
       enabled: options.security !== false,
       allowedOrigins: options.allowedOrigins || [
-        "http://localhost:" + (options.port || 3000),
+        `http://localhost:${options.port || 3000}`,
       ],
       maxFileSize: options.maxFileSize || 10 * 1024 * 1024, // 10MB
       requireAuth: options.requireAuth || false,
@@ -80,7 +80,7 @@ class PineScriptDebugServer {
     this.app.use(express.json({ limit: this.security.maxFileSize }));
 
     // Static files
-    this.app.use(express.static(path.join(__dirname, "../../public")));
+    this.app.use(express.static(path.join(__dirname, '../../public')));
 
     // File upload with security
     this.app.use(
@@ -90,7 +90,7 @@ class PineScriptDebugServer {
           files: 1,
         },
         abortOnLimit: true,
-        responseOnLimit: "File size limit exceeded",
+        responseOnLimit: 'File size limit exceeded',
         safeFileNames: true,
         preserveExtension: true,
       }),
@@ -101,26 +101,26 @@ class PineScriptDebugServer {
       const origin = req.headers.origin;
       if (this.security.enabled && this.security.allowedOrigins.length > 0) {
         if (this.security.allowedOrigins.includes(origin)) {
-          res.header("Access-Control-Allow-Origin", origin);
-        } else if (this.security.allowedOrigins.includes("*")) {
-          res.header("Access-Control-Allow-Origin", "*");
+          res.header('Access-Control-Allow-Origin', origin);
+        } else if (this.security.allowedOrigins.includes('*')) {
+          res.header('Access-Control-Allow-Origin', '*');
         }
       } else {
-        res.header("Access-Control-Allow-Origin", "*");
+        res.header('Access-Control-Allow-Origin', '*');
       }
 
       res.header(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization',
       );
-      res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       next();
     });
   }
 
   securityMiddleware(req, res, next) {
     // Skip security for static files and status endpoint
-    if (req.path.startsWith("/public/") || req.path === "/api/status") {
+    if (req.path.startsWith('/public/') || req.path === '/api/status') {
       return next();
     }
 
@@ -128,18 +128,18 @@ class PineScriptDebugServer {
     if (this.security.requireAuth) {
       const authHeader = req.headers.authorization;
       if (!authHeader || !this.validateToken(authHeader)) {
-        return res.status(401).json({ error: "Authentication required" });
+        return res.status(401).json({ error: 'Authentication required' });
       }
     }
 
     // Validate session for export/import endpoints
     if (
-      req.path.startsWith("/api/export") ||
-      req.path.startsWith("/api/import")
+      req.path.startsWith('/api/export') ||
+      req.path.startsWith('/api/import')
     ) {
-      const sessionId = req.headers["x-session-id"] || req.query.sessionId;
+      const sessionId = req.headers['x-session-id'] || req.query.sessionId;
       if (!this.validateSession(sessionId)) {
-        return res.status(403).json({ error: "Invalid or expired session" });
+        return res.status(403).json({ error: 'Invalid or expired session' });
       }
     }
 
@@ -174,24 +174,24 @@ class PineScriptDebugServer {
     // Check if limit exceeded
     if (entry.count > maxRequests) {
       const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
-      res.setHeader("Retry-After", retryAfter);
+      res.setHeader('Retry-After', retryAfter);
       return res.status(429).json({
-        error: "Too many requests",
+        error: 'Too many requests',
         retryAfter: `${retryAfter} seconds`,
       });
     }
 
     // Add rate limit headers
-    res.setHeader("X-RateLimit-Limit", maxRequests);
-    res.setHeader("X-RateLimit-Remaining", maxRequests - entry.count);
-    res.setHeader("X-RateLimit-Reset", entry.resetTime);
+    res.setHeader('X-RateLimit-Limit', maxRequests);
+    res.setHeader('X-RateLimit-Remaining', maxRequests - entry.count);
+    res.setHeader('X-RateLimit-Reset', entry.resetTime);
 
     next();
   }
 
   validateToken(token) {
     // Simple token validation - in production, use proper JWT or similar
-    if (!token.startsWith("Bearer ")) {
+    if (!token.startsWith('Bearer ')) {
       return false;
     }
 
@@ -220,7 +220,7 @@ class PineScriptDebugServer {
   }
 
   generateSessionToken() {
-    const token = require("crypto").randomBytes(32).toString("hex");
+    const token = require('crypto').randomBytes(32).toString('hex');
     const expires = Date.now() + this.security.sessionTimeout;
 
     this.sessionTokens.set(token, {
@@ -246,26 +246,26 @@ class PineScriptDebugServer {
 
   setupRoutes() {
     // API endpoints
-    this.app.get("/api/status", (req, res) => {
+    this.app.get('/api/status', (req, res) => {
       res.json({
-        status: "running",
-        version: "1.0.0",
+        status: 'running',
+        version: '1.0.0',
         debugFile: this.debugFile,
         projectPath: this.projectPath,
         debugState: this.debugState,
       });
     });
 
-    this.app.post("/api/load", async (req, res) => {
+    this.app.post('/api/load', async (req, res) => {
       try {
         const { file } = req.body;
         this.debugFile = file || this.debugFile;
 
         if (!this.debugFile) {
-          return res.status(400).json({ error: "No file specified" });
+          return res.status(400).json({ error: 'No file specified' });
         }
 
-        const content = await fs.readFile(this.debugFile, "utf8");
+        const content = await fs.readFile(this.debugFile, 'utf8');
         const analysis = await this.analyzePineScript(content);
 
         // Create new session
@@ -284,22 +284,22 @@ class PineScriptDebugServer {
           sessionId: this.currentSessionId,
           file: this.debugFile,
           analysis,
-          message: "File loaded successfully",
+          message: 'File loaded successfully',
         });
 
         // Notify all clients
-        this.io.emit("fileLoaded", {
+        this.io.emit('fileLoaded', {
           sessionId: this.currentSessionId,
           file: this.debugFile,
           analysis,
         });
       } catch (error) {
-        console.error("Error loading file:", error);
+        console.error('Error loading file:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
-    this.app.post("/api/breakpoints", (req, res) => {
+    this.app.post('/api/breakpoints', (req, res) => {
       const { line, enabled = true } = req.body;
 
       if (enabled) {
@@ -309,13 +309,13 @@ class PineScriptDebugServer {
       }
 
       this.io.emit(
-        "breakpointsUpdated",
+        'breakpointsUpdated',
         Array.from(this.debugState.breakpoints),
       );
       res.json({ breakpoints: Array.from(this.debugState.breakpoints) });
     });
 
-    this.app.post("/api/watches", (req, res) => {
+    this.app.post('/api/watches', (req, res) => {
       const { variable, expression } = req.body;
 
       if (expression) {
@@ -325,35 +325,35 @@ class PineScriptDebugServer {
       }
 
       this.io.emit(
-        "watchesUpdated",
+        'watchesUpdated',
         Array.from(this.debugState.watches.entries()),
       );
       res.json({ watches: Array.from(this.debugState.watches.entries()) });
     });
 
-    this.app.post("/api/control", (req, res) => {
+    this.app.post('/api/control', (req, res) => {
       const { action, data } = req.body;
 
       switch (action) {
-        case "start":
+        case 'start':
           this.startDebugging();
           break;
-        case "pause":
+        case 'pause':
           this.pauseDebugging();
           break;
-        case "resume":
+        case 'resume':
           this.resumeDebugging();
           break;
-        case "stop":
+        case 'stop':
           this.stopDebugging();
           break;
-        case "step":
+        case 'step':
           this.stepDebugging(data?.steps || 1);
           break;
-        case "setSpeed":
+        case 'setSpeed':
           this.setExecutionSpeed(data?.speed || 1);
           break;
-        case "gotoBar":
+        case 'gotoBar':
           this.gotoBar(data?.bar || 0);
           break;
       }
@@ -361,21 +361,21 @@ class PineScriptDebugServer {
       res.json({ success: true, action });
     });
 
-    this.app.get("/api/variables", (req, res) => {
+    this.app.get('/api/variables', (req, res) => {
       res.json({
         variables: Array.from(this.debugState.variables.entries()),
         currentBar: this.debugState.currentBar,
       });
     });
 
-    this.app.get("/api/callstack", (req, res) => {
+    this.app.get('/api/callstack', (req, res) => {
       res.json({
         callStack: this.debugState.callStack,
         currentBar: this.debugState.currentBar,
       });
     });
 
-    this.app.post("/api/evaluate", async (req, res) => {
+    this.app.post('/api/evaluate', async (req, res) => {
       try {
         const { expression, barIndex } = req.body;
         const result = await this.evaluateExpression(expression, barIndex);
@@ -386,12 +386,12 @@ class PineScriptDebugServer {
     });
 
     // Get session token (for secure export/import)
-    this.app.post("/api/session/token", (req, res) => {
+    this.app.post('/api/session/token', (req, res) => {
       try {
         if (this.security.requireAuth) {
           const authHeader = req.headers.authorization;
           if (!authHeader || !this.validateToken(authHeader)) {
-            return res.status(401).json({ error: "Authentication required" });
+            return res.status(401).json({ error: 'Authentication required' });
           }
         }
 
@@ -399,7 +399,7 @@ class PineScriptDebugServer {
         res.json({
           token,
           expiresIn: this.security.sessionTimeout,
-          note: "Use this token in X-Session-ID header for export/import operations",
+          note: 'Use this token in X-Session-ID header for export/import operations',
         });
       } catch (error) {
         res.status(500).json({ error: error.message });
@@ -411,17 +411,17 @@ class PineScriptDebugServer {
     // ============================================================================
 
     // Get AI suggestions for code
-    this.app.post("/api/ai/suggest", async (req, res) => {
+    this.app.post('/api/ai/suggest', async (req, res) => {
       try {
         const {
           code,
           sessionId,
-          includePatterns = "all",
+          includePatterns = 'all',
           threshold = 0.7,
         } = req.body;
 
         if (!code) {
-          return res.status(400).json({ error: "Code content is required" });
+          return res.status(400).json({ error: 'Code content is required' });
         }
 
         // Load AI patterns
@@ -451,19 +451,19 @@ class PineScriptDebugServer {
         });
 
         // Notify clients about new AI suggestions
-        this.io.emit("aiSuggestions", {
+        this.io.emit('aiSuggestions', {
           sessionId,
           count: suggestions.length,
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
-        console.error("AI suggestion error:", error);
+        console.error('AI suggestion error:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // Get AI patterns database
-    this.app.get("/api/ai/patterns", (req, res) => {
+    this.app.get('/api/ai/patterns', (req, res) => {
       try {
         const patterns = this.loadAIPatterns();
         res.json({
@@ -478,12 +478,12 @@ class PineScriptDebugServer {
     });
 
     // Submit feedback on AI suggestions
-    this.app.post("/api/ai/feedback", (req, res) => {
+    this.app.post('/api/ai/feedback', (req, res) => {
       try {
-        const { suggestionId, accepted, comment = "", sessionId } = req.body;
+        const { suggestionId, accepted, comment = '', sessionId } = req.body;
 
         if (!suggestionId) {
-          return res.status(400).json({ error: "Suggestion ID is required" });
+          return res.status(400).json({ error: 'Suggestion ID is required' });
         }
 
         // Record feedback
@@ -493,7 +493,7 @@ class PineScriptDebugServer {
           comment,
           sessionId,
           timestamp: new Date().toISOString(),
-          userAgent: req.headers["user-agent"],
+          userAgent: req.headers['user-agent'],
         };
 
         // Store feedback (in real implementation would save to database)
@@ -509,12 +509,12 @@ class PineScriptDebugServer {
 
         res.json({
           success: true,
-          feedbackId: feedback.timestamp + "-" + suggestionId,
-          message: "Feedback recorded successfully",
+          feedbackId: `${feedback.timestamp}-${suggestionId}`,
+          message: 'Feedback recorded successfully',
         });
 
         // Notify about feedback
-        this.io.emit("aiFeedback", {
+        this.io.emit('aiFeedback', {
           suggestionId,
           accepted,
           sessionId,
@@ -525,12 +525,12 @@ class PineScriptDebugServer {
     });
 
     // Get AI analysis for current session
-    this.app.get("/api/ai/analysis/:sessionId", (req, res) => {
+    this.app.get('/api/ai/analysis/:sessionId', (req, res) => {
       try {
         const { sessionId } = req.params;
 
         if (!this.sessions.has(sessionId)) {
-          return res.status(404).json({ error: "Session not found" });
+          return res.status(404).json({ error: 'Session not found' });
         }
 
         const session = this.sessions.get(sessionId);
@@ -549,14 +549,14 @@ class PineScriptDebugServer {
     });
 
     // Compare code with AI suggestions
-    this.app.post("/api/ai/compare", async (req, res) => {
+    this.app.post('/api/ai/compare', async (req, res) => {
       try {
         const { originalCode, modifiedCode, sessionId } = req.body;
 
         if (!originalCode || !modifiedCode) {
           return res
             .status(400)
-            .json({ error: "Both original and modified code are required" });
+            .json({ error: 'Both original and modified code are required' });
         }
 
         // Analyze differences
@@ -599,12 +599,12 @@ class PineScriptDebugServer {
     // ============================================================================
 
     // Export debugging session (secure)
-    this.app.get("/api/export", (req, res) => {
+    this.app.get('/api/export', (req, res) => {
       try {
         // Validate session
-        const sessionId = req.headers["x-session-id"] || req.query.sessionId;
+        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
         if (!this.validateSession(sessionId)) {
-          return res.status(403).json({ error: "Invalid or expired session" });
+          return res.status(403).json({ error: 'Invalid or expired session' });
         }
 
         const sessionData = this.exportDebugSession();
@@ -613,7 +613,7 @@ class PineScriptDebugServer {
         sessionData.security = {
           exportedAt: new Date().toISOString(),
           exportedBy: req.ip,
-          sessionId: sessionId.substring(0, 8) + "...", // Partial for logging
+          sessionId: `${sessionId.substring(0, 8)}...`, // Partial for logging
         };
 
         res.json(sessionData);
@@ -623,25 +623,25 @@ class PineScriptDebugServer {
     });
 
     // Import debugging session (secure)
-    this.app.post("/api/import", (req, res) => {
+    this.app.post('/api/import', (req, res) => {
       try {
         // Validate session
-        const sessionId = req.headers["x-session-id"] || req.query.sessionId;
+        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
         if (!this.validateSession(sessionId)) {
-          return res.status(403).json({ error: "Invalid or expired session" });
+          return res.status(403).json({ error: 'Invalid or expired session' });
         }
 
         const sessionData = req.body;
 
         // Validate session data structure
         if (!this.validateSessionData(sessionData)) {
-          return res.status(400).json({ error: "Invalid session data format" });
+          return res.status(400).json({ error: 'Invalid session data format' });
         }
 
         // Check for malicious data
         if (this.containsMaliciousData(sessionData)) {
           return res.status(400).json({
-            error: "Session data contains potentially malicious content",
+            error: 'Session data contains potentially malicious content',
           });
         }
 
@@ -651,7 +651,7 @@ class PineScriptDebugServer {
         result.security = {
           importedAt: new Date().toISOString(),
           importedBy: req.ip,
-          sessionId: sessionId.substring(0, 8) + "...",
+          sessionId: `${sessionId.substring(0, 8)}...`,
         };
 
         res.json(result);
@@ -661,43 +661,43 @@ class PineScriptDebugServer {
     });
 
     // Export session to file (secure)
-    this.app.get("/api/export/file", (req, res) => {
+    this.app.get('/api/export/file', (req, res) => {
       try {
         // Validate session
-        const sessionId = req.headers["x-session-id"] || req.query.sessionId;
+        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
         if (!this.validateSession(sessionId)) {
-          return res.status(403).json({ error: "Invalid or expired session" });
+          return res.status(403).json({ error: 'Invalid or expired session' });
         }
 
-        const format = req.query.format || "json";
+        const format = req.query.format || 'json';
         const sessionData = this.exportDebugSession();
 
         // Add security metadata
         sessionData.security = {
           exportedAt: new Date().toISOString(),
           exportedBy: req.ip,
-          sessionId: sessionId.substring(0, 8) + "...",
+          sessionId: `${sessionId.substring(0, 8)}...`,
         };
 
-        if (format === "json") {
-          res.setHeader("Content-Type", "application/json");
+        if (format === 'json') {
+          res.setHeader('Content-Type', 'application/json');
           res.setHeader(
-            "Content-Disposition",
-            'attachment; filename="debug-session-' + Date.now() + '.json"',
+            'Content-Disposition',
+            `attachment; filename="debug-session-${Date.now()}.json"`,
           );
-          res.setHeader("X-Content-Type-Options", "nosniff");
+          res.setHeader('X-Content-Type-Options', 'nosniff');
           res.send(JSON.stringify(sessionData, null, 2));
-        } else if (format === "csv") {
+        } else if (format === 'csv') {
           const csvData = this.convertSessionToCSV(sessionData);
-          res.setHeader("Content-Type", "text/csv");
+          res.setHeader('Content-Type', 'text/csv');
           res.setHeader(
-            "Content-Disposition",
-            'attachment; filename="debug-session-' + Date.now() + '.csv"',
+            'Content-Disposition',
+            `attachment; filename="debug-session-${Date.now()}.csv"`,
           );
-          res.setHeader("X-Content-Type-Options", "nosniff");
+          res.setHeader('X-Content-Type-Options', 'nosniff');
           res.send(csvData);
         } else {
-          res.status(400).json({ error: "Unsupported format" });
+          res.status(400).json({ error: 'Unsupported format' });
         }
       } catch (error) {
         res.status(500).json({ error: error.message });
@@ -705,16 +705,16 @@ class PineScriptDebugServer {
     });
 
     // Import session from file (secure)
-    this.app.post("/api/import/file", async (req, res) => {
+    this.app.post('/api/import/file', async (req, res) => {
       try {
         // Validate session
-        const sessionId = req.headers["x-session-id"] || req.query.sessionId;
+        const sessionId = req.headers['x-session-id'] || req.query.sessionId;
         if (!this.validateSession(sessionId)) {
-          return res.status(403).json({ error: "Invalid or expired session" });
+          return res.status(403).json({ error: 'Invalid or expired session' });
         }
 
         if (!req.files || !req.files.sessionFile) {
-          return res.status(400).json({ error: "No file uploaded" });
+          return res.status(400).json({ error: 'No file uploaded' });
         }
 
         const file = req.files.sessionFile;
@@ -723,38 +723,38 @@ class PineScriptDebugServer {
         if (!this.isValidFileType(file)) {
           return res
             .status(400)
-            .json({ error: "Invalid file type. Only JSON files are allowed." });
+            .json({ error: 'Invalid file type. Only JSON files are allowed.' });
         }
 
         // Validate file size
         if (file.size > this.security.maxFileSize) {
           return res.status(400).json({
             error:
-              "File too large. Maximum size is " +
-              this.security.maxFileSize / 1024 / 1024 +
-              "MB",
+              `File too large. Maximum size is ${
+                this.security.maxFileSize / 1024 / 1024
+              }MB`,
           });
         }
 
-        const fileContent = file.data.toString("utf8");
+        const fileContent = file.data.toString('utf8');
 
         // Validate JSON
         let sessionData;
         try {
           sessionData = JSON.parse(fileContent);
         } catch (e) {
-          return res.status(400).json({ error: "Invalid JSON file" });
+          return res.status(400).json({ error: 'Invalid JSON file' });
         }
 
         // Validate session data structure
         if (!this.validateSessionData(sessionData)) {
-          return res.status(400).json({ error: "Invalid session data format" });
+          return res.status(400).json({ error: 'Invalid session data format' });
         }
 
         // Check for malicious data
         if (this.containsMaliciousData(sessionData)) {
           return res.status(400).json({
-            error: "Session data contains potentially malicious content",
+            error: 'Session data contains potentially malicious content',
           });
         }
 
@@ -764,7 +764,7 @@ class PineScriptDebugServer {
         result.security = {
           importedAt: new Date().toISOString(),
           importedBy: req.ip,
-          sessionId: sessionId.substring(0, 8) + "...",
+          sessionId: `${sessionId.substring(0, 8)}...`,
           fileName: file.name,
           fileSize: file.size,
         };
@@ -776,7 +776,7 @@ class PineScriptDebugServer {
     });
 
     // Import debugging session
-    this.app.post("/api/import", (req, res) => {
+    this.app.post('/api/import', (req, res) => {
       try {
         const sessionData = req.body;
         const result = this.importDebugSession(sessionData);
@@ -787,28 +787,28 @@ class PineScriptDebugServer {
     });
 
     // Export session to file
-    this.app.get("/api/export/file", (req, res) => {
+    this.app.get('/api/export/file', (req, res) => {
       try {
-        const format = req.query.format || "json";
+        const format = req.query.format || 'json';
         const sessionData = this.exportDebugSession();
 
-        if (format === "json") {
-          res.setHeader("Content-Type", "application/json");
+        if (format === 'json') {
+          res.setHeader('Content-Type', 'application/json');
           res.setHeader(
-            "Content-Disposition",
+            'Content-Disposition',
             'attachment; filename="debug-session.json"',
           );
           res.send(JSON.stringify(sessionData, null, 2));
-        } else if (format === "csv") {
+        } else if (format === 'csv') {
           const csvData = this.convertSessionToCSV(sessionData);
-          res.setHeader("Content-Type", "text/csv");
+          res.setHeader('Content-Type', 'text/csv');
           res.setHeader(
-            "Content-Disposition",
+            'Content-Disposition',
             'attachment; filename="debug-session.csv"',
           );
           res.send(csvData);
         } else {
-          res.status(400).json({ error: "Unsupported format" });
+          res.status(400).json({ error: 'Unsupported format' });
         }
       } catch (error) {
         res.status(500).json({ error: error.message });
@@ -816,14 +816,14 @@ class PineScriptDebugServer {
     });
 
     // Import session from file
-    this.app.post("/api/import/file", async (req, res) => {
+    this.app.post('/api/import/file', async (req, res) => {
       try {
         if (!req.files || !req.files.sessionFile) {
-          return res.status(400).json({ error: "No file uploaded" });
+          return res.status(400).json({ error: 'No file uploaded' });
         }
 
         const file = req.files.sessionFile;
-        const fileContent = file.data.toString("utf8");
+        const fileContent = file.data.toString('utf8');
         const sessionData = JSON.parse(fileContent);
 
         const result = this.importDebugSession(sessionData);
@@ -834,29 +834,29 @@ class PineScriptDebugServer {
     });
 
     // Serve debug interface
-    this.app.get("/debug", (req, res) => {
-      res.sendFile(path.join(__dirname, "../../public/debug.html"));
+    this.app.get('/debug', (req, res) => {
+      res.sendFile(path.join(__dirname, '../../public/debug.html'));
     });
 
     // Serve main interface
-    this.app.get("/", (req, res) => {
-      res.sendFile(path.join(__dirname, "../../public/index.html"));
+    this.app.get('/', (req, res) => {
+      res.sendFile(path.join(__dirname, '../../public/index.html'));
     });
   }
 
   setupSocketIO() {
-    this.io.on("connection", (socket) => {
-      console.log("🔌 Client connected:", socket.id);
+    this.io.on('connection', (socket) => {
+      console.log('🔌 Client connected:', socket.id);
 
       // Send current state to new client
-      socket.emit("initialState", {
+      socket.emit('initialState', {
         debugState: this.debugState,
         sessionId: this.currentSessionId,
         file: this.debugFile,
       });
 
       // Handle client events
-      socket.on("setBreakpoint", (data) => {
+      socket.on('setBreakpoint', (data) => {
         const { line, enabled } = data;
         if (enabled) {
           this.debugState.breakpoints.add(line);
@@ -864,34 +864,34 @@ class PineScriptDebugServer {
           this.debugState.breakpoints.delete(line);
         }
         this.io.emit(
-          "breakpointsUpdated",
+          'breakpointsUpdated',
           Array.from(this.debugState.breakpoints),
         );
       });
 
-      socket.on("addWatch", (data) => {
+      socket.on('addWatch', (data) => {
         const { variable, expression } = data;
         this.debugState.watches.set(variable, expression);
         this.io.emit(
-          "watchesUpdated",
+          'watchesUpdated',
           Array.from(this.debugState.watches.entries()),
         );
       });
 
-      socket.on("removeWatch", (variable) => {
+      socket.on('removeWatch', (variable) => {
         this.debugState.watches.delete(variable);
         this.io.emit(
-          "watchesUpdated",
+          'watchesUpdated',
           Array.from(this.debugState.watches.entries()),
         );
       });
 
-      socket.on("control", (data) => {
+      socket.on('control', (data) => {
         const { action, ...rest } = data;
         this.handleControlAction(action, rest);
       });
 
-      socket.on("evaluate", async (data, callback) => {
+      socket.on('evaluate', async (data, callback) => {
         try {
           const result = await this.evaluateExpression(
             data.expression,
@@ -903,15 +903,15 @@ class PineScriptDebugServer {
         }
       });
 
-      socket.on("disconnect", () => {
-        console.log("🔌 Client disconnected:", socket.id);
+      socket.on('disconnect', () => {
+        console.log('🔌 Client disconnected:', socket.id);
       });
     });
   }
 
   async analyzePineScript(content) {
     const analysis = {
-      lines: content.split("\n"),
+      lines: content.split('\n'),
       variables: [],
       functions: [],
       conditions: [],
@@ -927,7 +927,7 @@ class PineScriptDebugServer {
       analysis.variables.push({
         name: match[1],
         line: this.getLineNumber(content, match.index),
-        type: "variable",
+        type: 'variable',
       });
     }
 
@@ -937,7 +937,7 @@ class PineScriptDebugServer {
       analysis.variables.push({
         name: match[1],
         line: this.getLineNumber(content, match.index),
-        type: "input",
+        type: 'input',
       });
     }
 
@@ -947,7 +947,7 @@ class PineScriptDebugServer {
       analysis.functions.push({
         name: match[1],
         line: this.getLineNumber(content, match.index),
-        type: "function",
+        type: 'function',
       });
     }
 
@@ -962,11 +962,11 @@ class PineScriptDebugServer {
     const plotRegex = /plot(?:shape|char)?\s*\(/gi;
     analysis.plots = [...content.matchAll(plotRegex)].map((match) => ({
       line: this.getLineNumber(content, match.index),
-      type: match[0].includes("shape")
-        ? "shape"
-        : match[0].includes("char")
-          ? "char"
-          : "plot",
+      type: match[0].includes('shape')
+        ? 'shape'
+        : match[0].includes('char')
+          ? 'char'
+          : 'plot',
     }));
 
     // Calculate complexity
@@ -979,11 +979,11 @@ class PineScriptDebugServer {
   }
 
   getLineNumber(content, index) {
-    return content.substring(0, index).split("\n").length;
+    return content.substring(0, index).split('\n').length;
   }
 
   calculateComplexity(content) {
-    const lines = content.split("\n").length;
+    const lines = content.split('\n').length;
     const variables = (content.match(/\w+\s*=/g) || []).length;
     const conditions = (content.match(/if\s+|when\s+|and\s+|or\s+/gi) || [])
       .length;
@@ -996,31 +996,31 @@ class PineScriptDebugServer {
 
   generateDebugSuggestions(content) {
     const suggestions = [];
-    const lines = content.split("\n").length;
+    const lines = content.split('\n').length;
     const variableCount = (content.match(/\w+\s*=/g) || []).length;
 
     if (lines > 100) {
       suggestions.push({
-        type: "performance",
+        type: 'performance',
         message: `Large indicator (${lines} lines). Consider adding breakpoints for step debugging.`,
-        priority: "medium",
+        priority: 'medium',
       });
     }
 
     if (variableCount > 20) {
       suggestions.push({
-        type: "organization",
+        type: 'organization',
         message: `Many variables (${variableCount}). Use watch expressions to track key variables.`,
-        priority: "high",
+        priority: 'high',
       });
     }
 
-    if (!content.includes("plotchar(") && !content.includes("plotshape(")) {
+    if (!content.includes('plotchar(') && !content.includes('plotshape(')) {
       suggestions.push({
-        type: "visualization",
+        type: 'visualization',
         message:
-          "No debug visualization found. Add plotchar() for variable inspection.",
-        priority: "low",
+          'No debug visualization found. Add plotchar() for variable inspection.',
+        priority: 'low',
       });
     }
 
@@ -1038,7 +1038,7 @@ class PineScriptDebugServer {
     this.debugState.variables.clear();
     this.debugState.callStack = [];
 
-    this.io.emit("debuggingStarted", {
+    this.io.emit('debuggingStarted', {
       currentBar: this.debugState.currentBar,
       isRunning: true,
       paused: false,
@@ -1054,7 +1054,7 @@ class PineScriptDebugServer {
     }
 
     this.debugState.paused = true;
-    this.io.emit("debuggingPaused", {
+    this.io.emit('debuggingPaused', {
       currentBar: this.debugState.currentBar,
       paused: true,
     });
@@ -1066,7 +1066,7 @@ class PineScriptDebugServer {
     }
 
     this.debugState.paused = false;
-    this.io.emit("debuggingResumed", {
+    this.io.emit('debuggingResumed', {
       currentBar: this.debugState.currentBar,
       paused: false,
     });
@@ -1079,7 +1079,7 @@ class PineScriptDebugServer {
     this.debugState.isRunning = false;
     this.debugState.paused = false;
 
-    this.io.emit("debuggingStopped", {
+    this.io.emit('debuggingStopped', {
       isRunning: false,
       paused: false,
       currentBar: this.debugState.currentBar,
@@ -1101,7 +1101,7 @@ class PineScriptDebugServer {
 
       // Check for breakpoints
       if (this.debugState.breakpoints.has(this.debugState.currentBar)) {
-        this.io.emit("breakpointHit", {
+        this.io.emit('breakpointHit', {
           bar: this.debugState.currentBar,
           variables: Array.from(this.debugState.variables.entries()),
         });
@@ -1109,7 +1109,7 @@ class PineScriptDebugServer {
       }
     }
 
-    this.io.emit("stepComplete", {
+    this.io.emit('stepComplete', {
       currentBar: this.debugState.currentBar,
       variables: Array.from(this.debugState.variables.entries()),
       callStack: this.debugState.callStack,
@@ -1118,7 +1118,7 @@ class PineScriptDebugServer {
 
   setExecutionSpeed(speed) {
     this.debugState.executionSpeed = Math.max(0.1, Math.min(speed, 10));
-    this.io.emit("speedChanged", { speed: this.debugState.executionSpeed });
+    this.io.emit('speedChanged', { speed: this.debugState.executionSpeed });
   }
 
   gotoBar(barIndex) {
@@ -1127,7 +1127,7 @@ class PineScriptDebugServer {
     }
 
     this.debugState.currentBar = Math.max(0, barIndex);
-    this.io.emit("barChanged", {
+    this.io.emit('barChanged', {
       currentBar: this.debugState.currentBar,
       variables: Array.from(this.debugState.variables.entries()),
     });
@@ -1138,7 +1138,7 @@ class PineScriptDebugServer {
       await this.executeBar(this.debugState.currentBar);
 
       // Update clients
-      this.io.emit("barExecuted", {
+      this.io.emit('barExecuted', {
         bar: this.debugState.currentBar,
         variables: Array.from(this.debugState.variables.entries()),
         watches: this.evaluateWatches(),
@@ -1149,7 +1149,7 @@ class PineScriptDebugServer {
       // Check for breakpoints
       if (this.debugState.breakpoints.has(this.debugState.currentBar)) {
         this.debugState.paused = true;
-        this.io.emit("breakpointHit", {
+        this.io.emit('breakpointHit', {
           bar: this.debugState.currentBar,
           variables: Array.from(this.debugState.variables.entries()),
         });
@@ -1169,16 +1169,16 @@ class PineScriptDebugServer {
 
     // Update some example variables
     const time = Date.now();
-    this.debugState.variables.set("bar_index", barIndex);
-    this.debugState.variables.set("close", 100 + Math.sin(barIndex * 0.1) * 10);
-    this.debugState.variables.set("high", 105 + Math.sin(barIndex * 0.1) * 12);
-    this.debugState.variables.set("low", 95 + Math.sin(barIndex * 0.1) * 8);
-    this.debugState.variables.set("volume", 1000 + Math.random() * 500);
+    this.debugState.variables.set('bar_index', barIndex);
+    this.debugState.variables.set('close', 100 + Math.sin(barIndex * 0.1) * 10);
+    this.debugState.variables.set('high', 105 + Math.sin(barIndex * 0.1) * 12);
+    this.debugState.variables.set('low', 95 + Math.sin(barIndex * 0.1) * 8);
+    this.debugState.variables.set('volume', 1000 + Math.random() * 500);
 
     // Update call stack
     this.debugState.callStack = [
-      { function: "main", bar: barIndex, time },
-      { function: "calculateIndicators", bar: barIndex, time: time + 1 },
+      { function: 'main', bar: barIndex, time },
+      { function: 'calculateIndicators', bar: barIndex, time: time + 1 },
     ];
   }
 
@@ -1211,16 +1211,16 @@ class PineScriptDebugServer {
     // Simple expression evaluator for demo purposes
     // In production, use a proper expression parser
 
-    if (expression.includes("+")) {
-      const parts = expression.split("+");
+    if (expression.includes('+')) {
+      const parts = expression.split('+');
       return parts.reduce(
         (sum, part) => sum + (parseFloat(part.trim()) || 0),
         0,
       );
     }
 
-    if (expression.includes("-")) {
-      const parts = expression.split("-");
+    if (expression.includes('-')) {
+      const parts = expression.split('-');
       return parts.reduce(
         (diff, part, i) =>
           i === 0
@@ -1251,7 +1251,7 @@ class PineScriptDebugServer {
 
     return {
       value: Math.random() * 100,
-      type: "number",
+      type: 'number',
       barIndex: barIndex || this.debugState.currentBar,
       timestamp: Date.now(),
     };
@@ -1259,29 +1259,29 @@ class PineScriptDebugServer {
 
   handleControlAction(action, data) {
     switch (action) {
-      case "start":
+      case 'start':
         this.startDebugging();
         break;
-      case "pause":
+      case 'pause':
         this.pauseDebugging();
         break;
-      case "resume":
+      case 'resume':
         this.resumeDebugging();
         break;
-      case "stop":
+      case 'stop':
         this.stopDebugging();
         break;
-      case "step":
+      case 'step':
         this.stepDebugging(data?.steps || 1);
         break;
-      case "setSpeed":
+      case 'setSpeed':
         this.setExecutionSpeed(data?.speed || 1);
         break;
-      case "gotoBar":
+      case 'gotoBar':
         this.gotoBar(data?.bar || 0);
         break;
       default:
-        console.warn("Unknown control action:", action);
+        console.warn('Unknown control action:', action);
     }
   }
 
@@ -1290,7 +1290,7 @@ class PineScriptDebugServer {
   exportDebugSession() {
     const sessionData = {
       metadata: {
-        version: "1.0.0",
+        version: '1.0.0',
         exportDate: new Date().toISOString(),
         projectPath: this.projectPath,
         debugFile: this.debugFile,
@@ -1324,7 +1324,7 @@ class PineScriptDebugServer {
   importDebugSession(sessionData) {
     // Validate session data
     if (!sessionData || !sessionData.debugState) {
-      throw new Error("Invalid session data format");
+      throw new Error('Invalid session data format');
     }
 
     // Import debug state
@@ -1346,7 +1346,7 @@ class PineScriptDebugServer {
     }
 
     // Notify clients
-    this.io.emit("sessionImported", {
+    this.io.emit('sessionImported', {
       success: true,
       bars: this.debugState.currentBar,
       breakpoints: Array.from(this.debugState.breakpoints).length,
@@ -1355,7 +1355,7 @@ class PineScriptDebugServer {
 
     return {
       success: true,
-      message: "Session imported successfully",
+      message: 'Session imported successfully',
       bars: this.debugState.currentBar,
       breakpoints: Array.from(this.debugState.breakpoints).length,
       variables: this.debugState.variables.size,
@@ -1363,7 +1363,7 @@ class PineScriptDebugServer {
   }
 
   convertSessionToCSV(sessionData) {
-    let csv = "Type,Name,Value,Timestamp\n";
+    let csv = 'Type,Name,Value,Timestamp\n';
 
     // Add variables
     if (sessionData.debugState.variables) {
@@ -1392,7 +1392,7 @@ class PineScriptDebugServer {
   // ========== SECURITY VALIDATION METHODS ==========
 
   validateSessionData(sessionData) {
-    if (!sessionData || typeof sessionData !== "object") {
+    if (!sessionData || typeof sessionData !== 'object') {
       return false;
     }
 
@@ -1402,26 +1402,26 @@ class PineScriptDebugServer {
     }
 
     // Validate metadata
-    if (typeof sessionData.metadata !== "object") {
+    if (typeof sessionData.metadata !== 'object') {
       return false;
     }
 
     // Validate debug state
     const debugState = sessionData.debugState;
-    if (typeof debugState !== "object") {
+    if (typeof debugState !== 'object') {
       return false;
     }
 
     // Check for required fields with proper types
     const requiredFields = {
-      currentBar: "number",
-      breakpoints: "object",
-      watches: "object",
-      variables: "object",
-      callStack: "object",
-      executionSpeed: "number",
-      isRunning: "boolean",
-      paused: "boolean",
+      currentBar: 'number',
+      breakpoints: 'object',
+      watches: 'object',
+      variables: 'object',
+      callStack: 'object',
+      executionSpeed: 'number',
+      isRunning: 'boolean',
+      paused: 'boolean',
     };
 
     for (const [field, type] of Object.entries(requiredFields)) {
@@ -1446,10 +1446,10 @@ class PineScriptDebugServer {
   containsMaliciousData(sessionData) {
     // Check for potentially malicious content in strings
     const checkString = (str) => {
-      if (typeof str !== "string") return false;
+      if (typeof str !== 'string') return false;
 
       // Check for script tags
-      if (str.includes("<script>") || str.includes("</script>")) {
+      if (str.includes('<script>') || str.includes('</script>')) {
         return true;
       }
 
@@ -1481,21 +1481,21 @@ class PineScriptDebugServer {
         }
 
         // Check values
-        if (typeof value === "string") {
+        if (typeof value === 'string') {
           if (checkString(value)) {
             return true;
           }
-        } else if (typeof value === "object" && value !== null) {
+        } else if (typeof value === 'object' && value !== null) {
           if (checkObject(value)) {
             return true;
           }
         } else if (Array.isArray(value)) {
           for (const item of value) {
-            if (typeof item === "string") {
+            if (typeof item === 'string') {
               if (checkString(item)) {
                 return true;
               }
-            } else if (typeof item === "object" && item !== null) {
+            } else if (typeof item === 'object' && item !== null) {
               if (checkObject(item)) {
                 return true;
               }
@@ -1510,8 +1510,8 @@ class PineScriptDebugServer {
   }
 
   isValidFileType(file) {
-    const allowedExtensions = [".json", ".csv"];
-    const allowedMimeTypes = ["application/json", "text/csv", "text/plain"];
+    const allowedExtensions = ['.json', '.csv'];
+    const allowedMimeTypes = ['application/json', 'text/csv', 'text/plain'];
 
     // Check extension
     const extension = path.extname(file.name).toLowerCase();
@@ -1533,12 +1533,12 @@ class PineScriptDebugServer {
       try {
         this.runner = new PineCommandRunner(this.projectPath);
         await this.runner.initialize();
-        console.log("✅ PineScript project configured");
+        console.log('✅ PineScript project configured');
       } catch (error) {
         console.log(
-          "⚠️  PineScript project not configured - running in basic mode",
+          '⚠️  PineScript project not configured - running in basic mode',
         );
-        console.log("💡 Run /pine-setup to enable full debugging features");
+        console.log('💡 Run /pine-setup to enable full debugging features');
         this.runner = null;
       }
 
@@ -1552,22 +1552,22 @@ class PineScriptDebugServer {
         if (this.debugFile) {
           console.log(`📄 Debug file: ${this.debugFile}`);
         } else {
-          console.log("💡 Use /api/load endpoint to load a PineScript file");
+          console.log('💡 Use /api/load endpoint to load a PineScript file');
         }
 
         console.log(
-          "💾 Session export/import available at /api/export and /api/import",
+          '💾 Session export/import available at /api/export and /api/import',
         );
       });
     } catch (error) {
-      console.error("Failed to start debug server:", error);
+      console.error('Failed to start debug server:', error);
       process.exit(1);
     }
   }
 
   stop() {
     this.server.close(() => {
-      console.log("🛑 Debug server stopped");
+      console.log('🛑 Debug server stopped');
     });
   }
 
@@ -1576,14 +1576,14 @@ class PineScriptDebugServer {
   // ============================================================================
 
   loadAIPatterns() {
-    const fs = require("fs");
-    const path = require("path");
+    const fs = require('fs');
+    const path = require('path');
 
-    const patternsPath = path.join(__dirname, "../../data/ai-patterns.json");
+    const patternsPath = path.join(__dirname, '../../data/ai-patterns.json');
 
     try {
       if (fs.existsSync(patternsPath)) {
-        const data = fs.readFileSync(patternsPath, "utf8");
+        const data = fs.readFileSync(patternsPath, 'utf8');
         return JSON.parse(data);
       }
     } catch (error) {
@@ -1598,8 +1598,8 @@ class PineScriptDebugServer {
         best_practices: [],
         tradingview_specific: [],
       },
-      version: "1.0.0",
-      description: "Default AI patterns",
+      version: '1.0.0',
+      description: 'Default AI patterns',
       suggestion_categories: {},
     };
   }
@@ -1607,29 +1607,29 @@ class PineScriptDebugServer {
   generateAISuggestions(
     code,
     patterns,
-    includePatterns = "all",
+    includePatterns = 'all',
     threshold = 0.7,
   ) {
     const suggestions = [];
-    const lines = code.split("\n");
+    const lines = code.split('\n');
 
     // Parse include patterns
     const categories =
-      includePatterns === "all"
+      includePatterns === 'all'
         ? [
-            "common_errors",
-            "performance_issues",
-            "best_practices",
-            "tradingview_specific",
-          ]
-        : includePatterns.split(",");
+          'common_errors',
+          'performance_issues',
+          'best_practices',
+          'tradingview_specific',
+        ]
+        : includePatterns.split(',');
 
     // Analyze each line for patterns
     lines.forEach((line, lineNum) => {
       const trimmed = line.trim();
 
       // Skip empty lines and comments
-      if (trimmed === "" || trimmed.startsWith("//")) {
+      if (trimmed === '' || trimmed.startsWith('//')) {
         return;
       }
 
@@ -1640,7 +1640,7 @@ class PineScriptDebugServer {
             if (this.matchesAIPattern(trimmed, pattern)) {
               suggestions.push({
                 line: lineNum + 1,
-                category: category.replace("_", " "),
+                category: category.replace('_', ' '),
                 patternId: pattern.id,
                 patternName: pattern.name,
                 description: pattern.description,
@@ -1673,43 +1673,43 @@ class PineScriptDebugServer {
 
     // Simple pattern matching
     if (
-      pattern.id === "CE001" &&
-      (lineLower.includes("[bar_index") || lineLower.includes("close["))
+      pattern.id === 'CE001' &&
+      (lineLower.includes('[bar_index') || lineLower.includes('close['))
     ) {
       return true;
     }
 
     if (
-      pattern.id === "CE002" &&
-      (lineLower.includes("/ 0") || lineLower.includes("/ close[1]"))
+      pattern.id === 'CE002' &&
+      (lineLower.includes('/ 0') || lineLower.includes('/ close[1]'))
     ) {
       return true;
     }
 
     if (
-      pattern.id === "CE003" &&
-      (lineLower.includes("na +") || lineLower.includes("+ na"))
+      pattern.id === 'CE003' &&
+      (lineLower.includes('na +') || lineLower.includes('+ na'))
     ) {
       return true;
     }
 
     if (
-      pattern.id === "PI001" &&
-      lineLower.includes("ta.sma") &&
-      lineLower.includes("ta.sma")
+      pattern.id === 'PI001' &&
+      lineLower.includes('ta.sma') &&
+      lineLower.includes('ta.sma')
     ) {
       return true;
     }
 
     if (
-      pattern.id === "BP001" &&
-      lineLower.includes("input(") &&
-      !lineLower.includes("input.int(")
+      pattern.id === 'BP001' &&
+      lineLower.includes('input(') &&
+      !lineLower.includes('input.int(')
     ) {
       return true;
     }
 
-    if (pattern.id === "TV001" && lineLower.includes("security(")) {
+    if (pattern.id === 'TV001' && lineLower.includes('security(')) {
       return true;
     }
 
@@ -1719,15 +1719,15 @@ class PineScriptDebugServer {
   calculateAIConfidence(line, pattern) {
     let confidence = 0.5;
 
-    if (pattern.id === "CE002" && line.includes("/ 0")) {
+    if (pattern.id === 'CE002' && line.includes('/ 0')) {
       confidence = 0.9;
     }
 
-    if (pattern.id === "CE001" && line.includes("[bar_index -")) {
+    if (pattern.id === 'CE001' && line.includes('[bar_index -')) {
       confidence = 0.8;
     }
 
-    if (pattern.id === "PI001" && (line.match(/ta\.sma/g) || []).length > 1) {
+    if (pattern.id === 'PI001' && (line.match(/ta\.sma/g) || []).length > 1) {
       confidence = 0.7;
     }
 
@@ -1740,18 +1740,18 @@ class PineScriptDebugServer {
 
     const stats = {
       totalSuggestions: suggestions.length,
-      highPriority: suggestions.filter((s) => s.severity === "high").length,
-      mediumPriority: suggestions.filter((s) => s.severity === "medium").length,
-      lowPriority: suggestions.filter((s) => s.severity === "low").length,
+      highPriority: suggestions.filter((s) => s.severity === 'high').length,
+      mediumPriority: suggestions.filter((s) => s.severity === 'medium').length,
+      lowPriority: suggestions.filter((s) => s.severity === 'low').length,
       totalFeedback: feedback.length,
       acceptedFeedback: feedback.filter((f) => f.accepted).length,
       rejectedFeedback: feedback.filter((f) => !f.accepted).length,
       acceptanceRate:
         feedback.length > 0
           ? Math.round(
-              (feedback.filter((f) => f.accepted).length / feedback.length) *
+            (feedback.filter((f) => f.accepted).length / feedback.length) *
                 100,
-            )
+          )
           : 0,
     };
 
@@ -1759,8 +1759,8 @@ class PineScriptDebugServer {
   }
 
   analyzeCodeDifferences(originalCode, modifiedCode) {
-    const originalLines = originalCode.split("\n");
-    const modifiedLines = modifiedCode.split("\n");
+    const originalLines = originalCode.split('\n');
+    const modifiedLines = modifiedCode.split('\n');
 
     const addedLines = [];
     const removedLines = [];
@@ -1770,8 +1770,8 @@ class PineScriptDebugServer {
     const maxLength = Math.max(originalLines.length, modifiedLines.length);
 
     for (let i = 0; i < maxLength; i++) {
-      const original = originalLines[i] || "";
-      const modified = modifiedLines[i] || "";
+      const original = originalLines[i] || '';
+      const modified = modifiedLines[i] || '';
 
       if (i >= originalLines.length) {
         addedLines.push({ line: i + 1, content: modified });
@@ -1824,13 +1824,13 @@ if (require.main === module) {
   const options = {};
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--port" || args[i] === "-p") {
+    if (args[i] === '--port' || args[i] === '-p') {
       options.port = parseInt(args[++i]);
-    } else if (args[i] === "--file" || args[i] === "-f") {
+    } else if (args[i] === '--file' || args[i] === '-f') {
       options.file = args[++i];
-    } else if (args[i] === "--project" || args[i] === "-d") {
+    } else if (args[i] === '--project' || args[i] === '-d') {
       options.projectPath = args[++i];
-    } else if (args[i] === "--help" || args[i] === "-h") {
+    } else if (args[i] === '--help' || args[i] === '-h') {
       console.log(`
 PineScript Interactive Debug Server
 
@@ -1854,14 +1854,14 @@ Examples:
   server.start();
 
   // Handle graceful shutdown
-  process.on("SIGINT", () => {
-    console.log("\n🛑 Received SIGINT, shutting down...");
+  process.on('SIGINT', () => {
+    console.log('\n🛑 Received SIGINT, shutting down...');
     server.stop();
     process.exit(0);
   });
 
-  process.on("SIGTERM", () => {
-    console.log("\n🛑 Received SIGTERM, shutting down...");
+  process.on('SIGTERM', () => {
+    console.log('\n🛑 Received SIGTERM, shutting down...');
     server.stop();
     process.exit(0);
   });

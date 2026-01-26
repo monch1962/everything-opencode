@@ -19,7 +19,7 @@ const PACKAGE_MANAGERS = {
     execCmd: 'npx',
     testCmd: 'npm test',
     buildCmd: 'npm run build',
-    devCmd: 'npm run dev'
+    devCmd: 'npm run dev',
   },
   pnpm: {
     name: 'pnpm',
@@ -29,7 +29,7 @@ const PACKAGE_MANAGERS = {
     execCmd: 'pnpm dlx',
     testCmd: 'pnpm test',
     buildCmd: 'pnpm build',
-    devCmd: 'pnpm dev'
+    devCmd: 'pnpm dev',
   },
   yarn: {
     name: 'yarn',
@@ -39,7 +39,7 @@ const PACKAGE_MANAGERS = {
     execCmd: 'yarn dlx',
     testCmd: 'yarn test',
     buildCmd: 'yarn build',
-    devCmd: 'yarn dev'
+    devCmd: 'yarn dev',
   },
   bun: {
     name: 'bun',
@@ -49,8 +49,8 @@ const PACKAGE_MANAGERS = {
     execCmd: 'bunx',
     testCmd: 'bun test',
     buildCmd: 'bun run build',
-    devCmd: 'bun run dev'
-  }
+    devCmd: 'bun run dev',
+  },
 };
 
 // Priority order for detection
@@ -163,7 +163,7 @@ function getPackageManager(options = {}) {
     return {
       name: envPm,
       config: PACKAGE_MANAGERS[envPm],
-      source: 'environment'
+      source: 'environment',
     };
   }
 
@@ -177,7 +177,7 @@ function getPackageManager(options = {}) {
         return {
           name: config.packageManager,
           config: PACKAGE_MANAGERS[config.packageManager],
-          source: 'project-config'
+          source: 'project-config',
         };
       }
     } catch {
@@ -191,7 +191,7 @@ function getPackageManager(options = {}) {
     return {
       name: fromPackageJson,
       config: PACKAGE_MANAGERS[fromPackageJson],
-      source: 'package.json'
+      source: 'package.json',
     };
   }
 
@@ -201,7 +201,7 @@ function getPackageManager(options = {}) {
     return {
       name: fromLockFile,
       config: PACKAGE_MANAGERS[fromLockFile],
-      source: 'lock-file'
+      source: 'lock-file',
     };
   }
 
@@ -211,7 +211,7 @@ function getPackageManager(options = {}) {
     return {
       name: globalConfig.packageManager,
       config: PACKAGE_MANAGERS[globalConfig.packageManager],
-      source: 'global-config'
+      source: 'global-config',
     };
   }
 
@@ -222,7 +222,7 @@ function getPackageManager(options = {}) {
       return {
         name: pmName,
         config: PACKAGE_MANAGERS[pmName],
-        source: 'fallback'
+        source: 'fallback',
       };
     }
   }
@@ -231,7 +231,7 @@ function getPackageManager(options = {}) {
   return {
     name: 'npm',
     config: PACKAGE_MANAGERS.npm,
-    source: 'default'
+    source: 'default',
   };
 }
 
@@ -264,7 +264,7 @@ function setProjectPackageManager(pmName, projectDir = process.cwd()) {
 
   const config = {
     packageManager: pmName,
-    setAt: new Date().toISOString()
+    setAt: new Date().toISOString(),
   };
 
   writeFile(configPath, JSON.stringify(config, null, 2));
@@ -300,7 +300,7 @@ function getRunCommand(script, options = {}) {
  */
 function getExecCommand(binary, args = '', options = {}) {
   const pm = getPackageManager(options);
-  return `${pm.config.execCmd} ${binary}${args ? ' ' + args : ''}`;
+  return `${pm.config.execCmd} ${binary}${args ? ` ${args}` : ''}`;
 }
 
 /**
@@ -338,28 +338,28 @@ function getCommandPattern(action) {
       'npm run dev',
       'pnpm( run)? dev',
       'yarn dev',
-      'bun run dev'
+      'bun run dev',
     );
   } else if (action === 'install') {
     patterns.push(
       'npm install',
       'pnpm install',
       'yarn( install)?',
-      'bun install'
+      'bun install',
     );
   } else if (action === 'test') {
     patterns.push(
       'npm test',
       'pnpm test',
       'yarn test',
-      'bun test'
+      'bun test',
     );
   } else if (action === 'build') {
     patterns.push(
       'npm run build',
       'pnpm( run)? build',
       'yarn build',
-      'bun run build'
+      'bun run build',
     );
   } else {
     // Generic run command
@@ -367,7 +367,7 @@ function getCommandPattern(action) {
       `npm run ${action}`,
       `pnpm( run)? ${action}`,
       `yarn ${action}`,
-      `bun run ${action}`
+      `bun run ${action}`,
     );
   }
 
@@ -386,5 +386,5 @@ module.exports = {
   getRunCommand,
   getExecCommand,
   getSelectionPrompt,
-  getCommandPattern
+  getCommandPattern,
 };

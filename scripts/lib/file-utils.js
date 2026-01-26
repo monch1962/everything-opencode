@@ -5,9 +5,9 @@
  * Common file operations for language tools
  */
 
-const path = require("path");
-const fs = require("fs");
-const { ensureDir, readFile, writeFile } = require("./utils");
+const path = require('path');
+const fs = require('fs');
+const { ensureDir, readFile, writeFile } = require('./utils');
 
 class FileUtils {
   /**
@@ -30,37 +30,37 @@ class FileUtils {
     // Convert patterns to regexes
     const regexPatterns = patterns.map((pattern) => {
       let regexStr = pattern
-        .replace(/\./g, "\\.")
-        .replace(/\*\*/g, "___DOUBLE_STAR___")
-        .replace(/\*/g, "[^/\\\\]*")
-        .replace(/___DOUBLE_STAR___/g, ".*")
-        .replace(/\?/g, ".");
+        .replace(/\./g, '\\.')
+        .replace(/\*\*/g, '___DOUBLE_STAR___')
+        .replace(/\*/g, '[^/\\\\]*')
+        .replace(/___DOUBLE_STAR___/g, '.*')
+        .replace(/\?/g, '.');
 
       // Handle directory separators
-      regexStr = regexStr.replace(/\//g, "[\\\\/]");
+      regexStr = regexStr.replace(/\//g, '[\\\\/]');
 
-      return new RegExp(`^${regexStr}$`, caseSensitive ? "" : "i");
+      return new RegExp(`^${regexStr}$`, caseSensitive ? '' : 'i');
     });
 
     // Convert ignore patterns to regexes
     const ignoreRegexes = ignore.map((pattern) => {
       let regexStr = pattern
-        .replace(/\./g, "\\.")
-        .replace(/\*\*/g, "___DOUBLE_STAR___")
-        .replace(/\*/g, "[^/\\\\]*")
-        .replace(/___DOUBLE_STAR___/g, ".*")
-        .replace(/\?/g, ".");
+        .replace(/\./g, '\\.')
+        .replace(/\*\*/g, '___DOUBLE_STAR___')
+        .replace(/\*/g, '[^/\\\\]*')
+        .replace(/___DOUBLE_STAR___/g, '.*')
+        .replace(/\?/g, '.');
 
-      regexStr = regexStr.replace(/\//g, "[\\\\/]");
+      regexStr = regexStr.replace(/\//g, '[\\\\/]');
 
-      return new RegExp(`^${regexStr}$`, caseSensitive ? "" : "i");
+      return new RegExp(`^${regexStr}$`, caseSensitive ? '' : 'i');
     });
 
     function shouldIgnore(filePath, relativePath) {
       return ignoreRegexes.some((regex) => regex.test(relativePath));
     }
 
-    function searchDir(currentDir, currentDepth = 0, relativePath = "") {
+    function searchDir(currentDir, currentDepth = 0, relativePath = '') {
       if (currentDepth > maxDepth) {
         return;
       }
@@ -98,7 +98,7 @@ class FileUtils {
         }
       } catch (err) {
         // Ignore permission errors
-        if (err.code !== "EACCES" && err.code !== "EPERM") {
+        if (err.code !== 'EACCES' && err.code !== 'EPERM') {
           throw err;
         }
       }
@@ -117,46 +117,46 @@ class FileUtils {
    */
   static findLanguageFiles(projectPath, language) {
     const patterns = {
-      go: ["**/*.go", "go.mod", "go.sum", "**/go.mod", "**/go.sum"],
+      go: ['**/*.go', 'go.mod', 'go.sum', '**/go.mod', '**/go.sum'],
       python: [
-        "**/*.py",
-        "requirements.txt",
-        "pyproject.toml",
-        "setup.py",
-        "Pipfile",
-        "**/requirements.txt",
+        '**/*.py',
+        'requirements.txt',
+        'pyproject.toml',
+        'setup.py',
+        'Pipfile',
+        '**/requirements.txt',
       ],
-      elixir: ["**/*.ex", "**/*.exs", "mix.exs", "**/mix.exs"],
+      elixir: ['**/*.ex', '**/*.exs', 'mix.exs', '**/mix.exs'],
       javascript: [
-        "**/*.js",
-        "**/*.jsx",
-        "**/*.ts",
-        "**/*.tsx",
-        "package.json",
-        "**/package.json",
+        '**/*.js',
+        '**/*.jsx',
+        '**/*.ts',
+        '**/*.tsx',
+        'package.json',
+        '**/package.json',
       ],
-      ruby: ["**/*.rb", "Gemfile", "**/Gemfile"],
+      ruby: ['**/*.rb', 'Gemfile', '**/Gemfile'],
       java: [
-        "**/*.java",
-        "pom.xml",
-        "build.gradle",
-        "**/pom.xml",
-        "**/build.gradle",
+        '**/*.java',
+        'pom.xml',
+        'build.gradle',
+        '**/pom.xml',
+        '**/build.gradle',
       ],
-      rust: ["**/*.rs", "Cargo.toml", "**/Cargo.toml"],
-      php: ["**/*.php", "composer.json", "**/composer.json"],
+      rust: ['**/*.rs', 'Cargo.toml', '**/Cargo.toml'],
+      php: ['**/*.php', 'composer.json', '**/composer.json'],
     };
 
     const languagePatterns = patterns[language] || [`**/*.${language}`];
     const ignorePatterns = [
-      "**/node_modules/**",
-      "**/.git/**",
-      "**/vendor/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/target/**",
-      "**/*.min.*",
-      "**/*.bundle.*",
+      '**/node_modules/**',
+      '**/.git/**',
+      '**/vendor/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/target/**',
+      '**/*.min.*',
+      '**/*.bundle.*',
     ];
 
     return this.findFilesByPattern(projectPath, languagePatterns, {
@@ -213,7 +213,7 @@ class FileUtils {
 
         // Try to load yaml module
         try {
-          const yaml = require("yaml");
+          const yaml = require('yaml');
           return yaml.parse(content);
         } catch (e) {
           // Fallback to simple YAML parsing for common cases
@@ -231,7 +231,7 @@ class FileUtils {
    * Simple YAML parser for common cases
    */
   static _parseSimpleYaml(content) {
-    const lines = content.split("\n");
+    const lines = content.split('\n');
     const result = {};
     let currentKey = null;
     let currentValue = [];
@@ -239,21 +239,21 @@ class FileUtils {
     for (const line of lines) {
       const trimmed = line.trim();
 
-      if (trimmed === "" || trimmed.startsWith("#")) {
+      if (trimmed === '' || trimmed.startsWith('#')) {
         continue;
       }
 
-      if (trimmed.includes(":")) {
+      if (trimmed.includes(':')) {
         // Save previous key-value pair
         if (currentKey !== null) {
-          result[currentKey] = currentValue.join("\n").trim();
+          result[currentKey] = currentValue.join('\n').trim();
         }
 
         // Start new key-value pair
-        const parts = trimmed.split(":");
+        const parts = trimmed.split(':');
         currentKey = parts[0].trim();
-        currentValue = parts.slice(1).join(":").trim()
-          ? [parts.slice(1).join(":").trim()]
+        currentValue = parts.slice(1).join(':').trim()
+          ? [parts.slice(1).join(':').trim()]
           : [];
       } else if (currentKey !== null) {
         // Continue value for current key
@@ -263,7 +263,7 @@ class FileUtils {
 
     // Save last key-value pair
     if (currentKey !== null) {
-      result[currentKey] = currentValue.join("\n").trim();
+      result[currentKey] = currentValue.join('\n').trim();
     }
 
     return result;
@@ -287,7 +287,7 @@ class FileUtils {
       const relativePath = path.relative(src, srcPath);
       const shouldIgnore = ignore.some((pattern) => {
         const regex = new RegExp(
-          pattern.replace(/\*/g, ".*").replace(/\?/g, "."),
+          pattern.replace(/\*/g, '.*').replace(/\?/g, '.'),
         );
         return regex.test(relativePath);
       });
@@ -324,13 +324,13 @@ class FileUtils {
     for (const [item, content] of Object.entries(structure)) {
       const itemPath = path.join(basePath, item);
 
-      if (typeof content === "object" && content !== null) {
+      if (typeof content === 'object' && content !== null) {
         // It's a directory
         this.createDirectoryStructure(itemPath, content);
       } else {
         // It's a file
         ensureDir(path.dirname(itemPath));
-        writeFile(itemPath, content || "");
+        writeFile(itemPath, content || '');
       }
     }
   }
@@ -339,15 +339,15 @@ class FileUtils {
    * Get file size in human-readable format
    */
   static getHumanFileSize(bytes, decimals = 2) {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) return '0 Bytes';
 
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
   }
 
   /**
@@ -364,7 +364,7 @@ class FileUtils {
         sizeHuman: this.getHumanFileSize(stats.size),
         mtime: stats.mtime,
         ctime: stats.ctime,
-        lines: content ? content.split("\n").length : 0,
+        lines: content ? content.split('\n').length : 0,
         words: content ? content.split(/\s+/).length : 0,
         characters: content ? content.length : 0,
         isDirectory: stats.isDirectory(),
@@ -397,8 +397,8 @@ class FileUtils {
         if (!fs.existsSync(filePath)) {
           results.details.push({
             file: filePath,
-            status: "skipped",
-            reason: "File does not exist",
+            status: 'skipped',
+            reason: 'File does not exist',
           });
           continue;
         }
@@ -425,13 +425,13 @@ class FileUtils {
 
           results.details.push({
             file: filePath,
-            status: "modified",
+            status: 'modified',
             changes: 1,
           });
         } else {
           results.details.push({
             file: filePath,
-            status: "unchanged",
+            status: 'unchanged',
             changes: 0,
           });
         }
@@ -441,7 +441,7 @@ class FileUtils {
         results.errors++;
         results.details.push({
           file: filePath,
-          status: "error",
+          status: 'error',
           error: error.message,
         });
       }
@@ -453,8 +453,8 @@ class FileUtils {
   /**
    * Create temporary file
    */
-  static createTempFile(content = "", extension = ".tmp") {
-    const os = require("os");
+  static createTempFile(content = '', extension = '.tmp') {
+    const os = require('os');
     const tempDir = os.tmpdir();
     const tempPath = path.join(tempDir, `opencode_${Date.now()}${extension}`);
 

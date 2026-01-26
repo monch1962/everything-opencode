@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * /python-setup command wrapper
- * 
+ *
  * Configure Python project for opencode integration
  */
 
@@ -10,11 +10,11 @@ const PythonCommandRunner = require('./python-command-runner');
 async function main() {
   const args = process.argv.slice(2);
   const options = {};
-  
+
   // Parse command line arguments
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     if (arg === '--quick' || arg === '-q') {
       options.quick = true;
     } else if (arg === '--reconfigure' || arg === '-r') {
@@ -46,11 +46,11 @@ async function main() {
       process.exit(1);
     }
   }
-  
+
   try {
     const runner = new PythonCommandRunner();
     const success = await runner.runSetup(options);
-    
+
     if (success) {
       console.log('\n✅ Python project setup completed successfully!');
       console.log('\n🎯 Next steps:');
@@ -123,7 +123,7 @@ Configuration File:
 
 // Run main function
 if (require.main === module) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error(`Fatal error: ${error.message}`);
     process.exit(1);
   });

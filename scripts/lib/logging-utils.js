@@ -9,7 +9,7 @@
 let chalk, boxen, ora, Table, ProgressBar;
 
 try {
-  chalk = require("chalk");
+  chalk = require('chalk');
 } catch (e) {
   // Fallback to plain text
   chalk = {
@@ -34,29 +34,29 @@ try {
 }
 
 try {
-  boxen = require("boxen");
+  boxen = require('boxen');
 } catch (e) {
   boxen = (text, options = {}) => {
     const padding = options.padding || 1;
     const margin = options.margin || 1;
-    const horizontal = "─".repeat(text.length + padding * 2);
-    const vertical = "│";
+    const horizontal = '─'.repeat(text.length + padding * 2);
+    const vertical = '│';
 
-    let result = "\n".repeat(margin);
+    let result = '\n'.repeat(margin);
     result += `┌${horizontal}┐\n`;
-    result += `${vertical}${" ".repeat(padding)}${text}${" ".repeat(padding)}${vertical}\n`;
+    result += `${vertical}${' '.repeat(padding)}${text}${' '.repeat(padding)}${vertical}\n`;
     result += `└${horizontal}┘\n`;
-    result += "\n".repeat(margin);
+    result += '\n'.repeat(margin);
 
     return result;
   };
 }
 
 try {
-  ora = require("ora");
+  ora = require('ora');
 } catch (e) {
   ora = (text) => {
-    let spinnerText = text;
+    const spinnerText = text;
     return {
       start: () => {
         console.log(`${spinnerText}...`);
@@ -86,7 +86,7 @@ try {
 }
 
 try {
-  Table = require("cli-table3");
+  Table = require('cli-table3');
 } catch (e) {
   Table = class {
     constructor(options = {}) {
@@ -100,7 +100,7 @@ try {
     }
 
     toString() {
-      if (this.rows.length === 0) return "";
+      if (this.rows.length === 0) return '';
 
       // Simple table formatting
       const colWidths = [];
@@ -108,7 +108,7 @@ try {
 
       // Calculate column widths
       for (let i = 0; i < this.head.length; i++) {
-        let maxWidth = String(this.head[i] || "").length;
+        let maxWidth = String(this.head[i] || '').length;
         for (const row of this.rows) {
           if (row[i] !== undefined) {
             maxWidth = Math.max(maxWidth, String(row[i]).length);
@@ -118,50 +118,50 @@ try {
       }
 
       // Build table
-      let result = "";
+      let result = '';
 
       // Header
       if (this.head.length > 0) {
-        result += "┌";
+        result += '┌';
         for (let i = 0; i < colWidths.length; i++) {
-          result += "─".repeat(colWidths[i]);
-          if (i < colWidths.length - 1) result += "┬";
+          result += '─'.repeat(colWidths[i]);
+          if (i < colWidths.length - 1) result += '┬';
         }
-        result += "┐\n";
+        result += '┐\n';
 
-        result += "│";
+        result += '│';
         for (let i = 0; i < this.head.length; i++) {
-          const cell = String(this.head[i] || "");
+          const cell = String(this.head[i] || '');
           result += ` ${cell.padEnd(colWidths[i] - 2)} │`;
         }
-        result += "\n";
+        result += '\n';
 
-        result += "├";
+        result += '├';
         for (let i = 0; i < colWidths.length; i++) {
-          result += "─".repeat(colWidths[i]);
-          if (i < colWidths.length - 1) result += "┼";
+          result += '─'.repeat(colWidths[i]);
+          if (i < colWidths.length - 1) result += '┼';
         }
-        result += "┤\n";
+        result += '┤\n';
       }
 
       // Rows
       for (const row of this.rows) {
-        result += "│";
+        result += '│';
         for (let i = 0; i < colWidths.length; i++) {
-          const cell = row[i] !== undefined ? String(row[i]) : "";
+          const cell = row[i] !== undefined ? String(row[i]) : '';
           result += ` ${cell.padEnd(colWidths[i] - 2)} │`;
         }
-        result += "\n";
+        result += '\n';
       }
 
       // Footer
       if (this.rows.length > 0) {
-        result += "└";
+        result += '└';
         for (let i = 0; i < colWidths.length; i++) {
-          result += "─".repeat(colWidths[i]);
-          if (i < colWidths.length - 1) result += "┴";
+          result += '─'.repeat(colWidths[i]);
+          if (i < colWidths.length - 1) result += '┴';
         }
-        result += "┘\n";
+        result += '┘\n';
       }
 
       return result;
@@ -170,7 +170,7 @@ try {
 }
 
 try {
-  ProgressBar = require("progress");
+  ProgressBar = require('progress');
 } catch (e) {
   ProgressBar = class {
     constructor(format, options = {}) {
@@ -193,15 +193,15 @@ try {
 
       const barLength = 30;
       const filled = Math.floor((percent / 100) * barLength);
-      const bar = "█".repeat(filled) + "░".repeat(barLength - filled);
+      const bar = '█'.repeat(filled) + '░'.repeat(barLength - filled);
 
       let formatted = this.format
-        .replace(":bar", bar)
-        .replace(":percent", `${percent}%`)
-        .replace(":current", this.current)
-        .replace(":total", this.total)
-        .replace(":elapsed", Math.floor(elapsed / 1000))
-        .replace(":eta", Math.floor(estimated));
+        .replace(':bar', bar)
+        .replace(':percent', `${percent}%`)
+        .replace(':current', this.current)
+        .replace(':total', this.total)
+        .replace(':elapsed', Math.floor(elapsed / 1000))
+        .replace(':eta', Math.floor(estimated));
 
       for (const [key, value] of Object.entries(tokens)) {
         formatted = formatted.replace(`:${key}`, value);
@@ -216,12 +216,12 @@ try {
     }
 
     stop() {
-      process.stdout.write("\n");
+      process.stdout.write('\n');
     }
   };
 }
 
-const { defaultErrorHandler } = require("./error-handler");
+const { defaultErrorHandler } = require('./error-handler');
 
 class LoggingUtils {
   /**
@@ -229,7 +229,7 @@ class LoggingUtils {
    */
   static init(options = {}) {
     const {
-      level = "info",
+      level = 'info',
       colors = true,
       timestamps = false,
       verbose = false,
@@ -274,16 +274,16 @@ class LoggingUtils {
    * Normalize log level string
    */
   static normalizeLevel(level) {
-    const levels = ["error", "warn", "info", "debug", "trace"];
+    const levels = ['error', 'warn', 'info', 'debug', 'trace'];
     const normalized = level.toLowerCase();
-    return levels.includes(normalized) ? normalized : "info";
+    return levels.includes(normalized) ? normalized : 'info';
   }
 
   /**
    * Check if level should be logged
    */
   static shouldLog(level) {
-    if (this.config.quiet && level !== "error") {
+    if (this.config.quiet && level !== 'error') {
       return false;
     }
 
@@ -298,13 +298,13 @@ class LoggingUtils {
    */
   static formatTimestamp() {
     if (!this.config.timestamps) {
-      return "";
+      return '';
     }
 
     const now = new Date();
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-    const seconds = String(now.getSeconds()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
 
     return chalk.dim(`[${hours}:${minutes}:${seconds}] `);
   }
@@ -332,28 +332,28 @@ class LoggingUtils {
    * Error log
    */
   static error(message, ...args) {
-    this.log("error", message, ...args);
+    this.log('error', message, ...args);
   }
 
   /**
    * Warning log
    */
   static warn(message, ...args) {
-    this.log("warn", message, ...args);
+    this.log('warn', message, ...args);
   }
 
   /**
    * Info log
    */
   static info(message, ...args) {
-    this.log("info", message, ...args);
+    this.log('info', message, ...args);
   }
 
   /**
    * Debug log
    */
   static debug(message, ...args) {
-    this.log("debug", message, ...args);
+    this.log('debug', message, ...args);
   }
 
   /**
@@ -366,7 +366,7 @@ class LoggingUtils {
     const color = this.colors.success;
 
     if (this.config.colors) {
-      console.log(`${timestamp}${color("✓")} ${message}`, ...args);
+      console.log(`${timestamp}${color('✓')} ${message}`, ...args);
     } else {
       console.log(`${timestamp}✓ ${message}`, ...args);
     }
@@ -389,8 +389,8 @@ class LoggingUtils {
 
     const spinnerOptions = {
       text: this.config.colors ? this.colors.info(text) : text,
-      color: "blue",
-      spinner: "dots",
+      color: 'blue',
+      spinner: 'dots',
       ...options,
     };
 
@@ -412,8 +412,8 @@ class LoggingUtils {
     const barOptions = {
       total,
       width: 30,
-      complete: "=",
-      incomplete: " ",
+      complete: '=',
+      incomplete: ' ',
       clear: true,
       ...options,
     };
@@ -421,8 +421,8 @@ class LoggingUtils {
     if (this.config.colors) {
       barOptions.render = (throttle, tokens) => {
         const progress = Math.floor(tokens.percent * 100);
-        const bar = "=".repeat(Math.floor(tokens.ratio * barOptions.width));
-        const empty = " ".repeat(barOptions.width - bar.length);
+        const bar = '='.repeat(Math.floor(tokens.ratio * barOptions.width));
+        const empty = ' '.repeat(barOptions.width - bar.length);
 
         let color;
         if (progress < 30) color = chalk.red;
@@ -430,12 +430,12 @@ class LoggingUtils {
         else color = chalk.green;
 
         return color(
-          `  ${tokens.msg || "Processing"} [${bar}${empty}] ${progress}%`,
+          `  ${tokens.msg || 'Processing'} [${bar}${empty}] ${progress}%`,
         );
       };
     }
 
-    return new ProgressBar("  :msg [:bar] :percent", barOptions);
+    return new ProgressBar('  :msg [:bar] :percent', barOptions);
   }
 
   /**
@@ -445,8 +445,8 @@ class LoggingUtils {
     const tableOptions = {
       head: headers,
       style: {
-        head: this.config.colors ? ["cyan"] : [],
-        border: this.config.colors ? ["gray"] : [],
+        head: this.config.colors ? ['cyan'] : [],
+        border: this.config.colors ? ['gray'] : [],
       },
       ...options,
     };
@@ -467,9 +467,9 @@ class LoggingUtils {
     const boxOptions = {
       padding: 1,
       margin: 1,
-      borderStyle: "round",
-      borderColor: this.config.colors ? "cyan" : "white",
-      backgroundColor: "black",
+      borderStyle: 'round',
+      borderColor: this.config.colors ? 'cyan' : 'white',
+      backgroundColor: 'black',
       ...options,
     };
 
@@ -483,31 +483,31 @@ class LoggingUtils {
   /**
    * Format code block
    */
-  static code(code, language = "") {
+  static code(code, language = '') {
     if (!this.config.colors) {
       return `\`\`\`${language}\n${code}\n\`\`\``;
     }
 
-    const lines = code.split("\n");
+    const lines = code.split('\n');
     const formattedLines = lines.map((line) => this.colors.code(`  ${line}`));
 
     const header = language
       ? this.colors.subtitle(`📝 ${language.toUpperCase()}`)
-      : "";
+      : '';
 
-    return `${header}\n${formattedLines.join("\n")}`;
+    return `${header}\n${formattedLines.join('\n')}`;
   }
 
   /**
    * Format command for display
    */
-  static command(cmd, description = "") {
+  static command(cmd, description = '') {
     if (!this.config.colors) {
-      return `$ ${cmd}${description ? ` # ${description}` : ""}`;
+      return `$ ${cmd}${description ? ` # ${description}` : ''}`;
     }
 
     const formattedCmd = this.colors.highlight(`$ ${cmd}`);
-    const formattedDesc = description ? chalk.dim(` # ${description}`) : "";
+    const formattedDesc = description ? chalk.dim(` # ${description}`) : '';
 
     return `${formattedCmd}${formattedDesc}`;
   }
@@ -522,7 +522,7 @@ class LoggingUtils {
 
     if (relative && process.cwd()) {
       try {
-        displayPath = require("path").relative(process.cwd(), path);
+        displayPath = require('path').relative(process.cwd(), path);
       } catch (e) {
         // Keep absolute path if relative fails
       }
@@ -559,8 +559,8 @@ class LoggingUtils {
           return chalk.yellow(match);
         }
       })
-      .replace(/\b(true|false|null)\b/g, chalk.magenta("$1"))
-      .replace(/\b-?\d+(\.\d+)?([eE][+-]?\d+)?\b/g, chalk.cyan("$&"));
+      .replace(/\b(true|false|null)\b/g, chalk.magenta('$1'))
+      .replace(/\b-?\d+(\.\d+)?([eE][+-]?\d+)?\b/g, chalk.cyan('$&'));
   }
 
   /**
@@ -571,14 +571,14 @@ class LoggingUtils {
       // Already formatted by error handler
       const errorInfo = error.errorInfo;
 
-      let output = "";
+      let output = '';
 
       // Error message
       output += this.colors.error(`\n❌ ${errorInfo.userMessage}\n`);
 
       // Recovery steps
       if (errorInfo.recoverySteps && errorInfo.recoverySteps.length > 0) {
-        output += this.colors.info("\n💡 Recovery steps:\n");
+        output += this.colors.info('\n💡 Recovery steps:\n');
         errorInfo.recoverySteps.forEach((step, i) => {
           output += `  ${i + 1}. ${step}\n`;
         });
@@ -586,16 +586,16 @@ class LoggingUtils {
 
       // Debug info (verbose mode only)
       if (this.config.verbose) {
-        output += this.colors.debug("\n🔍 Debug information:\n");
+        output += this.colors.debug('\n🔍 Debug information:\n');
         output += this.colors.debug(`  Category: ${errorInfo.category}\n`);
-        output += this.colors.debug(`  Tool: ${errorInfo.tool || "unknown"}\n`);
+        output += this.colors.debug(`  Tool: ${errorInfo.tool || 'unknown'}\n`);
         output += this.colors.debug(
-          `  Command: ${errorInfo.command || "unknown"}\n`,
+          `  Command: ${errorInfo.command || 'unknown'}\n`,
         );
 
         if (errorInfo.stack) {
-          output += this.colors.debug("\n  Stack trace:\n");
-          const stackLines = errorInfo.stack.split("\n").slice(0, 5);
+          output += this.colors.debug('\n  Stack trace:\n');
+          const stackLines = errorInfo.stack.split('\n').slice(0, 5);
           stackLines.forEach((line) => {
             output += this.colors.debug(`    ${line}\n`);
           });
@@ -613,13 +613,13 @@ class LoggingUtils {
    * Format success summary
    */
   static formatSuccessSummary(summary, options = {}) {
-    const { title = "✅ Success Summary", showDuration = true } = options;
+    const { title = '✅ Success Summary', showDuration = true } = options;
 
-    let output = "";
+    let output = '';
 
     // Title
     output += this.colors.success(`\n${title}\n`);
-    output += this.colors.success("=".repeat(title.length) + "\n");
+    output += this.colors.success(`${'='.repeat(title.length)}\n`);
 
     // Duration if available
     if (showDuration && summary.duration) {
@@ -629,7 +629,7 @@ class LoggingUtils {
     // Items
     if (summary.items && Array.isArray(summary.items)) {
       for (const item of summary.items) {
-        const icon = item.success ? "✓" : "✗";
+        const icon = item.success ? '✓' : '✗';
         const color = item.success ? this.colors.success : this.colors.error;
         output += color(`  ${icon} ${item.description}\n`);
 
@@ -641,7 +641,7 @@ class LoggingUtils {
 
     // Stats
     if (summary.stats) {
-      output += this.colors.info("\n  Statistics:\n");
+      output += this.colors.info('\n  Statistics:\n');
       for (const [key, value] of Object.entries(summary.stats)) {
         output += this.colors.info(`    ${key}: ${value}\n`);
       }
@@ -654,13 +654,13 @@ class LoggingUtils {
    * Format security scan results
    */
   static formatSecurityResults(results, options = {}) {
-    const { title = "🔒 Security Scan Results", showAll = false } = options;
+    const { title = '🔒 Security Scan Results', showAll = false } = options;
 
-    let output = "";
+    let output = '';
 
     // Title
     output += this.colors.title(`\n${title}\n`);
-    output += this.colors.title("=".repeat(title.length) + "\n");
+    output += this.colors.title(`${'='.repeat(title.length)}\n`);
 
     // Summary
     if (results.summary) {
@@ -689,36 +689,36 @@ class LoggingUtils {
 
     // Tools
     if (results.tools && Object.keys(results.tools).length > 0) {
-      output += this.colors.info("\n  Tools used:\n");
+      output += this.colors.info('\n  Tools used:\n');
 
       const tableData = [];
       for (const [tool, data] of Object.entries(results.tools)) {
         const issues = data.issues || data.vulnerabilities || 0;
         const status =
-          issues > 0 ? this.colors.error("✗") : this.colors.success("✓");
+          issues > 0 ? this.colors.error('✗') : this.colors.success('✓');
 
         tableData.push([
           status,
           tool,
           issues,
-          data.scanned || data.dependencies || "N/A",
+          data.scanned || data.dependencies || 'N/A',
         ]);
       }
 
-      const table = this.table(["", "Tool", "Issues", "Scanned"], tableData, {
+      const table = this.table(['', 'Tool', 'Issues', 'Scanned'], tableData, {
         style: { border: [] },
       });
 
       output +=
-        table
-          .split("\n")
+        `${table
+          .split('\n')
           .map((line) => `    ${line}`)
-          .join("\n") + "\n";
+          .join('\n')}\n`;
     }
 
     // Details (if requested and available)
     if (showAll && results.details) {
-      output += this.colors.info("\n  Details:\n");
+      output += this.colors.info('\n  Details:\n');
 
       for (const [category, items] of Object.entries(results.details)) {
         if (items && items.length > 0) {
@@ -726,20 +726,20 @@ class LoggingUtils {
 
           for (const item of items.slice(0, 5)) {
             // Show first 5 items
-            const severity = item.severity || "medium";
+            const severity = item.severity || 'medium';
             let severityColor;
 
             switch (severity.toLowerCase()) {
-              case "critical":
+              case 'critical':
                 severityColor = this.colors.error;
                 break;
-              case "high":
+              case 'high':
                 severityColor = this.colors.error;
                 break;
-              case "medium":
+              case 'medium':
                 severityColor = this.colors.warn;
                 break;
-              case "low":
+              case 'low':
                 severityColor = this.colors.info;
                 break;
               default:
@@ -766,7 +766,7 @@ class LoggingUtils {
 
     // Recommendations
     if (results.recommendations && results.recommendations.length > 0) {
-      output += this.colors.success("\n  Recommendations:\n");
+      output += this.colors.success('\n  Recommendations:\n');
 
       for (const rec of results.recommendations) {
         output += this.colors.success(`    • ${rec}\n`);
@@ -780,8 +780,8 @@ class LoggingUtils {
    * Create a section header
    */
   static section(title, level = 1) {
-    const symbols = ["#", "=", "-", "~"];
-    const symbol = symbols[Math.min(level - 1, symbols.length - 1)] || "=";
+    const symbols = ['#', '=', '-', '~'];
+    const symbol = symbols[Math.min(level - 1, symbols.length - 1)] || '=';
     const line = symbol.repeat(title.length + 4);
 
     if (!this.config.colors) {
@@ -804,7 +804,7 @@ class LoggingUtils {
   static keyValue(key, value, options = {}) {
     const { indent = 2, keyWidth = 20 } = options;
 
-    const spaces = " ".repeat(indent);
+    const spaces = ' '.repeat(indent);
     const paddedKey = key.padEnd(keyWidth);
 
     if (!this.config.colors) {

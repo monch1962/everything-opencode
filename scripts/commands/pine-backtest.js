@@ -5,8 +5,8 @@
  * Run backtesting on PineScript strategies
  */
 
-const PineCommandRunner = require("../pinescript/command-runner");
-const PineBacktester = require("../pinescript/backtester");
+const PineCommandRunner = require('../pinescript/command-runner');
+const PineBacktester = require('../pinescript/backtester');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -17,40 +17,40 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--data" || arg === "-d") {
+    if (arg === '--data' || arg === '-d') {
       options.dataFile = args[++i];
-    } else if (arg === "--data-source" || arg === "-s") {
+    } else if (arg === '--data-source' || arg === '-s') {
       options.dataSource = args[++i];
-    } else if (arg === "--from" || arg === "-f") {
+    } else if (arg === '--from' || arg === '-f') {
       options.fromDate = args[++i];
-    } else if (arg === "--to" || arg === "-t") {
+    } else if (arg === '--to' || arg === '-t') {
       options.toDate = args[++i];
-    } else if (arg === "--commission" || arg === "-c") {
+    } else if (arg === '--commission' || arg === '-c') {
       options.commission = parseFloat(args[++i]);
-    } else if (arg === "--slippage" || arg === "-S") {
+    } else if (arg === '--slippage' || arg === '-S') {
       options.slippage = parseFloat(args[++i]);
-    } else if (arg === "--capital" || arg === "-C") {
+    } else if (arg === '--capital' || arg === '-C') {
       options.initialCapital = parseFloat(args[++i]);
-    } else if (arg === "--report" || arg === "-r") {
+    } else if (arg === '--report' || arg === '-r') {
       options.report = args[++i];
-    } else if (arg === "--output" || arg === "-o") {
+    } else if (arg === '--output' || arg === '-o') {
       options.outputFile = args[++i];
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--quiet" || arg === "-q") {
+    } else if (arg === '--quiet' || arg === '-q') {
       options.quiet = true;
-    } else if (arg === "--json") {
-      options.report = "json";
-    } else if (arg === "--html") {
-      options.report = "html";
-    } else if (arg === "--csv") {
-      options.report = "csv";
-    } else if (arg === "--check-tools") {
+    } else if (arg === '--json') {
+      options.report = 'json';
+    } else if (arg === '--html') {
+      options.report = 'html';
+    } else if (arg === '--csv') {
+      options.report = 'csv';
+    } else if (arg === '--check-tools') {
       options.checkTools = true;
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -64,14 +64,14 @@ async function main() {
     const backtester = new PineBacktester();
     const tools = await backtester.checkBacktestingTools();
 
-    console.log("\n🔧 Backtesting Tools Status:");
+    console.log('\n🔧 Backtesting Tools Status:');
     if (tools.available.length > 0) {
-      console.log(`✅ Available: ${tools.available.join(", ")}`);
+      console.log(`✅ Available: ${tools.available.join(', ')}`);
     }
     if (tools.missing.length > 0) {
-      console.log(`❌ Missing: ${tools.missing.join(", ")}`);
+      console.log(`❌ Missing: ${tools.missing.join(', ')}`);
       console.log(
-        "\n💡 Install missing tools for full backtesting capabilities.",
+        '\n💡 Install missing tools for full backtesting capabilities.',
       );
     }
     process.exit(0);
@@ -79,9 +79,9 @@ async function main() {
 
   // Validate we have files to backtest
   if (files.length === 0) {
-    console.error("Error: No PineScript files specified");
-    console.error("Usage: /pine-backtest <strategy.pine> [options]");
-    console.error("Use /pine-backtest --help for more information");
+    console.error('Error: No PineScript files specified');
+    console.error('Usage: /pine-backtest <strategy.pine> [options]');
+    console.error('Use /pine-backtest --help for more information');
     process.exit(1);
   }
 
@@ -94,12 +94,12 @@ async function main() {
     // Check if this is a strategy (not an indicator)
     for (const file of files) {
       const content = runner.readPineFile(file);
-      if (!content.includes("strategy(")) {
+      if (!content.includes('strategy(')) {
         console.error(
           `❌ ${file} is not a strategy (missing strategy() function)`,
         );
         console.error(
-          "   Backtesting requires a trading strategy, not an indicator.",
+          '   Backtesting requires a trading strategy, not an indicator.',
         );
         process.exit(1);
       }
@@ -120,8 +120,8 @@ async function main() {
 
           // Save report to file if output specified
           if (options.outputFile) {
-            const fs = require("fs");
-            const path = require("path");
+            const fs = require('fs');
+            const path = require('path');
 
             let outputPath = options.outputFile;
             if (files.length > 1) {
@@ -130,7 +130,7 @@ async function main() {
               const base = path.basename(outputPath, ext);
               outputPath = path.join(
                 path.dirname(outputPath),
-                `${base}-${path.basename(file, ".pine")}${ext}`,
+                `${base}-${path.basename(file, '.pine')}${ext}`,
               );
             }
 
@@ -163,7 +163,7 @@ async function main() {
       process.exit(1);
     }
 
-    console.log("\n✅ All backtests completed successfully");
+    console.log('\n✅ All backtests completed successfully');
   } catch (error) {
     console.error(`\n❌ Backtesting failed: ${error.message}`);
     process.exit(1);
@@ -180,12 +180,12 @@ function generateSummary(results, options) {
     return;
   }
 
-  console.log("\n" + "=".repeat(60));
-  console.log("📈 BACKTEST SUMMARY");
-  console.log("=".repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
+  console.log('📈 BACKTEST SUMMARY');
+  console.log('='.repeat(60));
 
-  console.log("\nStrategy Performance Comparison:");
-  console.log("─".repeat(40));
+  console.log('\nStrategy Performance Comparison:');
+  console.log('─'.repeat(40));
 
   successful.forEach((result, index) => {
     const { strategy, performance } = result.results;
@@ -223,8 +223,8 @@ function generateSummary(results, options) {
       : best;
   });
 
-  console.log("\n🏆 BEST PERFORMERS:");
-  console.log("─".repeat(40));
+  console.log('\n🏆 BEST PERFORMERS:');
+  console.log('─'.repeat(40));
   console.log(
     `Highest Profit: ${bestByProfit.results.strategy} ($${bestByProfit.results.performance.netProfit.toFixed(2)})`,
   );
@@ -235,7 +235,7 @@ function generateSummary(results, options) {
     `Highest Win Rate: ${bestByWinRate.results.strategy} (${bestByWinRate.results.performance.winRate.toFixed(1)}%)`,
   );
 
-  console.log("\n" + "=".repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
 }
 
 function showHelp() {

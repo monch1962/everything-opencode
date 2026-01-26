@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Interactive Prompt System for opencode
- * 
+ *
  * Provides rich, interactive prompts for project configuration
  */
 
@@ -19,14 +19,14 @@ const colors = {
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
   cyan: '\x1b[36m',
-  red: '\x1b[31m'
+  red: '\x1b[31m',
 };
 
 class InteractivePrompts {
   constructor() {
     this.rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
   }
 
@@ -79,11 +79,11 @@ class InteractivePrompts {
   async confirm(question, defaultValue = true) {
     const suffix = defaultValue ? 'Y/n' : 'y/N';
     const answer = await this.question(`${question} [${suffix}] `);
-    
+
     if (answer.trim() === '') {
       return defaultValue;
     }
-    
+
     return /^y(es)?$/i.test(answer.trim());
   }
 
@@ -92,24 +92,24 @@ class InteractivePrompts {
    */
   async select(question, options, defaultValue = 0) {
     console.log(`\n${colors.bold}${question}${colors.reset}`);
-    
+
     options.forEach((option, index) => {
       const prefix = index === defaultValue ? `${colors.green}▶${colors.reset}` : ' ';
       console.log(`  ${prefix} ${index + 1}. ${option}`);
     });
-    
+
     const answer = await this.question(`\nSelect [1-${options.length}] (${defaultValue + 1}): `);
-    
+
     if (answer.trim() === '') {
       return defaultValue;
     }
-    
+
     const selected = parseInt(answer.trim(), 10) - 1;
     if (isNaN(selected) || selected < 0 || selected >= options.length) {
       this.warning(`Invalid selection. Using default: ${options[defaultValue]}`);
       return defaultValue;
     }
-    
+
     return selected;
   }
 
@@ -118,7 +118,7 @@ class InteractivePrompts {
    */
   async selectWithDescriptions(question, choices) {
     console.log(`\n${colors.bold}${question}${colors.reset}`);
-    
+
     choices.forEach((choice, index) => {
       const { title, description, recommended = false } = choice;
       const rec = recommended ? ` ${colors.green}(recommended)${colors.reset}` : '';
@@ -127,14 +127,14 @@ class InteractivePrompts {
         console.log(`     ${colors.dim}${description}${colors.reset}`);
       }
     });
-    
+
     const answer = await this.question(`\nSelect [1-${choices.length}]: `);
     const selected = parseInt(answer.trim(), 10) - 1;
-    
+
     if (isNaN(selected) || selected < 0 || selected >= choices.length) {
       throw new Error('Invalid selection');
     }
-    
+
     return choices[selected].value || choices[selected].title;
   }
 
@@ -144,11 +144,11 @@ class InteractivePrompts {
   async input(question, defaultValue = '', validator = null) {
     const prompt = defaultValue ? `${question} [${defaultValue}]: ` : `${question}: `;
     let answer = await this.question(prompt);
-    
+
     if (answer.trim() === '' && defaultValue) {
       answer = defaultValue;
     }
-    
+
     if (validator) {
       const validation = validator(answer);
       if (validation !== true) {
@@ -156,7 +156,7 @@ class InteractivePrompts {
         return await this.input(question, defaultValue, validator);
       }
     }
-    
+
     return answer.trim();
   }
 
@@ -166,9 +166,9 @@ class InteractivePrompts {
   async multiSelect(question, options, defaults = []) {
     console.log(`\n${colors.bold}${question}${colors.reset}`);
     console.log(`${colors.dim}(Space to toggle, Enter to confirm)${colors.reset}\n`);
-    
+
     const selected = new Set(defaults);
-    
+
     // Display options with checkboxes
     const displayOptions = () => {
       options.forEach((option, index) => {
@@ -177,20 +177,20 @@ class InteractivePrompts {
         console.log(`  ${checkbox} ${index + 1}. ${option}`);
       });
     };
-    
+
     displayOptions();
-    
+
     // Simple implementation - in real use, would need more complex input handling
     const answer = await this.question('\nEnter numbers separated by commas (e.g., 1,3,4): ');
-    
+
     if (answer.trim()) {
       const indices = answer.split(',')
-        .map(num => parseInt(num.trim(), 10) - 1)
-        .filter(index => !isNaN(index) && index >= 0 && index < options.length);
-      
+        .map((num) => parseInt(num.trim(), 10) - 1)
+        .filter((index) => !isNaN(index) && index >= 0 && index < options.length);
+
       return indices;
     }
-    
+
     return Array.from(selected);
   }
 
@@ -218,12 +218,12 @@ class InteractivePrompts {
   async withProgress(message, task) {
     const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
     let i = 0;
-    
+
     const interval = setInterval(() => {
       process.stdout.write(`\r${frames[i]} ${message}`);
       i = (i + 1) % frames.length;
     }, 80);
-    
+
     try {
       const result = await task();
       clearInterval(interval);
@@ -243,8 +243,8 @@ class InteractivePrompts {
     // Simple table display
     console.log(`\n${colors.bold}${headers.join(' | ')}${colors.reset}`);
     console.log(`${colors.dim}${'─'.repeat(headers.join(' | ').length)}${colors.reset}`);
-    
-    rows.forEach(row => {
+
+    rows.forEach((row) => {
       console.log(row.join(' | '));
     });
     console.log('');

@@ -143,7 +143,7 @@ function runTests() {
     try {
       fs.writeFileSync(path.join(testDir, 'package.json'), JSON.stringify({
         name: 'test',
-        packageManager: 'pnpm@8.6.0'
+        packageManager: 'pnpm@8.6.0',
       }));
       const result = pm.detectFromPackageJson(testDir);
       assert.strictEqual(result, 'pnpm');
@@ -157,7 +157,7 @@ function runTests() {
     try {
       fs.writeFileSync(path.join(testDir, 'package.json'), JSON.stringify({
         name: 'test',
-        packageManager: 'yarn'
+        packageManager: 'yarn',
       }));
       const result = pm.detectFromPackageJson(testDir);
       assert.strictEqual(result, 'yarn');
@@ -170,7 +170,7 @@ function runTests() {
     const testDir = createTestDir();
     try {
       fs.writeFileSync(path.join(testDir, 'package.json'), JSON.stringify({
-        name: 'test'
+        name: 'test',
       }));
       const result = pm.detectFromPackageJson(testDir);
       assert.strictEqual(result, null);

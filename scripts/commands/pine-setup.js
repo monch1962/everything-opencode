@@ -5,7 +5,7 @@
  * Configure PineScript project for opencode integration
  */
 
-const PineScriptConfigWizard = require("../../languages/pinescript/config-wizard");
+const PineScriptConfigWizard = require('../../languages/pinescript/config-wizard');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -15,28 +15,28 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--quick" || arg === "-q") {
+    if (arg === '--quick' || arg === '-q') {
       options.quick = true;
-    } else if (arg === "--reconfigure" || arg === "-r") {
+    } else if (arg === '--reconfigure' || arg === '-r') {
       options.reconfigure = true;
-    } else if (arg === "--version") {
+    } else if (arg === '--version') {
       options.version = args[++i];
-    } else if (arg === "--project-type") {
+    } else if (arg === '--project-type') {
       options.projectType = args[++i];
-    } else if (arg === "--backtesting") {
-      options.backtesting = args[++i] === "true" || args[++i] === "enabled";
-    } else if (arg === "--alerts") {
-      options.alerts = args[++i] === "true" || args[++i] === "enabled";
-    } else if (arg === "--no-prompt" || arg === "-y") {
+    } else if (arg === '--backtesting') {
+      options.backtesting = args[++i] === 'true' || args[++i] === 'enabled';
+    } else if (arg === '--alerts') {
+      options.alerts = args[++i] === 'true' || args[++i] === 'enabled';
+    } else if (arg === '--no-prompt' || arg === '-y') {
       options.noPrompt = true;
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--config") {
+    } else if (arg === '--config') {
       options.config = args[++i];
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -47,29 +47,29 @@ async function main() {
     const wizard = new PineScriptConfigWizard();
 
     if (options.quick) {
-      console.log("🚀 Running PineScript quick setup...");
+      console.log('🚀 Running PineScript quick setup...');
       const success = await wizard.quickSetup();
       if (!success) {
-        console.error("❌ Quick setup failed");
+        console.error('❌ Quick setup failed');
         process.exit(1);
       }
     } else if (options.reconfigure) {
-      console.log("🔄 Reconfiguring PineScript project...");
+      console.log('🔄 Reconfiguring PineScript project...');
       const success = await wizard.run();
       if (!success) {
-        console.error("❌ Reconfiguration failed");
+        console.error('❌ Reconfiguration failed');
         process.exit(1);
       }
     } else {
-      console.log("📈 Running PineScript configuration wizard...");
+      console.log('📈 Running PineScript configuration wizard...');
       const success = await wizard.run();
       if (!success) {
-        console.error("❌ Configuration failed");
+        console.error('❌ Configuration failed');
         process.exit(1);
       }
     }
 
-    console.log("\n✅ PineScript setup completed successfully");
+    console.log('\n✅ PineScript setup completed successfully');
   } catch (error) {
     console.error(`\n❌ Setup execution failed: ${error.message}`);
     process.exit(1);

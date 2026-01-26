@@ -5,7 +5,7 @@
  * Lint Elixir code with Credo and Elixir-specific improvements
  */
 
-const ElixirCommandRunner = require("../elixir/command-runner");
+const ElixirCommandRunner = require('../elixir/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -15,24 +15,24 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--strict" || arg === "-s") {
+    if (arg === '--strict' || arg === '-s') {
       options.strict = true;
-    } else if (arg === "--all" || arg === "-a") {
+    } else if (arg === '--all' || arg === '-a') {
       options.all = true;
-    } else if (arg === "--all-priorities") {
+    } else if (arg === '--all-priorities') {
       options.allPriorities = true;
-    } else if (arg === "--format") {
+    } else if (arg === '--format') {
       options.format = args[++i];
-    } else if (arg === "--config") {
+    } else if (arg === '--config') {
       options.config = args[++i];
-    } else if (arg === "--files") {
+    } else if (arg === '--files') {
       options.files = args[++i];
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -51,11 +51,11 @@ async function main() {
     await runner.initialize();
 
     // Lint code
-    console.log("🔍 Linting Elixir code...");
+    console.log('🔍 Linting Elixir code...');
     const result = await runner.lint(options);
 
     if (result.success) {
-      console.log("\n✅ Code linting passed!");
+      console.log('\n✅ Code linting passed!');
     } else {
       console.log(`\n⚠️  Linting issues found (code: ${result.code})`);
       if (result.stdout) {
@@ -70,9 +70,9 @@ async function main() {
     console.error(`\n❌ Linting failed: ${error.message}`);
 
     // Check if Credo is not installed
-    if (error.message.includes("Credo")) {
-      console.log("\n💡 Credo is not installed. Install it with:");
-      console.log("   mix archive.install hex credo --force");
+    if (error.message.includes('Credo')) {
+      console.log('\n💡 Credo is not installed. Install it with:');
+      console.log('   mix archive.install hex credo --force');
     }
 
     process.exit(1);

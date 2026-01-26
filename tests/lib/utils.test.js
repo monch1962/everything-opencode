@@ -43,7 +43,7 @@ function runTests() {
 
   if (test('exactly one platform should be true', () => {
     const platforms = [utils.isWindows, utils.isMacOS, utils.isLinux];
-    const trueCount = platforms.filter(p => p).length;
+    const trueCount = platforms.filter((p) => p).length;
     // Note: Could be 0 on other platforms like FreeBSD
     assert.ok(trueCount <= 1, 'More than one platform is true');
   })) passed++; else failed++;

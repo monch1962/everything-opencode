@@ -156,7 +156,7 @@ async function readStdinJson() {
     let data = '';
 
     process.stdin.setEncoding('utf8');
-    process.stdin.on('data', chunk => {
+    process.stdin.on('data', (chunk) => {
       data += chunk;
     });
 
@@ -260,7 +260,7 @@ function runCommand(cmd, options = {}) {
     const result = execSync(cmd, {
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],
-      ...options
+      ...options,
     });
     return { success: true, output: result.trim() };
   } catch (err) {
@@ -287,8 +287,8 @@ function getGitModifiedFiles(patterns = []) {
   let files = result.output.split('\n').filter(Boolean);
 
   if (patterns.length > 0) {
-    files = files.filter(file => {
-      return patterns.some(pattern => {
+    files = files.filter((file) => {
+      return patterns.some((pattern) => {
         const regex = new RegExp(pattern);
         return regex.test(file);
       });
@@ -348,7 +348,7 @@ function grepFile(filePath, pattern) {
 function glob(pattern, options = {}) {
   const { cwd = process.cwd(), ignore = [] } = options;
   const results = [];
-  
+
   function matchPattern(path, pattern) {
     // Convert glob pattern to regex
     const regexPattern = pattern
@@ -358,19 +358,19 @@ function glob(pattern, options = {}) {
     const regex = new RegExp(`^${regexPattern}$`);
     return regex.test(path);
   }
-  
+
   function searchDir(currentDir, relativePath = '') {
     try {
       const entries = fs.readdirSync(currentDir, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(currentDir, entry.name);
         const relPath = relativePath ? path.join(relativePath, entry.name) : entry.name;
-        
+
         // Check if path should be ignored
-        const shouldIgnore = ignore.some(ignorePattern => matchPattern(relPath, ignorePattern));
+        const shouldIgnore = ignore.some((ignorePattern) => matchPattern(relPath, ignorePattern));
         if (shouldIgnore) continue;
-        
+
         if (entry.isFile() && matchPattern(relPath, pattern)) {
           results.push(relPath);
         } else if (entry.isDirectory()) {
@@ -381,7 +381,7 @@ function glob(pattern, options = {}) {
       // Ignore permission errors
     }
   }
-  
+
   searchDir(cwd);
   return results;
 }
@@ -424,5 +424,5 @@ module.exports = {
   commandExists,
   runCommand,
   isGitRepo,
-  getGitModifiedFiles
+  getGitModifiedFiles,
 };

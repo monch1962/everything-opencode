@@ -5,10 +5,10 @@
  * Detect project structure, frameworks, and language-specific patterns
  */
 
-const path = require("path");
-const fs = require("fs");
-const { readFile } = require("./utils");
-const FileUtils = require("./file-utils");
+const path = require('path');
+const fs = require('fs');
+const { readFile } = require('./utils');
+const FileUtils = require('./file-utils');
 
 class ProjectUtils {
   /**
@@ -42,9 +42,9 @@ class ProjectUtils {
     if (results.length === 0) {
       return {
         detected: false,
-        type: "unknown",
+        type: 'unknown',
         confidence: 0,
-        message: "No known project type detected",
+        message: 'No known project type detected',
       };
     }
 
@@ -66,19 +66,19 @@ class ProjectUtils {
    */
   static detectNodeProject(projectPath) {
     const files = [
-      "package.json",
-      "package-lock.json",
-      "yarn.lock",
-      "pnpm-lock.yaml",
-      "node_modules",
+      'package.json',
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+      'node_modules',
     ];
 
     let confidence = 0;
-    let framework = "node";
+    let framework = 'node';
     let packageJson = null;
 
     // Check for package.json
-    const packageJsonPath = path.join(projectPath, "package.json");
+    const packageJsonPath = path.join(projectPath, 'package.json');
     if (fs.existsSync(packageJsonPath)) {
       confidence += 40;
       try {
@@ -90,20 +90,20 @@ class ProjectUtils {
           ...packageJson.devDependencies,
         };
 
-        if (dependencies.react || dependencies["react-dom"]) {
-          framework = "react";
+        if (dependencies.react || dependencies['react-dom']) {
+          framework = 'react';
           confidence += 20;
-        } else if (dependencies.vue || dependencies["@vue/cli-service"]) {
-          framework = "vue";
+        } else if (dependencies.vue || dependencies['@vue/cli-service']) {
+          framework = 'vue';
           confidence += 20;
-        } else if (dependencies.angular || dependencies["@angular/core"]) {
-          framework = "angular";
+        } else if (dependencies.angular || dependencies['@angular/core']) {
+          framework = 'angular';
           confidence += 20;
-        } else if (dependencies.next || dependencies["next"]) {
-          framework = "nextjs";
+        } else if (dependencies.next || dependencies['next']) {
+          framework = 'nextjs';
           confidence += 20;
-        } else if (dependencies.express || dependencies["express"]) {
-          framework = "express";
+        } else if (dependencies.express || dependencies['express']) {
+          framework = 'express';
           confidence += 10;
         }
       } catch (e) {
@@ -113,9 +113,9 @@ class ProjectUtils {
 
     // Check for lock files
     for (const lockFile of [
-      "package-lock.json",
-      "yarn.lock",
-      "pnpm-lock.yaml",
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
     ]) {
       if (fs.existsSync(path.join(projectPath, lockFile))) {
         confidence += 10;
@@ -124,12 +124,12 @@ class ProjectUtils {
     }
 
     // Check for node_modules
-    if (fs.existsSync(path.join(projectPath, "node_modules"))) {
+    if (fs.existsSync(path.join(projectPath, 'node_modules'))) {
       confidence += 20;
     }
 
     // Check for common Node.js files
-    const commonFiles = ["index.js", "server.js", "app.js", "src/index.js"];
+    const commonFiles = ['index.js', 'server.js', 'app.js', 'src/index.js'];
     for (const file of commonFiles) {
       if (fs.existsSync(path.join(projectPath, file))) {
         confidence += 5;
@@ -139,7 +139,7 @@ class ProjectUtils {
 
     return {
       detected: confidence >= 30,
-      type: "node",
+      type: 'node',
       framework,
       confidence: Math.min(confidence, 100),
       packageJson,
@@ -152,26 +152,26 @@ class ProjectUtils {
    */
   static detectPythonProject(projectPath) {
     const files = [
-      "requirements.txt",
-      "pyproject.toml",
-      "setup.py",
-      "Pipfile",
-      "poetry.lock",
-      "venv",
-      ".venv",
-      "env",
-      "__pycache__",
+      'requirements.txt',
+      'pyproject.toml',
+      'setup.py',
+      'Pipfile',
+      'poetry.lock',
+      'venv',
+      '.venv',
+      'env',
+      '__pycache__',
     ];
 
     let confidence = 0;
-    let framework = "python";
+    let framework = 'python';
 
     // Check for Python-specific files
     for (const file of [
-      "requirements.txt",
-      "pyproject.toml",
-      "setup.py",
-      "Pipfile",
+      'requirements.txt',
+      'pyproject.toml',
+      'setup.py',
+      'Pipfile',
     ]) {
       if (fs.existsSync(path.join(projectPath, file))) {
         confidence += 25;
@@ -180,7 +180,7 @@ class ProjectUtils {
     }
 
     // Check for virtual environment
-    for (const venv of ["venv", ".venv", "env"]) {
+    for (const venv of ['venv', '.venv', 'env']) {
       if (fs.existsSync(path.join(projectPath, venv))) {
         confidence += 20;
         break;
@@ -188,7 +188,7 @@ class ProjectUtils {
     }
 
     // Check for Python files
-    const pythonFiles = FileUtils.findLanguageFiles(projectPath, "python");
+    const pythonFiles = FileUtils.findLanguageFiles(projectPath, 'python');
     if (pythonFiles.length > 0) {
       confidence += 30;
 
@@ -196,16 +196,16 @@ class ProjectUtils {
       for (const file of pythonFiles.slice(0, 10)) {
         // Check first 10 files
         const content = readFile(file.path);
-        if (content.includes("from django")) {
-          framework = "django";
+        if (content.includes('from django')) {
+          framework = 'django';
           confidence += 15;
           break;
-        } else if (content.includes("from flask")) {
-          framework = "flask";
+        } else if (content.includes('from flask')) {
+          framework = 'flask';
           confidence += 10;
           break;
-        } else if (content.includes("from fastapi")) {
-          framework = "fastapi";
+        } else if (content.includes('from fastapi')) {
+          framework = 'fastapi';
           confidence += 10;
           break;
         }
@@ -213,13 +213,13 @@ class ProjectUtils {
     }
 
     // Check for __pycache__ directory
-    if (fs.existsSync(path.join(projectPath, "__pycache__"))) {
+    if (fs.existsSync(path.join(projectPath, '__pycache__'))) {
       confidence += 10;
     }
 
     return {
       detected: confidence >= 30,
-      type: "python",
+      type: 'python',
       framework,
       confidence: Math.min(confidence, 100),
       files: files.filter((f) => fs.existsSync(path.join(projectPath, f))),
@@ -231,35 +231,35 @@ class ProjectUtils {
    * Detect Go project
    */
   static detectGoProject(projectPath) {
-    const files = ["go.mod", "go.sum", "vendor", "Gopkg.toml", "Gopkg.lock"];
+    const files = ['go.mod', 'go.sum', 'vendor', 'Gopkg.toml', 'Gopkg.lock'];
 
     let confidence = 0;
 
     // Check for go.mod
-    if (fs.existsSync(path.join(projectPath, "go.mod"))) {
+    if (fs.existsSync(path.join(projectPath, 'go.mod'))) {
       confidence += 60;
     }
 
     // Check for go.sum
-    if (fs.existsSync(path.join(projectPath, "go.sum"))) {
+    if (fs.existsSync(path.join(projectPath, 'go.sum'))) {
       confidence += 20;
     }
 
     // Check for Go files
-    const goFiles = FileUtils.findLanguageFiles(projectPath, "go");
+    const goFiles = FileUtils.findLanguageFiles(projectPath, 'go');
     if (goFiles.length > 0) {
       confidence += 30;
     }
 
     // Check for vendor directory
-    if (fs.existsSync(path.join(projectPath, "vendor"))) {
+    if (fs.existsSync(path.join(projectPath, 'vendor'))) {
       confidence += 10;
     }
 
     return {
       detected: confidence >= 30,
-      type: "go",
-      framework: "go",
+      type: 'go',
+      framework: 'go',
       confidence: Math.min(confidence, 100),
       files: files.filter((f) => fs.existsSync(path.join(projectPath, f))),
       goFileCount: goFiles.length,
@@ -270,20 +270,20 @@ class ProjectUtils {
    * Detect Elixir project
    */
   static detectElixirProject(projectPath) {
-    const files = ["mix.exs", "mix.lock", "_build", "deps"];
+    const files = ['mix.exs', 'mix.lock', '_build', 'deps'];
 
     let confidence = 0;
-    let framework = "elixir";
+    let framework = 'elixir';
 
     // Check for mix.exs
-    if (fs.existsSync(path.join(projectPath, "mix.exs"))) {
+    if (fs.existsSync(path.join(projectPath, 'mix.exs'))) {
       confidence += 70;
 
       // Try to read mix.exs to detect Phoenix
       try {
-        const content = readFile(path.join(projectPath, "mix.exs"));
-        if (content.includes("phoenix") || content.includes(":phoenix")) {
-          framework = "phoenix";
+        const content = readFile(path.join(projectPath, 'mix.exs'));
+        if (content.includes('phoenix') || content.includes(':phoenix')) {
+          framework = 'phoenix';
           confidence += 20;
         }
       } catch (e) {
@@ -292,24 +292,24 @@ class ProjectUtils {
     }
 
     // Check for Elixir files
-    const elixirFiles = FileUtils.findLanguageFiles(projectPath, "elixir");
+    const elixirFiles = FileUtils.findLanguageFiles(projectPath, 'elixir');
     if (elixirFiles.length > 0) {
       confidence += 30;
     }
 
     // Check for build directory
-    if (fs.existsSync(path.join(projectPath, "_build"))) {
+    if (fs.existsSync(path.join(projectPath, '_build'))) {
       confidence += 15;
     }
 
     // Check for deps directory
-    if (fs.existsSync(path.join(projectPath, "deps"))) {
+    if (fs.existsSync(path.join(projectPath, 'deps'))) {
       confidence += 10;
     }
 
     return {
       detected: confidence >= 30,
-      type: "elixir",
+      type: 'elixir',
       framework,
       confidence: Math.min(confidence, 100),
       files: files.filter((f) => fs.existsSync(path.join(projectPath, f))),
@@ -321,20 +321,20 @@ class ProjectUtils {
    * Detect Ruby project
    */
   static detectRubyProject(projectPath) {
-    const files = ["Gemfile", "Gemfile.lock", "Rakefile", "config.ru"];
+    const files = ['Gemfile', 'Gemfile.lock', 'Rakefile', 'config.ru'];
 
     let confidence = 0;
-    let framework = "ruby";
+    let framework = 'ruby';
 
     // Check for Gemfile
-    if (fs.existsSync(path.join(projectPath, "Gemfile"))) {
+    if (fs.existsSync(path.join(projectPath, 'Gemfile'))) {
       confidence += 50;
 
       // Try to read Gemfile to detect Rails
       try {
-        const content = readFile(path.join(projectPath, "Gemfile"));
-        if (content.includes("rails")) {
-          framework = "rails";
+        const content = readFile(path.join(projectPath, 'Gemfile'));
+        if (content.includes('rails')) {
+          framework = 'rails';
           confidence += 30;
         }
       } catch (e) {
@@ -343,19 +343,19 @@ class ProjectUtils {
     }
 
     // Check for Ruby files
-    const rubyFiles = FileUtils.findLanguageFiles(projectPath, "ruby");
+    const rubyFiles = FileUtils.findLanguageFiles(projectPath, 'ruby');
     if (rubyFiles.length > 0) {
       confidence += 40;
     }
 
     // Check for Rakefile
-    if (fs.existsSync(path.join(projectPath, "Rakefile"))) {
+    if (fs.existsSync(path.join(projectPath, 'Rakefile'))) {
       confidence += 20;
     }
 
     return {
       detected: confidence >= 30,
-      type: "ruby",
+      type: 'ruby',
       framework,
       confidence: Math.min(confidence, 100),
       files: files.filter((f) => fs.existsSync(path.join(projectPath, f))),
@@ -368,46 +368,46 @@ class ProjectUtils {
    */
   static detectJavaProject(projectPath) {
     const files = [
-      "pom.xml",
-      "build.gradle",
-      "build.gradle.kts",
-      "gradlew",
-      "gradlew.bat",
-      ".gradle",
+      'pom.xml',
+      'build.gradle',
+      'build.gradle.kts',
+      'gradlew',
+      'gradlew.bat',
+      '.gradle',
     ];
 
     let confidence = 0;
-    let framework = "java";
+    let framework = 'java';
 
     // Check for build files
-    if (fs.existsSync(path.join(projectPath, "pom.xml"))) {
+    if (fs.existsSync(path.join(projectPath, 'pom.xml'))) {
       confidence += 60;
-      framework = "maven";
+      framework = 'maven';
     } else if (
-      fs.existsSync(path.join(projectPath, "build.gradle")) ||
-      fs.existsSync(path.join(projectPath, "build.gradle.kts"))
+      fs.existsSync(path.join(projectPath, 'build.gradle')) ||
+      fs.existsSync(path.join(projectPath, 'build.gradle.kts'))
     ) {
       confidence += 60;
-      framework = "gradle";
+      framework = 'gradle';
     }
 
     // Check for Java files
-    const javaFiles = FileUtils.findLanguageFiles(projectPath, "java");
+    const javaFiles = FileUtils.findLanguageFiles(projectPath, 'java');
     if (javaFiles.length > 0) {
       confidence += 40;
     }
 
     // Check for gradle wrapper
     if (
-      fs.existsSync(path.join(projectPath, "gradlew")) ||
-      fs.existsSync(path.join(projectPath, "gradlew.bat"))
+      fs.existsSync(path.join(projectPath, 'gradlew')) ||
+      fs.existsSync(path.join(projectPath, 'gradlew.bat'))
     ) {
       confidence += 20;
     }
 
     return {
       detected: confidence >= 30,
-      type: "java",
+      type: 'java',
       framework,
       confidence: Math.min(confidence, 100),
       files: files.filter((f) => fs.existsSync(path.join(projectPath, f))),
@@ -419,30 +419,30 @@ class ProjectUtils {
    * Detect Rust project
    */
   static detectRustProject(projectPath) {
-    const files = ["Cargo.toml", "Cargo.lock", "target"];
+    const files = ['Cargo.toml', 'Cargo.lock', 'target'];
 
     let confidence = 0;
 
     // Check for Cargo.toml
-    if (fs.existsSync(path.join(projectPath, "Cargo.toml"))) {
+    if (fs.existsSync(path.join(projectPath, 'Cargo.toml'))) {
       confidence += 80;
     }
 
     // Check for Rust files
-    const rustFiles = FileUtils.findLanguageFiles(projectPath, "rust");
+    const rustFiles = FileUtils.findLanguageFiles(projectPath, 'rust');
     if (rustFiles.length > 0) {
       confidence += 30;
     }
 
     // Check for target directory
-    if (fs.existsSync(path.join(projectPath, "target"))) {
+    if (fs.existsSync(path.join(projectPath, 'target'))) {
       confidence += 20;
     }
 
     return {
       detected: confidence >= 30,
-      type: "rust",
-      framework: "rust",
+      type: 'rust',
+      framework: 'rust',
       confidence: Math.min(confidence, 100),
       files: files.filter((f) => fs.existsSync(path.join(projectPath, f))),
       rustFileCount: rustFiles.length,
@@ -453,21 +453,21 @@ class ProjectUtils {
    * Detect PHP project
    */
   static detectPhpProject(projectPath) {
-    const files = ["composer.json", "composer.lock", "vendor", "index.php"];
+    const files = ['composer.json', 'composer.lock', 'vendor', 'index.php'];
 
     let confidence = 0;
-    let framework = "php";
+    let framework = 'php';
 
     // Check for composer.json
-    if (fs.existsSync(path.join(projectPath, "composer.json"))) {
+    if (fs.existsSync(path.join(projectPath, 'composer.json'))) {
       confidence += 60;
 
       // Try to read composer.json to detect Laravel
       try {
-        const content = readFile(path.join(projectPath, "composer.json"));
+        const content = readFile(path.join(projectPath, 'composer.json'));
         const composerJson = JSON.parse(content);
-        if (composerJson.require && composerJson.require["laravel/framework"]) {
-          framework = "laravel";
+        if (composerJson.require && composerJson.require['laravel/framework']) {
+          framework = 'laravel';
           confidence += 30;
         }
       } catch (e) {
@@ -476,19 +476,19 @@ class ProjectUtils {
     }
 
     // Check for PHP files
-    const phpFiles = FileUtils.findLanguageFiles(projectPath, "php");
+    const phpFiles = FileUtils.findLanguageFiles(projectPath, 'php');
     if (phpFiles.length > 0) {
       confidence += 40;
     }
 
     // Check for vendor directory
-    if (fs.existsSync(path.join(projectPath, "vendor"))) {
+    if (fs.existsSync(path.join(projectPath, 'vendor'))) {
       confidence += 20;
     }
 
     return {
       detected: confidence >= 30,
-      type: "php",
+      type: 'php',
       framework,
       confidence: Math.min(confidence, 100),
       files: files.filter((f) => fs.existsSync(path.join(projectPath, f))),
@@ -501,22 +501,22 @@ class ProjectUtils {
    */
   static detectDotNetProject(projectPath) {
     const files = [
-      "*.csproj",
-      "*.sln",
-      "*.vbproj",
-      "*.fsproj",
-      "packages.config",
-      "bin",
-      "obj",
+      '*.csproj',
+      '*.sln',
+      '*.vbproj',
+      '*.fsproj',
+      'packages.config',
+      'bin',
+      'obj',
     ];
 
     let confidence = 0;
-    let framework = "dotnet";
+    let framework = 'dotnet';
 
     // Check for project files
     const projectFiles = FileUtils.findFilesByPattern(
       projectPath,
-      ["*.csproj", "*.sln", "*.vbproj", "*.fsproj"],
+      ['*.csproj', '*.sln', '*.vbproj', '*.fsproj'],
       {
         recursive: false,
       },
@@ -528,14 +528,14 @@ class ProjectUtils {
       // Try to detect framework version
       try {
         const content = readFile(projectFiles[0].path);
-        if (content.includes("net8.0") || content.includes("net9.0")) {
-          framework = "dotnet-core";
+        if (content.includes('net8.0') || content.includes('net9.0')) {
+          framework = 'dotnet-core';
           confidence += 20;
-        } else if (content.includes("netcoreapp")) {
-          framework = "dotnet-core";
+        } else if (content.includes('netcoreapp')) {
+          framework = 'dotnet-core';
           confidence += 15;
-        } else if (content.includes("netframework")) {
-          framework = "dotnet-framework";
+        } else if (content.includes('netframework')) {
+          framework = 'dotnet-framework';
           confidence += 10;
         }
       } catch (e) {
@@ -544,7 +544,7 @@ class ProjectUtils {
     }
 
     // Check for C# files
-    const csFiles = FileUtils.findFilesByPattern(projectPath, ["**/*.cs"], {
+    const csFiles = FileUtils.findFilesByPattern(projectPath, ['**/*.cs'], {
       recursive: true,
       maxDepth: 3,
     });
@@ -555,15 +555,15 @@ class ProjectUtils {
 
     // Check for build directories
     if (
-      fs.existsSync(path.join(projectPath, "bin")) ||
-      fs.existsSync(path.join(projectPath, "obj"))
+      fs.existsSync(path.join(projectPath, 'bin')) ||
+      fs.existsSync(path.join(projectPath, 'obj'))
     ) {
       confidence += 15;
     }
 
     return {
       detected: confidence >= 30,
-      type: "dotnet",
+      type: 'dotnet',
       framework,
       confidence: Math.min(confidence, 100),
       files: projectFiles.map((f) => f.relativePath),
@@ -580,24 +580,24 @@ class ProjectUtils {
       includeFiles = true,
       includeStats = true,
       ignorePatterns = [
-        "**/node_modules/**",
-        "**/.git/**",
-        "**/vendor/**",
-        "**/dist/**",
-        "**/build/**",
-        "**/target/**",
-        "**/bin/**",
-        "**/obj/**",
-        "**/*.min.*",
-        "**/*.bundle.*",
-        "**/__pycache__/**",
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/vendor/**',
+        '**/dist/**',
+        '**/build/**',
+        '**/target/**',
+        '**/bin/**',
+        '**/obj/**',
+        '**/*.min.*',
+        '**/*.bundle.*',
+        '**/__pycache__/**',
       ],
     } = options;
 
     const structure = {
       path: projectPath,
       name: path.basename(projectPath),
-      type: "directory",
+      type: 'directory',
       children: [],
     };
 
@@ -616,7 +616,7 @@ class ProjectUtils {
       }
     }
 
-    function scanDir(currentPath, currentDepth, relativePath = "") {
+    function scanDir(currentPath, currentDepth, relativePath = '') {
       if (currentDepth > maxDepth) {
         return [];
       }
@@ -635,10 +635,10 @@ class ProjectUtils {
           const shouldIgnore = ignorePatterns.some((pattern) => {
             const regex = new RegExp(
               pattern
-                .replace(/\*\*/g, ".*")
-                .replace(/\*/g, "[^/\\\\]*")
-                .replace(/\?/g, ".")
-                .replace(/\//g, "[\\\\/]"),
+                .replace(/\*\*/g, '.*')
+                .replace(/\*/g, '[^/\\\\]*')
+                .replace(/\?/g, '.')
+                .replace(/\//g, '[\\\\/]'),
             );
             return regex.test(relPath);
           });
@@ -651,7 +651,7 @@ class ProjectUtils {
             name: entry.name,
             path: fullPath,
             relativePath: relPath,
-            type: entry.isDirectory() ? "directory" : "file",
+            type: entry.isDirectory() ? 'directory' : 'file',
           };
 
           if (includeStats) {
@@ -682,15 +682,15 @@ class ProjectUtils {
 
         // Sort: directories first, then files, both alphabetically
         children.sort((a, b) => {
-          if (a.type === "directory" && b.type !== "directory") return -1;
-          if (a.type !== "directory" && b.type === "directory") return 1;
+          if (a.type === 'directory' && b.type !== 'directory') return -1;
+          if (a.type !== 'directory' && b.type === 'directory') return 1;
           return a.name.localeCompare(b.name);
         });
 
         return children;
       } catch (err) {
         // Ignore permission errors
-        if (err.code !== "EACCES" && err.code !== "EPERM") {
+        if (err.code !== 'EACCES' && err.code !== 'EPERM') {
           console.error(
             `Error scanning directory ${currentPath}:`,
             err.message,
@@ -721,14 +721,14 @@ class ProjectUtils {
     const largestFiles = [];
 
     function traverse(item) {
-      if (item.type === "directory") {
+      if (item.type === 'directory') {
         totalDirectories++;
         if (item.children) {
           for (const child of item.children) {
             traverse(child);
           }
         }
-      } else if (item.type === "file") {
+      } else if (item.type === 'file') {
         totalFiles++;
 
         if (item.stats && item.stats.size) {
@@ -781,14 +781,14 @@ class ProjectUtils {
 
     // Try to read README
     let readme = null;
-    const readmeFiles = ["README.md", "README.txt", "README", "README.rst"];
+    const readmeFiles = ['README.md', 'README.txt', 'README', 'README.rst'];
     for (const file of readmeFiles) {
       const readmePath = path.join(projectPath, file);
       if (fs.existsSync(readmePath)) {
         try {
           readme = {
             file,
-            content: readFile(readmePath).substring(0, 500) + "...",
+            content: `${readFile(readmePath).substring(0, 500)}...`,
             size: fs.statSync(readmePath).size,
           };
           break;
@@ -801,21 +801,21 @@ class ProjectUtils {
     // Try to get git info
     let gitInfo = null;
     try {
-      const { runCommand } = require("./utils");
-      const gitResult = runCommand("git rev-parse --git-dir", {
+      const { runCommand } = require('./utils');
+      const gitResult = runCommand('git rev-parse --git-dir', {
         cwd: projectPath,
       });
       if (gitResult.success) {
-        const branchResult = runCommand("git branch --show-current", {
+        const branchResult = runCommand('git branch --show-current', {
           cwd: projectPath,
         });
-        const remoteResult = runCommand("git remote -v", { cwd: projectPath });
+        const remoteResult = runCommand('git remote -v', { cwd: projectPath });
 
         gitInfo = {
           isGitRepo: true,
-          branch: branchResult.success ? branchResult.output.trim() : "unknown",
+          branch: branchResult.success ? branchResult.output.trim() : 'unknown',
           remotes: remoteResult.success
-            ? remoteResult.output.trim().split("\n")
+            ? remoteResult.output.trim().split('\n')
             : [],
         };
       }

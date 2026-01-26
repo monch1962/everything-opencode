@@ -5,10 +5,10 @@
  * Backtesting utilities for PineScript strategies
  */
 
-const path = require("path");
-const fs = require("fs");
-const { spawn } = require("child_process");
-const { runCommand } = require("../lib/utils");
+const path = require('path');
+const fs = require('fs');
+const { spawn } = require('child_process');
+const { runCommand } = require('../lib/utils');
 
 class PineBacktester {
   constructor(projectPath = process.cwd()) {
@@ -26,14 +26,14 @@ class PineBacktester {
    */
   async runBacktest(strategyFile, options = {}) {
     const {
-      dataSource = "csv",
+      dataSource = 'csv',
       dataFile = null,
       fromDate = null,
       toDate = null,
       commission = 0.1,
       slippage = 0.0,
       initialCapital = 10000,
-      outputFormat = "console",
+      outputFormat = 'console',
     } = options;
 
     console.log(`📊 Running backtest for: ${strategyFile}`);
@@ -46,17 +46,17 @@ class PineBacktester {
       throw new Error(`Strategy file not found: ${strategyFile}`);
     }
 
-    if (!strategyFile.endsWith(".pine")) {
+    if (!strategyFile.endsWith('.pine')) {
       throw new Error(
         `File must be a PineScript file (.pine): ${strategyFile}`,
       );
     }
 
     // Check if strategy file contains strategy() function
-    const content = fs.readFileSync(strategyFile, "utf8");
-    if (!content.includes("strategy(")) {
+    const content = fs.readFileSync(strategyFile, 'utf8');
+    if (!content.includes('strategy(')) {
       throw new Error(
-        "File does not contain a strategy() function. Backtesting requires a trading strategy.",
+        'File does not contain a strategy() function. Backtesting requires a trading strategy.',
       );
     }
 
@@ -64,7 +64,7 @@ class PineBacktester {
     const backtestMethod = this.dataSources[dataSource];
     if (!backtestMethod) {
       throw new Error(
-        `Unsupported data source: ${dataSource}. Available: ${Object.keys(this.dataSources).join(", ")}`,
+        `Unsupported data source: ${dataSource}. Available: ${Object.keys(this.dataSources).join(', ')}`,
       );
     }
 
@@ -104,7 +104,7 @@ class PineBacktester {
 
     if (!dataFile) {
       throw new Error(
-        "CSV data file required for backtesting. Use --data <file.csv>",
+        'CSV data file required for backtesting. Use --data <file.csv>',
       );
     }
 
@@ -123,7 +123,7 @@ class PineBacktester {
    * Backtest using TradingView data (simulated)
    */
   async backtestWithTradingView(strategyFile, options) {
-    console.log("   Using TradingView historical data (simulated)");
+    console.log('   Using TradingView historical data (simulated)');
 
     // Simulate fetching data from TradingView
     // In a real implementation, this would use TradingView API
@@ -134,7 +134,7 @@ class PineBacktester {
    * Backtest using API data (simulated)
    */
   async backtestWithAPI(strategyFile, options) {
-    console.log("   Using API data source (simulated)");
+    console.log('   Using API data source (simulated)');
     return this.simulateBacktestResults(strategyFile, options);
   }
 
@@ -142,7 +142,7 @@ class PineBacktester {
    * Backtest using database data (simulated)
    */
   async backtestWithDatabase(strategyFile, options) {
-    console.log("   Using database data source (simulated)");
+    console.log('   Using database data source (simulated)');
     return this.simulateBacktestResults(strategyFile, options);
   }
 
@@ -221,7 +221,7 @@ class PineBacktester {
         exitTime: new Date(
           Date.now() - (totalTrades - i - 1) * 86400000,
         ).toISOString(),
-        direction: Math.random() > 0.5 ? "LONG" : "SHORT",
+        direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
         entryPrice: 100 + Math.random() * 50,
         exitPrice: 100 + Math.random() * 50,
         quantity: Math.floor(Math.random() * 100) + 10,
@@ -265,15 +265,15 @@ class PineBacktester {
   /**
    * Generate backtest report
    */
-  generateReport(results, format = "console", options = {}) {
+  generateReport(results, format = 'console', options = {}) {
     switch (format) {
-      case "json":
+      case 'json':
         return this.generateJSONReport(results);
-      case "html":
+      case 'html':
         return this.generateHTMLReport(results, options);
-      case "csv":
+      case 'csv':
         return this.generateCSVReport(results);
-      case "console":
+      case 'console':
       default:
         return this.generateConsoleReport(results);
     }
@@ -285,15 +285,15 @@ class PineBacktester {
   generateConsoleReport(results) {
     const { performance, trades } = results;
 
-    console.log("\n" + "=".repeat(60));
-    console.log("📈 BACKTEST REPORT");
-    console.log("=".repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
+    console.log('📈 BACKTEST REPORT');
+    console.log('='.repeat(60));
 
     console.log(`\nStrategy: ${results.strategy}`);
     console.log(`Period: ${trades.length} trades`);
 
-    console.log("\n📊 PERFORMANCE METRICS");
-    console.log("─".repeat(40));
+    console.log('\n📊 PERFORMANCE METRICS');
+    console.log('─'.repeat(40));
     console.log(
       `Net Profit: $${performance.netProfit.toFixed(2)} (${((performance.netProfit / results.parameters.initialCapital) * 100).toFixed(2)}%)`,
     );
@@ -313,8 +313,8 @@ class PineBacktester {
     console.log(`Sortino Ratio: ${performance.sortinoRatio.toFixed(2)}`);
     console.log(`Calmar Ratio: ${performance.calmarRatio.toFixed(2)}`);
 
-    console.log("\n💹 TRADE STATISTICS");
-    console.log("─".repeat(40));
+    console.log('\n💹 TRADE STATISTICS');
+    console.log('─'.repeat(40));
     console.log(
       `Total Commission: $${trades.reduce((sum, trade) => sum + trade.commission, 0).toFixed(2)}`,
     );
@@ -326,8 +326,8 @@ class PineBacktester {
       `Worst Day: $${Math.min(...trades.map((t) => t.profitLoss)).toFixed(2)}`,
     );
 
-    console.log("\n📈 EQUITY CURVE");
-    console.log("─".repeat(40));
+    console.log('\n📈 EQUITY CURVE');
+    console.log('─'.repeat(40));
     const equityCurve = results.equityCurve;
     if (equityCurve.length > 0) {
       const startEquity = equityCurve[0].equity;
@@ -344,9 +344,9 @@ class PineBacktester {
       );
     }
 
-    console.log("\n" + "=".repeat(60));
-    console.log("✅ Backtest completed successfully");
-    console.log("=".repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
+    console.log('✅ Backtest completed successfully');
+    console.log('='.repeat(60));
 
     return results;
   }
@@ -390,7 +390,7 @@ class PineBacktester {
     <h2>Performance Metrics</h2>
     <div class="metric">
         <strong>Net Profit:</strong> 
-        <span class="${performance.netProfit >= 0 ? "positive" : "negative"}">
+        <span class="${performance.netProfit >= 0 ? 'positive' : 'negative'}">
             $${performance.netProfit.toFixed(2)} (${((performance.netProfit / results.parameters.initialCapital) * 100).toFixed(2)}%)
         </span>
     </div>
@@ -408,18 +408,18 @@ class PineBacktester {
     <table>
         <tr><th>ID</th><th>Direction</th><th>P&L</th><th>Win/Loss</th></tr>
         ${trades
-          .slice(-10)
-          .map(
-            (trade) => `
+    .slice(-10)
+    .map(
+      (trade) => `
         <tr>
             <td>${trade.id}</td>
             <td>${trade.direction}</td>
-            <td class="${trade.profitLoss >= 0 ? "positive" : "negative"}">$${trade.profitLoss.toFixed(2)}</td>
-            <td>${trade.win ? "✅ Win" : "❌ Loss"}</td>
+            <td class="${trade.profitLoss >= 0 ? 'positive' : 'negative'}">$${trade.profitLoss.toFixed(2)}</td>
+            <td>${trade.win ? '✅ Win' : '❌ Loss'}</td>
         </tr>
         `,
-          )
-          .join("")}
+    )
+    .join('')}
     </table>
 </body>
 </html>`;
@@ -431,7 +431,7 @@ class PineBacktester {
   generateCSVReport(results) {
     const { performance, trades } = results;
 
-    let csv = "Metric,Value\n";
+    let csv = 'Metric,Value\n';
     csv += `Net Profit,${performance.netProfit}\n`;
     csv += `Total Trades,${performance.totalTrades}\n`;
     csv += `Win Rate,${performance.winRate}\n`;
@@ -439,7 +439,7 @@ class PineBacktester {
     csv += `Max Drawdown,${performance.maxDrawdownPct}\n`;
     csv += `Sharpe Ratio,${performance.sharpeRatio}\n`;
 
-    csv += "\nTrade ID,Direction,Entry Price,Exit Price,Profit/Loss,Win\n";
+    csv += '\nTrade ID,Direction,Entry Price,Exit Price,Profit/Loss,Win\n';
     trades.forEach((trade) => {
       csv += `${trade.id},${trade.direction},${trade.entryPrice},${trade.exitPrice},${trade.profitLoss},${trade.win}\n`;
     });
@@ -452,7 +452,7 @@ class PineBacktester {
    */
   async checkBacktestingTools() {
     const tools = {
-      python: { command: "python --version", installed: false },
+      python: { command: 'python --version', installed: false },
       backtesting: {
         command:
           'python -c "import backtesting; print(backtesting.__version__)"',
@@ -468,7 +468,7 @@ class PineBacktester {
 
     for (const [tool, info] of Object.entries(tools)) {
       try {
-        const result = runCommand(info.command, { stdio: "pipe" });
+        const result = runCommand(info.command, { stdio: 'pipe' });
         if (result.success) {
           info.installed = true;
           availableTools.push(tool);
@@ -494,7 +494,7 @@ if (require.main === module) {
 
   const args = process.argv.slice(2);
 
-  if (args.includes("--help") || args.includes("-h")) {
+  if (args.includes('--help') || args.includes('-h')) {
     console.log(`
 📊 PineScript Backtester
 
@@ -509,29 +509,29 @@ Examples:
   node scripts/pinescript/backtester.js --check-tools
     `);
     process.exit(0);
-  } else if (args.includes("--check-tools")) {
+  } else if (args.includes('--check-tools')) {
     backtester.checkBacktestingTools().then((tools) => {
-      console.log("\n🔧 Backtesting Tools Check:");
+      console.log('\n🔧 Backtesting Tools Check:');
       console.log(
-        `Available: ${tools.available.length > 0 ? tools.available.join(", ") : "None"}`,
+        `Available: ${tools.available.length > 0 ? tools.available.join(', ') : 'None'}`,
       );
       if (tools.missing.length > 0) {
-        console.log(`Missing: ${tools.missing.join(", ")}`);
-        console.log("\n💡 Installation recommendations:");
-        if (tools.missing.includes("python")) {
+        console.log(`Missing: ${tools.missing.join(', ')}`);
+        console.log('\n💡 Installation recommendations:');
+        if (tools.missing.includes('python')) {
           console.log(
-            "  • Python: https://python.org/ (required for backtesting)",
+            '  • Python: https://python.org/ (required for backtesting)',
           );
         }
-        if (tools.missing.includes("backtesting")) {
-          console.log("  • backtesting.py: pip install backtesting");
+        if (tools.missing.includes('backtesting')) {
+          console.log('  • backtesting.py: pip install backtesting');
         }
-        if (tools.missing.includes("pandas")) {
-          console.log("  • pandas: pip install pandas");
+        if (tools.missing.includes('pandas')) {
+          console.log('  • pandas: pip install pandas');
         }
       }
     });
   } else {
-    console.log("Use --help for usage information.");
+    console.log('Use --help for usage information.');
   }
 }

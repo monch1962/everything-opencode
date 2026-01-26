@@ -5,23 +5,15 @@
  * Base class for executing PineScript commands based on project configuration
  */
 
-const path = require("path");
-const fs = require("fs");
-const { spawn } = require("child_process");
-const { runCommand, commandExists } = require("../lib/utils");
-const ConfigManager = require("../interactive/config-manager");
-const PineScriptToolDetector = require("../../languages/pinescript/tool-detector");
-const PlatformDetector = require("../lib/platform-detector");
-const { defaultErrorHandler } = require("../lib/error-handler");
+const path = require('path');
+const fs = require('fs');
+const { spawn } = require('child_process');
+const ConfigManager = require('../interactive/config-manager');
+const PineScriptToolDetector = require('../../languages/pinescript/tool-detector');
+const PlatformDetector = require('../lib/platform-detector');
 
 // Import shared utilities
-const {
-  ConfigUtils,
-  FileUtils,
-  ProjectUtils,
-  LoggingUtils,
-  ensureDir,
-} = require("../lib");
+const { ConfigUtils, FileUtils, ProjectUtils, LoggingUtils } = require('../lib');
 
 class PineCommandRunner {
   constructor(projectPath = process.cwd()) {
@@ -42,46 +34,42 @@ class PineCommandRunner {
     try {
       const projectInfo = ProjectUtils.detectProjectType(this.projectPath);
 
-      if (projectInfo.type !== "pinescript" && projectInfo.confidence < 0.7) {
+      if (projectInfo.type !== 'pinescript' && projectInfo.confidence < 0.7) {
         LoggingUtils.warn(
           `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`,
         );
         LoggingUtils.warn(
-          "This may not be a PineScript project. Some features may not work correctly.",
+          'This may not be a PineScript project. Some features may not work correctly.',
         );
-      } else if (projectInfo.type === "pinescript") {
+      } else if (projectInfo.type === 'pinescript') {
         LoggingUtils.debug(
-          `Detected PineScript project: ${projectInfo.framework || "standard PineScript"}`,
+          `Detected PineScript project: ${projectInfo.framework || 'standard PineScript'}`,
         );
       }
 
       // Log detected languages if available
       if (projectInfo.languages && projectInfo.languages.length > 0) {
-        LoggingUtils.debug(
-          `Detected languages: ${projectInfo.languages.join(", ")}`,
-        );
+        LoggingUtils.debug(`Detected languages: ${projectInfo.languages.join(', ')}`);
       }
     } catch (error) {
-      LoggingUtils.debug("Project detection failed:", error.message);
+      LoggingUtils.debug('Project detection failed:', error.message);
     }
 
     // Load configuration using ConfigUtils
     try {
       this.config = ConfigUtils.loadConfig(this.projectPath);
       if (!this.config) {
-        throw new Error("Project not configured. Run /pine-setup first.");
+        throw new Error('Project not configured. Run /pine-setup first.');
       }
 
       // Get PineScript configuration
       this.pineConfig = this.config.pinescript;
       if (!this.pineConfig) {
-        throw new Error(
-          "PineScript configuration not found. Run /pine-setup first.",
-        );
+        throw new Error('PineScript configuration not found. Run /pine-setup first.');
       }
 
       // Validate PineScript configuration schema
-      ConfigUtils.validateConfig(this.pineConfig, "pinescript");
+      ConfigUtils.validateConfig(this.pineConfig, 'pinescript');
 
       // Detect tools
       this.detectedTools = await this.toolDetector.detectTools();
@@ -89,11 +77,8 @@ class PineCommandRunner {
       return true;
     } catch (error) {
       // Use LoggingUtils for better error display
-      LoggingUtils.error(
-        "Failed to initialize PineScript command runner:",
-        error.message,
-      );
-      LoggingUtils.info("Run /pine-setup to configure your PineScript project");
+      LoggingUtils.error('Failed to initialize PineScript command runner:', error.message);
+      LoggingUtils.info('Run /pine-setup to configure your PineScript project');
       throw error;
     }
   }
@@ -104,26 +89,17 @@ class PineCommandRunner {
   checkTool(toolName, required = true) {
     try {
       // Use ConfigUtils to check if tool is installed
-      const isInstalled = ConfigUtils.checkToolInstalled(
-        this.pineConfig,
-        toolName,
-        required,
-      );
+      const isInstalled = ConfigUtils.checkToolInstalled(this.pineConfig, toolName, required);
 
       if (!isInstalled && required) {
-        throw new Error(
-          `${toolName} is not installed. Install it or check tool recommendations.`,
-        );
+        throw new Error(`${toolName} is not installed. Install it or check tool recommendations.`);
       }
 
       return isInstalled;
     } catch (error) {
       // Use LoggingUtils for better error display
       if (required) {
-        LoggingUtils.error(
-          `PineScript tool '${toolName}' check failed:`,
-          error.message,
-        );
+        LoggingUtils.error(`PineScript tool '${toolName}' check failed:`, error.message);
         LoggingUtils.info(`Run /pine-setup to install '${toolName}'`);
       }
       throw error;
@@ -133,14 +109,14 @@ class PineCommandRunner {
   /**
    * Find PineScript files in the project
    */
-  findPineScriptFiles(pattern = "**/*.pine", excludePatterns = []) {
+  findPineScriptFiles(pattern = '**/*.pine', excludePatterns = []) {
     try {
       return FileUtils.findFilesByPattern(this.projectPath, [pattern], {
         exclude: excludePatterns,
-        language: "pinescript",
+        language: 'pinescript',
       });
     } catch (error) {
-      LoggingUtils.warn("Failed to find PineScript files:", error.message);
+      LoggingUtils.warn('Failed to find PineScript files:', error.message);
       return [];
     }
   }
@@ -153,18 +129,15 @@ class PineCommandRunner {
       const info = {
         hasPineFiles: this.findPineScriptFiles().length > 0,
         pineScriptFiles: this.findPineScriptFiles().length,
-        hasConfig: fs.existsSync(path.join(this.projectPath, "config")),
-        hasScripts: fs.existsSync(path.join(this.projectPath, "scripts")),
-        hasIndicators: fs.existsSync(path.join(this.projectPath, "indicators")),
-        hasStrategies: fs.existsSync(path.join(this.projectPath, "strategies")),
+        hasConfig: fs.existsSync(path.join(this.projectPath, 'config')),
+        hasScripts: fs.existsSync(path.join(this.projectPath, 'scripts')),
+        hasIndicators: fs.existsSync(path.join(this.projectPath, 'indicators')),
+        hasStrategies: fs.existsSync(path.join(this.projectPath, 'strategies')),
       };
 
       return info;
     } catch (error) {
-      LoggingUtils.debug(
-        "Failed to get PineScript project info:",
-        error.message,
-      );
+      LoggingUtils.debug('Failed to get PineScript project info:', error.message);
       return null;
     }
   }
@@ -173,9 +146,7 @@ class PineCommandRunner {
    * Validate PineScript file exists and is readable
    */
   validatePineFile(filePath) {
-    const fullPath = path.isAbsolute(filePath)
-      ? filePath
-      : path.join(this.projectPath, filePath);
+    const fullPath = path.isAbsolute(filePath) ? filePath : path.join(this.projectPath, filePath);
 
     if (!fs.existsSync(fullPath)) {
       throw new Error(`PineScript file not found: ${filePath}`);
@@ -185,7 +156,7 @@ class PineCommandRunner {
       throw new Error(`Path is not a file: ${filePath}`);
     }
 
-    if (!fullPath.endsWith(".pine")) {
+    if (!fullPath.endsWith('.pine')) {
       throw new Error(`File must have .pine extension: ${filePath}`);
     }
 
@@ -199,7 +170,7 @@ class PineCommandRunner {
     const fullPath = this.validatePineFile(filePath);
 
     try {
-      return fs.readFileSync(fullPath, "utf8");
+      return fs.readFileSync(fullPath, 'utf8');
     } catch (error) {
       throw new Error(`Failed to read PineScript file: ${error.message}`);
     }
@@ -218,10 +189,10 @@ class PineCommandRunner {
    */
   validateVersionCompatibility(fileVersion, configVersion) {
     if (!fileVersion) {
-      return { compatible: true, warning: "No version specified in file" };
+      return { compatible: true, warning: 'No version specified in file' };
     }
 
-    if (configVersion === "auto") {
+    if (configVersion === 'auto') {
       return { compatible: true, version: fileVersion };
     }
 
@@ -229,7 +200,7 @@ class PineCommandRunner {
     const configVerNum = parseInt(configVersion);
 
     if (isNaN(fileVerNum) || isNaN(configVerNum)) {
-      return { compatible: true, warning: "Could not parse version numbers" };
+      return { compatible: true, warning: 'Could not parse version numbers' };
     }
 
     if (fileVerNum < configVerNum) {
@@ -254,44 +225,40 @@ class PineCommandRunner {
    */
   async executeCommand(command, args = [], options = {}) {
     return new Promise((resolve, reject) => {
-      const fullCommand = [command, ...args].join(" ");
+      const fullCommand = [command, ...args].join(' ');
       LoggingUtils.info(`\n🚀 Executing: ${fullCommand}`);
 
       const child = spawn(command, args, {
         cwd: this.projectPath,
-        stdio: options.stdio || "inherit",
+        stdio: options.stdio || 'inherit',
         shell: options.shell || true,
         env: { ...process.env, ...options.env },
       });
 
-      let stdout = "";
-      let stderr = "";
+      let stdout = '';
+      let stderr = '';
 
       if (child.stdout) {
-        child.stdout.on("data", (data) => {
+        child.stdout.on('data', (data) => {
           stdout += data.toString();
         });
       }
 
       if (child.stderr) {
-        child.stderr.on("data", (data) => {
+        child.stderr.on('data', (data) => {
           stderr += data.toString();
         });
       }
 
-      child.on("close", (code) => {
+      child.on('close', (code) => {
         if (code === 0) {
           resolve({ success: true, stdout, stderr, code });
         } else {
-          reject(
-            new Error(
-              `Command failed with code ${code}: ${stderr || "Unknown error"}`,
-            ),
-          );
+          reject(new Error(`Command failed with code ${code}: ${stderr || 'Unknown error'}`));
         }
       });
 
-      child.on("error", (error) => {
+      child.on('error', (error) => {
         reject(new Error(`Command execution failed: ${error.message}`));
       });
     });
@@ -301,14 +268,11 @@ class PineCommandRunner {
    * Run PineScript validation
    */
   async runValidation(filePath, options = {}) {
-    await this.checkTool("pineParser", true);
+    await this.checkTool('pineParser', true);
 
     const content = this.readPineFile(filePath);
     const fileVersion = this.getPineVersionFromContent(content);
-    const versionCheck = this.validateVersionCompatibility(
-      fileVersion,
-      this.pineConfig.version,
-    );
+    const versionCheck = this.validateVersionCompatibility(fileVersion, this.pineConfig.version);
 
     if (!versionCheck.compatible) {
       throw new Error(`Version compatibility error: ${versionCheck.error}`);
@@ -321,59 +285,59 @@ class PineCommandRunner {
     // Basic validation checks
     const validationResults = {
       file: filePath,
-      version: fileVersion || "unknown",
+      version: fileVersion || 'unknown',
       checks: [],
     };
 
     // Check for required PineScript structure
-    if (!content.includes("//@version=")) {
+    if (!content.includes('//@version=')) {
       validationResults.checks.push({
-        type: "warning",
-        message: "No version declaration found. Add //@version=X comment.",
-        suggestion: "Add //@version=5 or your preferred version",
+        type: 'warning',
+        message: 'No version declaration found. Add //@version=X comment.',
+        suggestion: 'Add //@version=5 or your preferred version',
       });
     }
 
     // Check for study/indicator/strategy declaration
     if (
-      !content.includes("indicator(") &&
-      !content.includes("strategy(") &&
-      !content.includes("study(")
+      !content.includes('indicator(') &&
+      !content.includes('strategy(') &&
+      !content.includes('study(')
     ) {
       validationResults.checks.push({
-        type: "error",
-        message: "No indicator, strategy, or study declaration found.",
+        type: 'error',
+        message: 'No indicator, strategy, or study declaration found.',
         suggestion: 'Add indicator("My Indicator") or strategy("My Strategy")',
       });
     }
 
     // Check for plot or plotshape (basic visualization)
     if (
-      !content.includes("plot(") &&
-      !content.includes("plotshape(") &&
-      !content.includes("plotchar(")
+      !content.includes('plot(') &&
+      !content.includes('plotshape(') &&
+      !content.includes('plotchar(')
     ) {
       validationResults.checks.push({
-        type: "warning",
-        message: "No plot functions found. Indicator may not be visible.",
-        suggestion: "Add plot(close) or plotshape() for visualization",
+        type: 'warning',
+        message: 'No plot functions found. Indicator may not be visible.',
+        suggestion: 'Add plot(close) or plotshape() for visualization',
       });
     }
 
     // Check for common syntax issues
-    if (content.includes("security(") && this.pineConfig.version >= 5) {
+    if (content.includes('security(') && this.pineConfig.version >= 5) {
       validationResults.checks.push({
-        type: "warning",
-        message: "security() function is deprecated in v5+.",
-        suggestion: "Use request.security() instead",
+        type: 'warning',
+        message: 'security() function is deprecated in v5+.',
+        suggestion: 'Use request.security() instead',
       });
     }
 
-    if (content.includes("study(") && this.pineConfig.version >= 5) {
+    if (content.includes('study(') && this.pineConfig.version >= 5) {
       validationResults.checks.push({
-        type: "warning",
-        message: "study() function is deprecated in v5+.",
-        suggestion: "Use indicator() or strategy() instead",
+        type: 'warning',
+        message: 'study() function is deprecated in v5+.',
+        suggestion: 'Use indicator() or strategy() instead',
       });
     }
 
@@ -393,33 +357,32 @@ class PineCommandRunner {
     const suggestions = [];
 
     // Analyze code complexity
-    const lines = content.split("\n");
+    const lines = content.split('\n');
     const lineCount = lines.length;
     const variableCount = (content.match(/\w+\s*=/g) || []).length;
     const functionCount = (content.match(/=>/g) || []).length;
-    const conditionCount = (content.match(/if\s+|when\s+|and\s+|or\s+/gi) || [])
-      .length;
+    const conditionCount = (content.match(/if\s+|when\s+|and\s+|or\s+/gi) || []).length;
 
     // Complexity analysis
     if (lineCount > 100) {
       suggestions.push({
-        type: "info",
-        message: `Complex indicator (${lineCount} lines, ${variableCount} variables).`,
-        suggestion: "Consider using /pine-debug profile to analyze performance",
+        type: 'info',
+        message: `Complex indicator (${lineCount} lines, ${variableCount} variables, ${functionCount} functions).`,
+        suggestion: 'Consider breaking into smaller functions or libraries.',
         debug: true,
       });
     }
 
     // Check for intermediate variable debugging
-    const hasPlot = content.includes("plot(");
-    const hasPlotchar = content.includes("plotchar(");
-    const hasPlotshape = content.includes("plotshape(");
+    const hasPlot = content.includes('plot(');
+    const hasPlotchar = content.includes('plotchar(');
+    const hasPlotshape = content.includes('plotshape(');
 
-    if (variableCount > 10 && !hasPlotchar && !hasPlotshape) {
+    if (variableCount > 10 && !hasPlot && !hasPlotchar && !hasPlotshape) {
       suggestions.push({
-        type: "info",
+        type: 'info',
         message: `Many variables (${variableCount}) without debug visualization.`,
-        suggestion: "Add plotchar() for key variables or use debug helpers",
+        suggestion: 'Add plot(), plotchar(), or plotshape() for key variables or use debug helpers',
         debug: true,
       });
     }
@@ -427,23 +390,22 @@ class PineCommandRunner {
     // Check for complex conditions
     if (conditionCount > 5) {
       suggestions.push({
-        type: "info",
+        type: 'info',
         message: `Complex logic (${conditionCount} conditions).`,
-        suggestion: "Use /pine-debug monitor to track condition states",
+        suggestion: 'Use /pine-debug monitor to track condition states',
         debug: true,
       });
     }
 
     // Check for custom calculations
-    const customCalcPattern =
-      /(\w+)\s*=\s*(?!ta\.|math\.|str\.|input\.|request\.)/g;
+    const customCalcPattern = /(\w+)\s*=\s*(?!ta\.|math\.|str\.|input\.|request\.)/g;
     const customMatches = [...content.matchAll(customCalcPattern)];
 
     if (customMatches.length > 3) {
       suggestions.push({
-        type: "info",
+        type: 'info',
         message: `Custom calculations detected (${customMatches.length}).`,
-        suggestion: "Use debug.plot() to visualize intermediate results",
+        suggestion: 'Use debug.plot() to visualize intermediate results',
         debug: true,
       });
     }
@@ -452,33 +414,31 @@ class PineCommandRunner {
     const seriesOps = (content.match(/\[1\]|\[2\]|\[3\]/g) || []).length;
     if (seriesOps > 5) {
       suggestions.push({
-        type: "info",
+        type: 'info',
         message: `Multiple series operations (${seriesOps}).`,
-        suggestion: "Use debug.series() to track historical values",
+        suggestion: 'Use debug.series() to track historical values',
         debug: true,
       });
     }
 
     // Check for error handling
-    const hasNaCheck = content.includes("na(") || content.includes("nz(");
+    const hasNaCheck = content.includes('na(') || content.includes('nz(');
     if (!hasNaCheck && variableCount > 5) {
       suggestions.push({
-        type: "info",
-        message: "No explicit NA handling detected.",
-        suggestion: "Add na() checks or use debug.errorCheck()",
+        type: 'info',
+        message: 'No explicit NA handling detected.',
+        suggestion: 'Add na() checks or use debug.errorCheck()',
         debug: true,
       });
     }
 
     // Check for performance patterns
-    const nestedLoops = (
-      content.match(/for\s+\w+\s*=\s*\w+\s+to\s+\w+/gi) || []
-    ).length;
+    const nestedLoops = (content.match(/for\s+\w+\s*=\s*\w+\s+to\s+\w+/gi) || []).length;
     if (nestedLoops > 0) {
       suggestions.push({
-        type: "warning",
-        message: "Loop structures detected (performance concern).",
-        suggestion: "Use /pine-debug profile to optimize performance",
+        type: 'warning',
+        message: 'Loop structures detected (performance concern).',
+        suggestion: 'Use /pine-debug profile to optimize performance',
         debug: true,
       });
     }
@@ -486,9 +446,9 @@ class PineCommandRunner {
     // Suggest debug helpers for complex indicators
     if (lineCount > 50 || variableCount > 15 || conditionCount > 10) {
       suggestions.push({
-        type: "info",
-        message: "Complex indicator suitable for advanced debugging.",
-        suggestion: "Run /pine-debug helpers to generate debugging utilities",
+        type: 'info',
+        message: 'Complex indicator suitable for advanced debugging.',
+        suggestion: 'Run /pine-debug helpers to generate debugging utilities',
         debug: true,
       });
     }
@@ -499,20 +459,20 @@ class PineCommandRunner {
   /**
    * Generate validation report
    */
-  generateValidationReport(results, options = {}) {
-    LoggingUtils.info("\n📋 Validation Report");
-    LoggingUtils.info("=".repeat(50));
+  generateValidationReport(results) {
+    LoggingUtils.info('\n📋 Validation Report');
+    LoggingUtils.info('='.repeat(50));
     LoggingUtils.info(`File: ${results.file}`);
     LoggingUtils.info(`Version: ${results.version}`);
     LoggingUtils.info(`Checks: ${results.checks.length}`);
 
-    const errors = results.checks.filter((c) => c.type === "error");
-    const warnings = results.checks.filter((c) => c.type === "warning");
-    const info = results.checks.filter((c) => c.type === "info" && !c.debug);
+    const errors = results.checks.filter((c) => c.type === 'error');
+    const warnings = results.checks.filter((c) => c.type === 'warning');
+    const info = results.checks.filter((c) => c.type === 'info' && !c.debug);
     const debugSuggestions = results.checks.filter((c) => c.debug);
 
     if (errors.length > 0) {
-      LoggingUtils.error("\n❌ Errors:");
+      LoggingUtils.error('\n❌ Errors:');
       errors.forEach((check, i) => {
         LoggingUtils.error(`  ${i + 1}. ${check.message}`);
         if (check.suggestion) {
@@ -522,7 +482,7 @@ class PineCommandRunner {
     }
 
     if (warnings.length > 0) {
-      LoggingUtils.warn("\n⚠️  Warnings:");
+      LoggingUtils.warn('\n⚠️  Warnings:');
       warnings.forEach((check, i) => {
         LoggingUtils.warn(`  ${i + 1}. ${check.message}`);
         if (check.suggestion) {
@@ -532,7 +492,7 @@ class PineCommandRunner {
     }
 
     if (info.length > 0) {
-      LoggingUtils.info("\nℹ️  Info:");
+      LoggingUtils.info('\nℹ️  Info:');
       info.forEach((check, i) => {
         LoggingUtils.info(`  ${i + 1}. ${check.message}`);
         if (check.suggestion) {
@@ -542,24 +502,24 @@ class PineCommandRunner {
     }
 
     if (debugSuggestions.length > 0) {
-      LoggingUtils.info("\n🔧 Debugging Suggestions:");
+      LoggingUtils.info('\n🔧 Debugging Suggestions:');
       debugSuggestions.forEach((check, i) => {
-        const icon = check.type === "warning" ? "⚠️" : "💡";
+        const icon = check.type === 'warning' ? '⚠️' : '💡';
         LoggingUtils.info(`  ${i + 1}. ${icon} ${check.message}`);
         if (check.suggestion) {
           LoggingUtils.info(`     🛠️  ${check.suggestion}`);
         }
       });
 
-      LoggingUtils.info("\n🚀 Quick Debugging Commands:");
-      LoggingUtils.info("   /pine-debug inspect --var VARIABLE_NAME");
-      LoggingUtils.info("   /pine-debug trace --var VARIABLE_NAME --plot");
-      LoggingUtils.info("   /pine-debug profile --metrics complexity");
-      LoggingUtils.info("   /pine-debug helpers --output debug-helpers.pine");
+      LoggingUtils.info('\n🚀 Quick Debugging Commands:');
+      LoggingUtils.info('   /pine-debug inspect --var VARIABLE_NAME');
+      LoggingUtils.info('   /pine-debug trace --var VARIABLE_NAME --plot');
+      LoggingUtils.info('   /pine-debug profile --metrics complexity');
+      LoggingUtils.info('   /pine-debug helpers --output debug-helpers.pine');
     }
 
     if (errors.length === 0 && warnings.length === 0) {
-      LoggingUtils.info("\n✅ No issues found!");
+      LoggingUtils.info('\n✅ No issues found!');
     }
 
     return {
@@ -593,7 +553,7 @@ if (require.main === module) {
 
   const args = process.argv.slice(2);
 
-  if (args.includes("--help") || args.includes("-h")) {
+  if (args.includes('--help') || args.includes('-h')) {
     console.log(`
 🚀 PineScript Command Runner
 
@@ -613,7 +573,7 @@ Examples:
   node scripts/pinescript/command-runner.js config
     `);
     process.exit(0);
-  } else if (args[0] === "validate" && args[1]) {
+  } else if (args[0] === 'validate' && args[1]) {
     runner
       .initialize()
       .then(async () => {
@@ -629,36 +589,32 @@ Examples:
         LoggingUtils.error(`❌ Initialization failed: ${error.message}`);
         process.exit(1);
       });
-  } else if (args[0] === "config") {
+  } else if (args[0] === 'config') {
     runner
       .initialize()
       .then(() => {
         const summary = runner.getConfigSummary();
-        LoggingUtils.info("\n📊 PineScript Configuration Summary:");
+        LoggingUtils.info('\n📊 PineScript Configuration Summary:');
         LoggingUtils.info(`  • Version: v${summary.version}`);
         LoggingUtils.info(`  • Project Type: ${summary.projectType}`);
+        LoggingUtils.info(`  • Backtesting: ${summary.backtesting ? 'Enabled' : 'Disabled'}`);
+        LoggingUtils.info(`  • Alerts: ${summary.alerts ? 'Enabled' : 'Disabled'}`);
         LoggingUtils.info(
-          `  • Backtesting: ${summary.backtesting ? "Enabled" : "Disabled"}`,
-        );
-        LoggingUtils.info(
-          `  • Alerts: ${summary.alerts ? "Enabled" : "Disabled"}`,
-        );
-        LoggingUtils.info(
-          `  • TradingView Publish: ${summary.tradingview ? "Enabled" : "Disabled"}`,
+          `  • TradingView Publish: ${summary.tradingview ? 'Enabled' : 'Disabled'}`,
         );
       })
       .catch((error) => {
         LoggingUtils.error(`❌ Failed to load configuration: ${error.message}`);
         process.exit(1);
       });
-  } else if (args[0] === "tools") {
+  } else if (args[0] === 'tools') {
     runner
       .initialize()
       .then(async () => {
-        LoggingUtils.info("\n🔧 Detected Tools:");
+        LoggingUtils.info('\n🔧 Detected Tools:');
         Object.entries(runner.detectedTools || {}).forEach(([name, info]) => {
           LoggingUtils.info(
-            `  ${info.installed ? "✅" : "❌"} ${name}: ${info.installed ? `v${info.version}` : "Not installed"}`,
+            `  ${info.installed ? '✅' : '❌'} ${name}: ${info.installed ? `v${info.version}` : 'Not installed'}`,
           );
         });
       })
@@ -667,7 +623,7 @@ Examples:
         process.exit(1);
       });
   } else {
-    LoggingUtils.error("Unknown command. Use --help for usage information.");
+    LoggingUtils.error('Unknown command. Use --help for usage information.');
     process.exit(1);
   }
 }

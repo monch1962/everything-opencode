@@ -5,7 +5,7 @@
  * Compile Elixir projects with Elixir-specific improvements
  */
 
-const ElixirCommandRunner = require("../elixir/command-runner");
+const ElixirCommandRunner = require('../elixir/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -15,22 +15,22 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--force" || arg === "-f") {
+    if (arg === '--force' || arg === '-f') {
       options.force = true;
-    } else if (arg === "--warnings-as-errors") {
+    } else if (arg === '--warnings-as-errors') {
       options.warningsAsErrors = true;
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--long-compilation") {
+    } else if (arg === '--long-compilation') {
       options.longCompilation = true;
-    } else if (arg === "--profile") {
+    } else if (arg === '--profile') {
       options.profile = true;
-    } else if (arg === "--env") {
+    } else if (arg === '--env') {
       options.env = args[++i];
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -42,11 +42,11 @@ async function main() {
     await runner.initialize();
 
     // Compile the project
-    console.log("🔨 Compiling Elixir project...");
+    console.log('🔨 Compiling Elixir project...');
     const result = await runner.compile(options);
 
     if (result.success) {
-      console.log("\n✅ Compilation successful!");
+      console.log('\n✅ Compilation successful!');
     } else {
       console.log(`\n❌ Compilation failed with code ${result.code}`);
       if (result.stderr) {

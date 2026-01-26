@@ -5,17 +5,17 @@
  * Generate files and code from templates for language tools
  */
 
-const path = require("path");
-const fs = require("fs");
-const { ensureDir, writeFile } = require("./utils");
-const FileUtils = require("./file-utils");
+const path = require('path');
+const fs = require('fs');
+const { ensureDir, writeFile } = require('./utils');
+const FileUtils = require('./file-utils');
 
 class TemplateUtils {
   /**
    * Render template with variables
    */
   static renderTemplate(template, variables = {}) {
-    if (typeof template !== "string") {
+    if (typeof template !== 'string') {
       return template;
     }
 
@@ -32,7 +32,7 @@ class TemplateUtils {
    */
   static renderTemplateFile(templatePath, variables = {}) {
     try {
-      const template = fs.readFileSync(templatePath, "utf8");
+      const template = fs.readFileSync(templatePath, 'utf8');
       return this.renderTemplate(template, variables);
     } catch (error) {
       throw new Error(
@@ -114,7 +114,7 @@ class TemplateUtils {
       variables,
       options,
       results,
-      "",
+      '',
     );
 
     return results;
@@ -144,7 +144,7 @@ class TemplateUtils {
         // Check if path should be ignored
         const shouldIgnore = options.ignore.some((pattern) => {
           const regex = new RegExp(
-            pattern.replace(/\*/g, ".*").replace(/\?/g, "."),
+            pattern.replace(/\*/g, '.*').replace(/\?/g, '.'),
           );
           return regex.test(relPath);
         });
@@ -169,8 +169,8 @@ class TemplateUtils {
           try {
             // Check if file should be processed as template
             const shouldProcess =
-              entry.name.endsWith(".template") ||
-              entry.name.includes(".tmpl.") ||
+              entry.name.endsWith('.template') ||
+              entry.name.includes('.tmpl.') ||
               options.processAll;
 
             let finalOutputPath = outputPath;
@@ -179,11 +179,11 @@ class TemplateUtils {
             if (shouldProcess) {
               // Remove template extension if present
               finalOutputPath = outputPath
-                .replace(/\.template$/, "")
-                .replace(/\.tmpl\./, ".");
+                .replace(/\.template$/, '')
+                .replace(/\.tmpl\./, '.');
 
               // Render template
-              const templateContent = fs.readFileSync(templatePath, "utf8");
+              const templateContent = fs.readFileSync(templatePath, 'utf8');
               finalContent = this.renderTemplate(templateContent, variables);
 
               // Apply transform if provided
@@ -197,14 +197,14 @@ class TemplateUtils {
               }
             } else {
               // Copy file as-is
-              finalContent = fs.readFileSync(templatePath, "utf8");
+              finalContent = fs.readFileSync(templatePath, 'utf8');
             }
 
             // Check if file exists and handle overwrite
             if (fs.existsSync(finalOutputPath) && !options.overwrite) {
               results.skipped.push({
                 path: finalOutputPath,
-                reason: "File exists (overwrite disabled)",
+                reason: 'File exists (overwrite disabled)',
               });
               continue;
             }
@@ -247,17 +247,17 @@ class TemplateUtils {
   static getLanguageTemplates(language) {
     const templates = {
       go: {
-        "main.go": `package main
+        'main.go': `package main
 
 import "fmt"
 
 func main() {
     fmt.Println("Hello, {{name}}!")
 }`,
-        "go.mod": `module {{module}}
+        'go.mod': `module {{module}}
 
 go {{goVersion}}`,
-        ".gitignore": `# Binaries for programs and plugins
+        '.gitignore': `# Binaries for programs and plugins
 *.exe
 *.exe~
 *.dll
@@ -275,7 +275,7 @@ vendor/
 `,
       },
       python: {
-        "main.py": `#!/usr/bin/env python3
+        'main.py': `#!/usr/bin/env python3
 """{{name}} - {{description}}"""
 
 def main():
@@ -283,9 +283,9 @@ def main():
 
 if __name__ == "__main__":
     main()`,
-        "requirements.txt": `# Project dependencies
+        'requirements.txt': `# Project dependencies
 `,
-        ".gitignore": `# Byte-compiled / optimized / DLL files
+        '.gitignore': `# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -327,7 +327,7 @@ coverage.xml
 `,
       },
       elixir: {
-        "mix.exs": `defmodule {{module}}.MixProject do
+        'mix.exs': `defmodule {{module}}.MixProject do
   use Mix.Project
 
   def project do
@@ -350,7 +350,7 @@ coverage.xml
     []
   end
 end`,
-        ".gitignore": `# The directory Mix will write compiled artifacts to.
+        '.gitignore': `# The directory Mix will write compiled artifacts to.
 /_build/
 
 # If you run "mix test --cover", coverage assets end up here.
@@ -376,7 +376,7 @@ erl_crash.dump
 `,
       },
       node: {
-        "package.json": `{
+        'package.json': `{
   "name": "{{name}}",
   "version": "{{version}}",
   "description": "{{description}}",
@@ -389,8 +389,8 @@ erl_crash.dump
   "author": "{{author}}",
   "license": "{{license}}"
 }`,
-        "index.js": `console.log('Hello, {{name}}!');`,
-        ".gitignore": `# Logs
+        'index.js': `console.log('Hello, {{name}}!');`,
+        '.gitignore': `# Logs
 logs
 *.log
 npm-debug.log*
@@ -531,7 +531,7 @@ public
         if (fs.existsSync(filePath) && !options.overwrite) {
           results.errors.push({
             file: filename,
-            error: "File exists (overwrite disabled)",
+            error: 'File exists (overwrite disabled)',
           });
           continue;
         }
@@ -579,9 +579,9 @@ public
     const configTemplates = {
       go: {
         tools: {
-          go: { installed: true, version: variables.goVersion || "1.21" },
+          go: { installed: true, version: variables.goVersion || '1.21' },
           gopls: { installed: false },
-          "golangci-lint": { installed: false },
+          'golangci-lint': { installed: false },
           gosec: { installed: false },
         },
         build: {
@@ -589,7 +589,7 @@ public
           ldflags: [],
         },
         test: {
-          flags: ["-v"],
+          flags: ['-v'],
           coverage: true,
         },
       },
@@ -597,7 +597,7 @@ public
         tools: {
           python: {
             installed: true,
-            version: variables.pythonVersion || "3.11",
+            version: variables.pythonVersion || '3.11',
           },
           pip: { installed: true },
           pytest: { installed: false },
@@ -605,17 +605,17 @@ public
           black: { installed: false },
           mypy: { installed: false },
         },
-        testRunner: "pytest",
-        linter: "ruff",
-        formatter: "black",
-        typeChecker: "mypy",
-        dependencyManager: "pip",
+        testRunner: 'pytest',
+        linter: 'ruff',
+        formatter: 'black',
+        typeChecker: 'mypy',
+        dependencyManager: 'pip',
       },
       elixir: {
         tools: {
           elixir: {
             installed: true,
-            version: variables.elixirVersion || "1.15",
+            version: variables.elixirVersion || '1.15',
           },
           mix: { installed: true },
           hex: { installed: false },
@@ -697,7 +697,7 @@ public
 {{author}}
 `;
 
-    const readmePath = path.join(projectPath, "README.md");
+    const readmePath = path.join(projectPath, 'README.md');
     const content = this.renderTemplate(readmeTemplate, variables);
 
     FileUtils.writeJsonFile(
@@ -717,7 +717,7 @@ public
    */
   static generateGitignore(projectPath, language, options = {}) {
     const gitignoreTemplates = this.getLanguageTemplates(language);
-    const gitignore = gitignoreTemplates[".gitignore"];
+    const gitignore = gitignoreTemplates['.gitignore'];
 
     if (!gitignore) {
       // Default .gitignore
@@ -743,17 +743,17 @@ Thumbs.db
 *.log
 `;
 
-      const gitignorePath = path.join(projectPath, ".gitignore");
+      const gitignorePath = path.join(projectPath, '.gitignore');
       writeFile(gitignorePath, defaultGitignore);
 
       return {
         path: gitignorePath,
         size: defaultGitignore.length,
-        language: "default",
+        language: 'default',
       };
     }
 
-    const gitignorePath = path.join(projectPath, ".gitignore");
+    const gitignorePath = path.join(projectPath, '.gitignore');
     writeFile(gitignorePath, gitignore);
 
     return {
@@ -771,21 +771,21 @@ Thumbs.db
     const invalid = [];
 
     for (const field of required) {
-      if (variables[field] === undefined || variables[field] === "") {
+      if (variables[field] === undefined || variables[field] === '') {
         missing.push(field);
       }
     }
 
     // Validate specific field types
     if (variables.version && !/^\d+\.\d+\.\d+$/.test(variables.version)) {
-      invalid.push("version (should be semver: x.y.z)");
+      invalid.push('version (should be semver: x.y.z)');
     }
 
     if (
       variables.email &&
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(variables.email)
     ) {
-      invalid.push("email (invalid format)");
+      invalid.push('email (invalid format)');
     }
 
     return {
@@ -794,10 +794,10 @@ Thumbs.db
       invalid,
       message:
         missing.length > 0
-          ? `Missing required fields: ${missing.join(", ")}`
+          ? `Missing required fields: ${missing.join(', ')}`
           : invalid.length > 0
-            ? `Invalid fields: ${invalid.join(", ")}`
-            : "All variables are valid",
+            ? `Invalid fields: ${invalid.join(', ')}`
+            : 'All variables are valid',
     };
   }
 }

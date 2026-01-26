@@ -5,8 +5,8 @@
  * Configure Elixir project for opencode integration with Elixir-specific improvements
  */
 
-const ElixirConfigWizard = require("../../languages/elixir/config-wizard");
-const ConfigManager = require("../interactive/config-manager");
+const ElixirConfigWizard = require('../../languages/elixir/config-wizard');
+const ConfigManager = require('../interactive/config-manager');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -16,36 +16,36 @@ async function main() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === "--quick" || arg === "-q") {
+    if (arg === '--quick' || arg === '-q') {
       options.quick = true;
-    } else if (arg === "--reconfigure" || arg === "-r") {
+    } else if (arg === '--reconfigure' || arg === '-r') {
       options.reconfigure = true;
-    } else if (arg === "--project-type") {
+    } else if (arg === '--project-type') {
       options.projectType = args[++i];
-    } else if (arg === "--app-name") {
+    } else if (arg === '--app-name') {
       options.appName = args[++i];
-    } else if (arg === "--elixir-version") {
+    } else if (arg === '--elixir-version') {
       options.elixirVersion = args[++i];
-    } else if (arg === "--otp-version") {
+    } else if (arg === '--otp-version') {
       options.otpVersion = args[++i];
-    } else if (arg === "--linter") {
+    } else if (arg === '--linter') {
       options.linter = args[++i];
-    } else if (arg === "--formatter") {
+    } else if (arg === '--formatter') {
       options.formatter = args[++i];
-    } else if (arg === "--test-runner") {
+    } else if (arg === '--test-runner') {
       options.testRunner = args[++i];
-    } else if (arg === "--type-checker") {
+    } else if (arg === '--type-checker') {
       options.typeChecker = args[++i];
-    } else if (arg === "--no-prompt" || arg === "-y") {
+    } else if (arg === '--no-prompt' || arg === '-y') {
       options.noPrompt = true;
-    } else if (arg === "--verbose" || arg === "-v") {
+    } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
-    } else if (arg === "--dry-run") {
+    } else if (arg === '--dry-run') {
       options.dryRun = true;
-    } else if (arg === "--help" || arg === "-h") {
+    } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
-    } else if (arg.startsWith("--")) {
+    } else if (arg.startsWith('--')) {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
@@ -60,15 +60,15 @@ async function main() {
     const wizard = new ElixirConfigWizard(projectPath);
 
     console.log(`🧪 Configuring Elixir project at: ${projectPath}`);
-    console.log("=".repeat(60));
+    console.log('='.repeat(60));
 
     // Check for existing configuration
     const configManager = new ConfigManager(projectPath);
     const existingConfig = configManager.loadConfig();
 
     if (existingConfig && existingConfig.elixir && !options.reconfigure) {
-      console.log("✅ Elixir project already configured.");
-      console.log("   Use --reconfigure to update configuration.");
+      console.log('✅ Elixir project already configured.');
+      console.log('   Use --reconfigure to update configuration.');
       return;
     }
 
@@ -80,42 +80,42 @@ async function main() {
       const fullConfig = {
         ...(existingConfig || {}),
         elixir: config,
-        language: "elixir",
+        language: 'elixir',
         configuredAt: new Date().toISOString(),
       };
 
       configManager.saveConfig(fullConfig);
 
-      console.log("\n🎉 Elixir project configuration complete!");
-      console.log("=".repeat(60));
+      console.log('\n🎉 Elixir project configuration complete!');
+      console.log('='.repeat(60));
 
-      console.log("\n📋 Next steps:\n");
-      console.log("🔧 Available commands:");
-      console.log("  /elixir-setup    - Configure Elixir project");
-      console.log("  /elixir-compile  - Compile Elixir project");
-      console.log("  /elixir-test     - Run tests");
-      console.log("  /elixir-lint     - Lint code");
-      console.log("  /elixir-format   - Format code");
-      console.log("  /elixir-deps     - Manage dependencies");
-      console.log("  /elixir-typecheck - Type checking\n");
+      console.log('\n📋 Next steps:\n');
+      console.log('🔧 Available commands:');
+      console.log('  /elixir-setup    - Configure Elixir project');
+      console.log('  /elixir-compile  - Compile Elixir project');
+      console.log('  /elixir-test     - Run tests');
+      console.log('  /elixir-lint     - Lint code');
+      console.log('  /elixir-format   - Format code');
+      console.log('  /elixir-deps     - Manage dependencies');
+      console.log('  /elixir-typecheck - Type checking\n');
 
-      console.log("💡 Recommended actions:");
+      console.log('💡 Recommended actions:');
       if (!config.environment.reportSummary.hexInstalled) {
-        console.log("  • Install Hex package manager: mix local.hex");
+        console.log('  • Install Hex package manager: mix local.hex');
       }
       if (!config.environment.reportSummary.recommendedTools) {
         console.log(
-          "  • Install Credo for code analysis: mix archive.install hex credo",
+          '  • Install Credo for code analysis: mix archive.install hex credo',
         );
       }
 
-      console.log("\n📚 Documentation:");
-      console.log("  • Elixir: https://elixir-lang.org/docs.html");
-      console.log("  • Mix: https://hexdocs.pm/mix/Mix.html");
-      console.log("  • Hex: https://hex.pm/docs");
-      console.log("  • Credo: https://hexdocs.pm/credo/overview.html");
+      console.log('\n📚 Documentation:');
+      console.log('  • Elixir: https://elixir-lang.org/docs.html');
+      console.log('  • Mix: https://hexdocs.pm/mix/Mix.html');
+      console.log('  • Hex: https://hex.pm/docs');
+      console.log('  • Credo: https://hexdocs.pm/credo/overview.html');
 
-      console.log("\n✅ Elixir project configuration saved successfully!");
+      console.log('\n✅ Elixir project configuration saved successfully!');
       console.log(
         `   Configuration file: ${projectPath}/.opencode/project-config.json`,
       );
