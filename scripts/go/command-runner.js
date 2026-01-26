@@ -12,6 +12,10 @@ const { runCommand, commandExists } = require("../lib/utils");
 const ConfigManager = require("../interactive/config-manager");
 const GoToolDetector = require("../../languages/go/tool-detector");
 const PlatformDetector = require("../lib/platform-detector");
+const {
+  defaultErrorHandler,
+  createCommandRunner,
+} = require("../lib/error-handler");
 
 class GoCommandRunner {
   constructor(projectPath = process.cwd()) {
@@ -68,83 +72,120 @@ class GoCommandRunner {
    * Execute Go command with Go-specific improvements
    */
   async executeGoCommand(command, args = [], options = {}) {
-    // Ensure critical Go environment variables are set
-    const goEnv = {
-      ...process.env,
-      GO111MODULE: "on",
-    };
+    return this._executeGoCommandWithErrorHandling(command, args, options);
+  }
 
-    // Set HOME if not set (required for GOCACHE)
-    if (!goEnv.HOME) {
-      goEnv.HOME = require("os").homedir();
-    }
-
-    // Set GOCACHE if not set
-    if (!goEnv.GOCACHE) {
-      goEnv.GOCACHE = `${goEnv.HOME}/.cache/go-build`;
-    }
-
-    const defaultOptions = {
+  /**
+   * Internal method with comprehensive error handling
+   */
+  async _executeGoCommandWithErrorHandling(command, args = [], options = {}) {
+    const context = {
+      tool: "go",
+      command: `go ${command} ${args.join(" ")}`.trim(),
+      platform: this.platformDetector.getPlatformName(),
       cwd: this.projectPath,
-      stdio: "inherit",
-      env: goEnv,
-      timeout: 300000, // 5 minutes for Go commands
     };
 
-    const finalOptions = {
-      ...defaultOptions,
-      ...options,
-      // Merge environment objects instead of overwriting
-      env: options.env
-        ? { ...defaultOptions.env, ...options.env }
-        : defaultOptions.env,
-    };
+    try {
+      // Ensure critical Go environment variables are set
+      const goEnv = {
+        ...process.env,
+        GO111MODULE: "on",
+      };
 
-    console.log(`🚀 Executing: go ${command} ${args.join(" ")}`);
+      // Set HOME if not set (required for GOCACHE)
+      if (!goEnv.HOME) {
+        goEnv.HOME = require("os").homedir();
+      }
 
-    // Debug: Check if go is in PATH
-    if (finalOptions.verbose) {
-      console.log(`🔍 PATH: ${process.env.PATH}`);
-      console.log(
-        `🔍 Go executable check: ${require("child_process").execSync('which go || echo "go not found"').toString()}`,
-      );
+      // Set GOCACHE if not set
+      if (!goEnv.GOCACHE) {
+        goEnv.GOCACHE = `${goEnv.HOME}/.cache/go-build`;
+      }
+
+      const defaultOptions = {
+        cwd: this.projectPath,
+        stdio: "inherit",
+        env: goEnv,
+        timeout: 300000, // 5 minutes for Go commands
+      };
+
+      const finalOptions = {
+        ...defaultOptions,
+        ...options,
+        // Merge environment objects instead of overwriting
+        env: options.env
+          ? { ...defaultOptions.env, ...options.env }
+          : defaultOptions.env,
+      };
+
+      console.log(`🚀 Executing: go ${command} ${args.join(" ")}`);
+
+      // Debug: Check if go is in PATH
+      if (finalOptions.verbose) {
+        console.log(`🔍 PATH: ${process.env.PATH}`);
+        console.log(
+          `🔍 Go executable check: ${require("child_process").execSync('which go || echo "go not found"').toString()}`,
+        );
+      }
+
+      return await new Promise((resolve, reject) => {
+        const { exec } = require("child_process");
+
+        // Build the command string with dynamic path to go
+        const goPath = this.platformDetector.getToolPath("go", {
+          required: true,
+          customLocations: [
+            // Additional Go installation locations
+            "/usr/local/go/bin/go",
+            "/usr/lib/go/bin/go",
+            "C:\\Go\\bin\\go.exe",
+          ],
+        });
+
+        const cmd = `${goPath} ${command} ${args.join(" ")}`;
+        console.log(`🔍 Executing: ${cmd}`);
+        console.log(`🔍 CWD: ${finalOptions.cwd}`);
+        console.log(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
+
+        exec(cmd, finalOptions, (error, stdout, stderr) => {
+          if (error) {
+            // Enhance error with additional context
+            error.context = context;
+            error.command = cmd;
+            error.goPath = goPath;
+            reject(error);
+          } else {
+            resolve({
+              success: error ? false : true,
+              code: error ? error.code : 0,
+              stdout,
+              stderr,
+            });
+          }
+        });
+      });
+    } catch (error) {
+      // Handle error with comprehensive error handler
+      const errorInfo = defaultErrorHandler.handleError(error, context);
+
+      // Log user-friendly message
+      console.error("\n" + errorInfo.userMessage);
+
+      // Log recovery steps
+      if (errorInfo.recoverySteps && errorInfo.recoverySteps.length > 0) {
+        console.error("\n💡 Recovery steps:");
+        errorInfo.recoverySteps.forEach((step, i) => {
+          console.error(`  ${i + 1}. ${step}`);
+        });
+      }
+
+      // Re-throw with enhanced error information
+      const enhancedError = new Error(errorInfo.userMessage);
+      enhancedError.originalError = error;
+      enhancedError.errorInfo = errorInfo;
+      throw enhancedError;
     }
-
-    return new Promise((resolve, reject) => {
-      const { exec } = require("child_process");
-
-      // Build the command string with dynamic path to go
-      const goPath = this.platformDetector.getToolPath("go", {
-        required: true,
-        customLocations: [
-          // Additional Go installation locations
-          "/usr/local/go/bin/go",
-          "/usr/lib/go/bin/go",
-          "C:\\Go\\bin\\go.exe",
-        ],
-      });
-
-      const cmd = `${goPath} ${command} ${args.join(" ")}`;
-      console.log(`🔍 Executing: ${cmd}`);
-      console.log(`🔍 CWD: ${finalOptions.cwd}`);
-      console.log(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
-
-      exec(cmd, finalOptions, (error, stdout, stderr) => {
-        if (error) {
-          console.log(`🔍 Exec error: ${error.message}`);
-          reject(
-            new Error(`Failed to execute go ${command}: ${error.message}`),
-          );
-        } else {
-          resolve({
-            success: error ? false : true,
-            code: error ? error.code : 0,
-            stdout,
-            stderr,
-          });
-        }
-      });
-    });
   }
 
   /**

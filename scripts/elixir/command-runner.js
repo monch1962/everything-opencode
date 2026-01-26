@@ -7,12 +7,12 @@
 
 const fs = require("fs");
 const path = require("path");
-const fs = require("fs");
 const { spawn } = require("child_process");
 const { runCommand, commandExists } = require("../lib/utils");
 const ConfigManager = require("../interactive/config-manager");
 const ElixirToolDetector = require("../../languages/elixir/tool-detector");
 const PlatformDetector = require("../lib/platform-detector");
+const { defaultErrorHandler } = require("../lib/error-handler");
 
 class ElixirCommandRunner {
   constructor(projectPath = process.cwd()) {
@@ -71,71 +71,105 @@ class ElixirCommandRunner {
    * Execute Mix command with Elixir-specific improvements
    */
   async executeMixCommand(command, args = [], options = {}) {
-    // Ensure critical Elixir environment variables are set
-    const elixirEnv = {
-      ...process.env,
-      MIX_ENV: options.env || process.env.MIX_ENV || "dev",
-      MIX_QUIET: "1",
-    };
+    return this._executeMixCommandWithErrorHandling(command, args, options);
+  }
 
-    // Set HOME if not set
-    if (!elixirEnv.HOME) {
-      elixirEnv.HOME = require("os").homedir();
+  /**
+   * Internal method with comprehensive error handling
+   */
+  async _executeMixCommandWithErrorHandling(command, args = [], options = {}) {
+    try {
+      // Ensure critical Elixir environment variables are set
+      const elixirEnv = {
+        ...process.env,
+        MIX_ENV: options.env || process.env.MIX_ENV || "dev",
+        MIX_QUIET: "1",
+      };
+
+      // Set HOME if not set
+      if (!elixirEnv.HOME) {
+        elixirEnv.HOME = require("os").homedir();
+      }
+
+      const defaultOptions = {
+        cwd: this.projectPath,
+        stdio: "inherit",
+        env: elixirEnv,
+        timeout: 300000, // 5 minutes for Elixir commands
+      };
+
+      const finalOptions = {
+        ...defaultOptions,
+        ...options,
+        // Merge environment objects instead of overwriting
+        env: options.env
+          ? { ...defaultOptions.env, ...options.env }
+          : defaultOptions.env,
+      };
+
+      console.log(`🚀 Executing: mix ${command} ${args.join(" ")}`);
+
+      return await new Promise((resolve, reject) => {
+        const { exec } = require("child_process");
+
+        // Build the command string with dynamic path to mix
+        const mixPath = this.platformDetector.getToolPath("mix", {
+          required: true,
+          customLocations: [
+            // Additional Elixir installation locations
+            "/usr/local/bin/mix",
+            "/usr/bin/mix",
+            "C:\\Program Files\\Elixir\\bin\\mix.bat",
+          ],
+        });
+
+        const cmd = `${mixPath} ${command} ${args.join(" ")}`;
+        console.log(`🔍 Executing: ${cmd}`);
+        console.log(`🔍 CWD: ${finalOptions.cwd}`);
+        console.log(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
+
+        exec(cmd, finalOptions, (error, stdout, stderr) => {
+          if (error) {
+            console.log(`🔍 Exec error: ${error.message}`);
+            reject(
+              new Error(`Failed to execute mix ${command}: ${error.message}`),
+            );
+          } else {
+            resolve({
+              success: error ? false : true,
+              code: error ? error.code : 0,
+              stdout,
+              stderr,
+            });
+          }
+        });
+      });
+    } catch (error) {
+      // Enhance error with context
+      const context = {
+        tool: "elixir",
+        command: `mix ${command} ${args.join(" ")}`,
+        platform: this.platformDetector.getPlatformName(),
+        cwd: this.projectPath,
+        options: options,
+      };
+
+      const errorInfo = defaultErrorHandler.handleError(error, context);
+
+      // Log user-friendly error message
+      console.error("\n" + errorInfo.userMessage);
+      console.error("\n💡 Recovery steps:");
+      errorInfo.recoverySteps.forEach((step, i) => {
+        console.error(`  ${i + 1}. ${step}`);
+      });
+
+      // Re-throw enhanced error
+      const enhancedError = new Error(errorInfo.userMessage);
+      enhancedError.originalError = error;
+      enhancedError.context = context;
+      enhancedError.errorInfo = errorInfo;
+      throw enhancedError;
     }
-
-    const defaultOptions = {
-      cwd: this.projectPath,
-      stdio: "inherit",
-      env: elixirEnv,
-      timeout: 300000, // 5 minutes for Elixir commands
-    };
-
-    const finalOptions = {
-      ...defaultOptions,
-      ...options,
-      // Merge environment objects instead of overwriting
-      env: options.env
-        ? { ...defaultOptions.env, ...options.env }
-        : defaultOptions.env,
-    };
-
-    console.log(`🚀 Executing: mix ${command} ${args.join(" ")}`);
-
-    return new Promise((resolve, reject) => {
-      const { exec } = require("child_process");
-
-      // Build the command string with dynamic path to mix
-      const mixPath = this.platformDetector.getToolPath("mix", {
-        required: true,
-        customLocations: [
-          // Additional Elixir installation locations
-          "/usr/local/bin/mix",
-          "/usr/bin/mix",
-          "C:\\Program Files\\Elixir\\bin\\mix.bat",
-        ],
-      });
-
-      const cmd = `${mixPath} ${command} ${args.join(" ")}`;
-      console.log(`🔍 Executing: ${cmd}`);
-      console.log(`🔍 CWD: ${finalOptions.cwd}`);
-      console.log(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
-
-      exec(cmd, finalOptions, (error, stdout, stderr) => {
-        if (error) {
-          console.log(`🔍 Exec error: ${error.message}`);
-          reject(
-            new Error(`Failed to execute mix ${command}: ${error.message}`),
-          );
-        } else {
-          resolve({
-            success: error ? false : true,
-            code: error ? error.code : 0,
-            stdout,
-            stderr,
-          });
-        }
-      });
-    });
   }
 
   /**
