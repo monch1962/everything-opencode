@@ -90,6 +90,16 @@ everything-opencode/
 - **/go-fmt** - Format code with gofmt/goimports and formatting checks
 - **/go-deps** - Manage dependencies with security auditing and update management
 
+#### Elixir Commands
+
+- **/elixir-setup** - Configure Elixir project with Elixir-specific improvements (Application, Phoenix, Umbrella, Library, OTP)
+- **/elixir-compile** - Compile Elixir project with optimizations and error handling
+- **/elixir-test** - Run ExUnit tests with coverage, filtering, and performance analysis
+- **/elixir-lint** - Lint code with Credo for code quality and consistency
+- **/elixir-format** - Format code with Elixir's built-in formatter
+- **/elixir-deps** - Manage dependencies with Mix and Hex package manager
+- **/elixir-typecheck** - Type check with Dialyzer for static analysis
+
 ## Quick Start
 
 ### 1. Initial Setup

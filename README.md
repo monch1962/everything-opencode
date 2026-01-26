@@ -122,6 +122,13 @@ everything-opencode/
 |   |-- pine-validate.md    # /pine-validate - Validate PineScript syntax
 |   |-- go-setup.md         # /go-setup - Configure Go project with Go-specific improvements
 |   |-- go-build.md         # /go-build - Build Go projects with cross-compilation
+|   |-- elixir-setup.md     # /elixir-setup - Configure Elixir project with Elixir-specific improvements
+|   |-- elixir-compile.md   # /elixir-compile - Compile Elixir project
+|   |-- elixir-test.md      # /elixir-test - Run ExUnit tests
+|   |-- elixir-lint.md      # /elixir-lint - Lint code with Credo
+|   |-- elixir-format.md    # /elixir-format - Format code with built-in formatter
+|   |-- elixir-deps.md      # /elixir-deps - Manage dependencies with Mix and Hex
+|   |-- elixir-typecheck.md # /elixir-typecheck - Type check with Dialyzer
 |
 |-- rules/            # Always-follow guidelines (copy to ~/.opencode/rules/)
 |   |-- security.md         # Mandatory security checks
