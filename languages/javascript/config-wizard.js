@@ -85,7 +85,7 @@ class JSConfigWizard {
     // Package manager detection
     if (report.packageManager) {
       console.log(
-        `📦 Package Manager: ${report.packageManager.name} v${report.packageManager.version}`
+        `📦 Package Manager: ${report.packageManager.name} v${report.packageManager.version}`,
       );
     }
 
@@ -99,13 +99,13 @@ class JSConfigWizard {
       console.log(`🔧 Build Tools: ${report.buildTools.join(', ')}`);
     }
 
-    console.log('='.repeat(40) + '\n');
+    console.log(`${'='.repeat(40)}\n`);
   }
 
   /**
    * Detect project type
    */
-  async detectProjectType(options = {}) {
+  async detectProjectType(_options = {}) {
     const projectInfo = {
       type: 'javascript',
       framework: null,
@@ -202,7 +202,7 @@ class JSConfigWizard {
   /**
    * Configure project based on type
    */
-  async configureProject(projectType, options = {}) {
+  async configureProject(projectType, _options = {}) {
     const config = {
       name: path.basename(this.projectPath),
       type: projectType.type,

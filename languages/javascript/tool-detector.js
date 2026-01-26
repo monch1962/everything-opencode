@@ -4,7 +4,7 @@
  * Detect JavaScript/TypeScript development tools with cross-platform support
  */
 
-const { spawn } = require('child_process');
+// const { spawn } = require('child_process');
 const { commandExists, runCommand } = require('../../scripts/lib/utils');
 const PlatformDetector = require('../../scripts/lib/platform-detector');
 
@@ -416,7 +416,7 @@ class JSToolDetector {
   /**
    * Get tool installation command
    */
-  getInstallationCommand(toolName, options = {}) {
+  getInstallationCommand(toolName, _options = {}) {
     const commands = {
       node: {
         macos: 'brew install node',

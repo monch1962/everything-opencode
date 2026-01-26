@@ -35,14 +35,14 @@ class JSCommandRunner {
 
       if (projectInfo.type !== 'javascript' && projectInfo.confidence < 0.7) {
         LoggingUtils.warn(
-          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`
+          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`,
         );
         LoggingUtils.warn(
-          'This may not be a JavaScript project. Some features may not work correctly.'
+          'This may not be a JavaScript project. Some features may not work correctly.',
         );
       } else if (projectInfo.type === 'javascript') {
         LoggingUtils.debug(
-          `Detected JavaScript project: ${projectInfo.framework || 'standard JavaScript'}`
+          `Detected JavaScript project: ${projectInfo.framework || 'standard JavaScript'}`,
         );
       }
 
@@ -92,7 +92,7 @@ class JSCommandRunner {
 
       if (!isInstalled && required) {
         throw new Error(
-          `Required JavaScript tool '${toolName}' is not installed. Run /js-setup to install it.`
+          `Required JavaScript tool '${toolName}' is not installed. Run /js-setup to install it.`,
         );
       }
 
@@ -245,7 +245,7 @@ class JSCommandRunner {
   /**
    * Suggest npm fixes based on error message
    */
-  _suggestNpmFix(errorMessage, command) {
+  _suggestNpmFix(errorMessage, _command) {
     LoggingUtils.info('\n💡 JavaScript/TypeScript Error Suggestions:');
 
     if (errorMessage.includes('ENOENT') || errorMessage.includes('not found')) {
@@ -316,7 +316,7 @@ class JSCommandRunner {
   /**
    * Show test summary
    */
-  _showTestSummary(projectInfo) {
+  _showTestSummary(_projectInfo) {
     try {
       // Try to read test results if available
       const fs = require('fs');
@@ -409,7 +409,7 @@ class JSCommandRunner {
     await this.initialize();
 
     const projectInfo = this.getJSProjectInfo();
-    let buildCommand = 'build';
+    const buildCommand = 'build';
     let buildArgs = args;
 
     // TypeScript compilation
@@ -439,7 +439,7 @@ class JSCommandRunner {
     await this.initialize();
 
     let devCommand = 'dev';
-    let devArgs = args;
+    const devArgs = args;
 
     // Check for common dev scripts
     const scripts = ['dev', 'start', 'develop'];
@@ -651,7 +651,7 @@ class JSCommandRunner {
     if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
       LoggingUtils.info('   • Check internet connection');
       LoggingUtils.info(
-        '   • Use different registry: npm config set registry https://registry.npmjs.org/'
+        '   • Use different registry: npm config set registry https://registry.npmjs.org/',
       );
       LoggingUtils.info('   • Clear npm cache: npm cache clean --force');
     }
