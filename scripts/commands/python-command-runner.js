@@ -10,8 +10,17 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 const { runCommand, commandExists } = require("../lib/utils");
 const ConfigManager = require("../interactive/config-manager");
-const PythonToolDetector = require("../python/tool-detector");
+const PythonToolDetector = require("../../languages/python/tool-detector");
 const { defaultErrorHandler } = require("../lib/error-handler");
+
+// Import shared utilities
+const {
+  ConfigUtils,
+  FileUtils,
+  ProjectUtils,
+  LoggingUtils,
+  ensureDir,
+} = require("../lib");
 
 class PythonCommandRunner {
   constructor(projectPath = process.cwd()) {
@@ -26,39 +35,93 @@ class PythonCommandRunner {
    * Initialize command runner
    */
   async initialize() {
-    // Load configuration
-    this.config = this.configManager.loadConfig();
-    if (!this.config) {
-      throw new Error("Project not configured. Run /python-setup first.");
+    // First, validate that we're in a Python project using ProjectUtils
+    try {
+      const projectInfo = ProjectUtils.detectProjectType(this.projectPath);
+
+      if (projectInfo.type !== "python" && projectInfo.confidence < 0.7) {
+        LoggingUtils.warn(
+          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`,
+        );
+        LoggingUtils.warn(
+          "This may not be a Python project. Some features may not work correctly.",
+        );
+      } else if (projectInfo.type === "python") {
+        LoggingUtils.debug(
+          `Detected Python project: ${projectInfo.framework || "standard Python"}`,
+        );
+      }
+
+      // Log detected languages if available
+      if (projectInfo.languages && projectInfo.languages.length > 0) {
+        LoggingUtils.debug(
+          `Detected languages: ${projectInfo.languages.join(", ")}`,
+        );
+      }
+    } catch (error) {
+      LoggingUtils.debug("Project detection failed:", error.message);
     }
 
-    // Get Python configuration
-    this.pythonConfig = this.config.python;
-    if (!this.pythonConfig) {
-      throw new Error(
-        "Python configuration not found. Run /python-setup first.",
+    // Load configuration using ConfigUtils
+    try {
+      this.config = ConfigUtils.loadConfig(this.projectPath);
+      if (!this.config) {
+        throw new Error("Project not configured. Run /python-setup first.");
+      }
+
+      // Get Python configuration
+      this.pythonConfig = this.config.python;
+      if (!this.pythonConfig) {
+        throw new Error(
+          "Python configuration not found. Run /python-setup first.",
+        );
+      }
+
+      // Validate Python configuration schema
+      ConfigUtils.validateConfig(this.pythonConfig, "python");
+
+      return true;
+    } catch (error) {
+      // Use LoggingUtils for better error display
+      LoggingUtils.error(
+        "Failed to initialize Python command runner:",
+        error.message,
       );
+      LoggingUtils.info("Run /python-setup to configure your Python project");
+      throw error;
     }
-
-    return true;
   }
 
   /**
    * Check if required tool is installed
    */
   async checkTool(toolName, required = true) {
-    const toolInfo = this.pythonConfig.tools?.[toolName];
+    try {
+      // Use ConfigUtils to check if tool is installed
+      const isInstalled = await ConfigUtils.checkToolInstalled(toolName, {
+        config: this.pythonConfig,
+        language: "python",
+        required,
+      });
 
-    if (!toolInfo || !toolInfo.installed) {
-      if (required) {
+      if (!isInstalled && required) {
         throw new Error(
           `${toolName} is not installed. Install it or run /python-setup.`,
         );
       }
-      return false;
-    }
 
-    return true;
+      return isInstalled;
+    } catch (error) {
+      // Use LoggingUtils for better error display
+      if (required) {
+        LoggingUtils.error(
+          `Python tool '${toolName}' check failed:`,
+          error.message,
+        );
+        LoggingUtils.info(`Run /python-setup to install '${toolName}'`);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -82,6 +145,45 @@ class PythonCommandRunner {
   }
 
   /**
+   * Find Python files in the project
+   */
+  findPythonFiles(pattern = "**/*.py", excludePatterns = []) {
+    try {
+      return FileUtils.findFilesByPattern(this.projectPath, [pattern], {
+        exclude: excludePatterns,
+        language: "python",
+      });
+    } catch (error) {
+      LoggingUtils.warn("Failed to find Python files:", error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Get Python project metadata
+   */
+  getPythonProjectInfo() {
+    try {
+      const info = {
+        hasRequirements: fs.existsSync(
+          path.join(this.projectPath, "requirements.txt"),
+        ),
+        hasPipfile: fs.existsSync(path.join(this.projectPath, "Pipfile")),
+        hasPyproject: fs.existsSync(
+          path.join(this.projectPath, "pyproject.toml"),
+        ),
+        hasSetupPy: fs.existsSync(path.join(this.projectPath, "setup.py")),
+        pythonFiles: this.findPythonFiles().length,
+      };
+
+      return info;
+    } catch (error) {
+      LoggingUtils.debug("Failed to get Python project info:", error.message);
+      return null;
+    }
+  }
+
+  /**
    * Execute command with proper environment
    */
   async executeCommand(command, args = [], options = {}) {
@@ -94,7 +196,7 @@ class PythonCommandRunner {
   async _executeCommandWithErrorHandling(command, args = [], options = {}) {
     try {
       const fullCommand = [command, ...args].join(" ");
-      console.log(`\n🚀 Executing: ${fullCommand}\n`);
+      LoggingUtils.info(`🚀 Executing: ${fullCommand}`);
 
       return await new Promise((resolve, reject) => {
         const child = spawn(command, args, {
@@ -133,12 +235,16 @@ class PythonCommandRunner {
 
       const errorInfo = defaultErrorHandler.handleError(error, context);
 
-      // Log user-friendly error message
-      console.error("\n" + errorInfo.userMessage);
-      console.error("\n💡 Recovery steps:");
-      errorInfo.recoverySteps.forEach((step, i) => {
-        console.error(`  ${i + 1}. ${step}`);
-      });
+      // Log user-friendly error message using LoggingUtils
+      LoggingUtils.error(errorInfo.userMessage);
+
+      // Log recovery steps using LoggingUtils
+      if (errorInfo.recoverySteps && errorInfo.recoverySteps.length > 0) {
+        LoggingUtils.info("💡 Recovery steps:");
+        errorInfo.recoverySteps.forEach((step, i) => {
+          LoggingUtils.info(`  ${i + 1}. ${step}`);
+        });
+      }
 
       // Re-throw enhanced error
       const enhancedError = new Error(errorInfo.userMessage);
@@ -166,33 +272,47 @@ class PythonCommandRunner {
     const testRunner = this.pythonConfig.testRunner || "pytest";
     await this.checkTool(testRunner);
 
+    // Log test information
+    const projectInfo = this.getPythonProjectInfo();
+    if (projectInfo) {
+      LoggingUtils.debug(`Python files: ${projectInfo.pythonFiles}`);
+    }
+
     const args = [];
 
     // Add coverage if requested
     if (options.coverage) {
       if (testRunner === "pytest") {
         args.push("--cov=.", "--cov-report=term", "--cov-report=html");
+        LoggingUtils.info("📊 Coverage reporting enabled");
       }
     }
 
     // Add verbose flag
     if (options.verbose) {
       args.push("-v");
+      LoggingUtils.debug("Verbose mode enabled");
     }
 
     // Add specific test file
     if (options.file) {
       args.push(options.file);
+      LoggingUtils.debug(`Testing specific file: ${options.file}`);
     }
 
     // Add test name pattern
     if (options.test) {
       if (testRunner === "pytest") {
         args.push("-k", options.test);
+        LoggingUtils.debug(`Test pattern: ${options.test}`);
       } else if (testRunner === "unittest") {
         args.push(options.test);
+        LoggingUtils.debug(`Test pattern: ${options.test}`);
       }
     }
+
+    // Log test configuration
+    LoggingUtils.info(`Running tests with ${testRunner}...`);
 
     // Execute test runner
     if (testRunner === "pytest") {
@@ -213,6 +333,12 @@ class PythonCommandRunner {
     const linter = this.pythonConfig.linter || "ruff";
     await this.checkTool(linter);
 
+    // Log linter information
+    LoggingUtils.info(`Running ${linter}...`);
+    if (options.fix) {
+      LoggingUtils.debug("Fix mode enabled");
+    }
+
     const args = [];
 
     // Check or fix mode
@@ -222,8 +348,10 @@ class PythonCommandRunner {
       } else if (linter === "flake8") {
         // flake8 doesn't have fix mode
         args.push(".");
+        LoggingUtils.warn("flake8 doesn't support auto-fix mode");
       } else if (linter === "pylint") {
         args.push(".");
+        LoggingUtils.warn("pylint doesn't support auto-fix mode");
       }
     } else {
       if (linter === "ruff") {
@@ -243,6 +371,7 @@ class PythonCommandRunner {
       } else {
         args.push(options.file);
       }
+      LoggingUtils.debug(`Linting specific file: ${options.file}`);
     }
 
     // Execute linter
@@ -258,6 +387,12 @@ class PythonCommandRunner {
     const formatter = this.pythonConfig.formatter || "ruff";
     await this.checkTool(formatter);
 
+    // Log formatter information
+    LoggingUtils.info(`Running ${formatter}...`);
+    if (options.check) {
+      LoggingUtils.debug("Check mode (no changes will be made)");
+    }
+
     const args = [];
 
     // Check or format mode
@@ -268,6 +403,7 @@ class PythonCommandRunner {
         args.push("--check", ".");
       } else if (formatter === "autopep8") {
         args.push("--diff", ".");
+        LoggingUtils.debug("autopep8 showing diff only");
       }
     } else {
       if (formatter === "ruff") {
@@ -291,6 +427,7 @@ class PythonCommandRunner {
       } else {
         args.push(options.file);
       }
+      LoggingUtils.debug(`Formatting specific file: ${options.file}`);
     }
 
     // Execute formatter
@@ -306,6 +443,12 @@ class PythonCommandRunner {
     const typeChecker = this.pythonConfig.typeChecker || "pyright";
     await this.checkTool(typeChecker);
 
+    // Log type checker information
+    LoggingUtils.info(`Running ${typeChecker}...`);
+    if (options.strict) {
+      LoggingUtils.debug("Strict mode enabled");
+    }
+
     const args = [];
 
     // Add strict mode
@@ -320,6 +463,7 @@ class PythonCommandRunner {
     // Add specific file
     if (options.file) {
       args.push(options.file);
+      LoggingUtils.debug(`Type checking specific file: ${options.file}`);
     } else {
       args.push(".");
     }
@@ -337,6 +481,12 @@ class PythonCommandRunner {
     const manager = this.pythonConfig.dependencyManager || "uv";
     await this.checkTool(manager);
 
+    // Log dependency manager information
+    LoggingUtils.info(`Managing dependencies with ${manager}...`);
+    LoggingUtils.debug(
+      `Action: ${action}, Packages: ${packages.join(", ") || "none"}`,
+    );
+
     const args = [];
 
     // Handle different actions
@@ -350,17 +500,23 @@ class PythonCommandRunner {
           } else if (manager === "pip") {
             args.push("install", ...packages);
           }
+          LoggingUtils.debug(`Installing packages: ${packages.join(", ")}`);
         } else {
           if (manager === "uv") {
             args.push("sync");
+            LoggingUtils.debug("Syncing all dependencies");
           } else if (manager === "poetry") {
             args.push("install");
+            LoggingUtils.debug("Installing all dependencies");
           } else if (manager === "pip") {
             // pip needs requirements.txt
-            if (
-              fs.existsSync(path.join(this.projectPath, "requirements.txt"))
-            ) {
+            const requirementsPath = path.join(
+              this.projectPath,
+              "requirements.txt",
+            );
+            if (fs.existsSync(requirementsPath)) {
               args.push("install", "-r", "requirements.txt");
+              LoggingUtils.debug("Installing from requirements.txt");
             } else {
               throw new Error("requirements.txt not found");
             }
@@ -381,6 +537,13 @@ class PythonCommandRunner {
         } else if (manager === "pip") {
           args.push("install", ...packages);
         }
+        if (options.dev) {
+          LoggingUtils.debug(
+            `Adding development packages: ${packages.join(", ")}`,
+          );
+        } else {
+          LoggingUtils.debug(`Adding packages: ${packages.join(", ")}`);
+        }
         break;
 
       case "remove":
@@ -394,6 +557,7 @@ class PythonCommandRunner {
         } else if (manager === "pip") {
           args.push("uninstall", ...packages);
         }
+        LoggingUtils.debug(`Removing packages: ${packages.join(", ")}`);
         break;
 
       case "update":
@@ -405,14 +569,18 @@ class PythonCommandRunner {
           } else if (manager === "pip") {
             args.push("install", "--upgrade", ...packages);
           }
+          LoggingUtils.debug(`Updating packages: ${packages.join(", ")}`);
         } else {
           if (manager === "uv") {
             args.push("update");
+            LoggingUtils.debug("Updating all dependencies");
           } else if (manager === "poetry") {
             args.push("update");
+            LoggingUtils.debug("Updating all dependencies");
           } else if (manager === "pip") {
             // Update all packages (basic approach)
             args.push("install", "--upgrade");
+            LoggingUtils.debug("Upgrading all packages");
           }
         }
         break;
@@ -425,6 +593,7 @@ class PythonCommandRunner {
         } else if (manager === "pip") {
           args.push("list");
         }
+        LoggingUtils.debug("Listing dependencies");
         break;
 
       default:
@@ -551,20 +720,20 @@ Examples:
     };
 
     if (helps[command]) {
-      console.log(helps[command]);
+      LoggingUtils.info(helps[command]);
     } else {
-      console.log(`
-Python Commands for opencode
+      LoggingUtils.info(`
+ Python Commands for opencode
 
-Available commands:
-  /python-test      - Run tests
-  /python-lint      - Run linter
-  /python-typecheck - Run type checker
-  /python-deps      - Manage dependencies
-  /python-setup     - Configure project
+ Available commands:
+   /python-test      - Run tests
+   /python-lint      - Run linter
+   /python-typecheck - Run type checker
+   /python-deps      - Manage dependencies
+   /python-setup     - Configure project
 
-Use /python-<command> --help for command-specific help.
-      `);
+ Use /python-<command> --help for command-specific help.
+       `);
     }
   }
 }
@@ -630,9 +799,9 @@ if (require.main === module) {
           runner.printHelp();
           process.exit(1);
       }
-      console.log("\n✅ Command completed successfully");
+      LoggingUtils.success("Command completed successfully");
     } catch (error) {
-      console.error(`\n❌ Error: ${error.message}`);
+      LoggingUtils.error(`Error: ${error.message}`);
       process.exit(1);
     }
   }

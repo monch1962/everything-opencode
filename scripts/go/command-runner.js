@@ -17,6 +17,15 @@ const {
   createCommandRunner,
 } = require("../lib/error-handler");
 
+// Import shared utilities
+const {
+  ConfigUtils,
+  FileUtils,
+  ProjectUtils,
+  LoggingUtils,
+  ensureDir,
+} = require("../lib");
+
 class GoCommandRunner {
   constructor(projectPath = process.cwd()) {
     this.projectPath = projectPath;
@@ -32,40 +41,94 @@ class GoCommandRunner {
    * Initialize command runner with Go-specific setup
    */
   async initialize() {
-    // Load configuration
-    this.config = this.configManager.loadConfig();
-    if (!this.config) {
-      throw new Error("Project not configured. Run /go-setup first.");
+    // First, validate that we're in a Go project using ProjectUtils
+    try {
+      const projectInfo = ProjectUtils.detectProjectType(this.projectPath);
+
+      if (projectInfo.type !== "go" && projectInfo.confidence < 0.7) {
+        LoggingUtils.warn(
+          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`,
+        );
+        LoggingUtils.warn(
+          "This may not be a Go project. Some features may not work correctly.",
+        );
+      } else if (projectInfo.type === "go") {
+        LoggingUtils.debug(
+          `Detected Go project: ${projectInfo.module || "unknown module"}`,
+        );
+      }
+
+      // Log detected languages if available
+      if (projectInfo.languages && projectInfo.languages.length > 0) {
+        LoggingUtils.debug(
+          `Detected languages: ${projectInfo.languages.join(", ")}`,
+        );
+      }
+    } catch (error) {
+      LoggingUtils.debug("Project detection failed:", error.message);
     }
 
-    // Get Go configuration
-    this.goConfig = this.config.go;
-    if (!this.goConfig) {
-      throw new Error("Go configuration not found. Run /go-setup first.");
+    // Load configuration using ConfigUtils
+    try {
+      this.config = ConfigUtils.loadConfig(this.projectPath);
+      if (!this.config) {
+        throw new Error("Project not configured. Run /go-setup first.");
+      }
+
+      // Get Go configuration
+      this.goConfig = this.config.go;
+      if (!this.goConfig) {
+        throw new Error("Go configuration not found. Run /go-setup first.");
+      }
+
+      // Validate Go configuration schema
+      ConfigUtils.validateConfig(this.goConfig, "go");
+
+      // Detect tools
+      this.detectedTools = await this.toolDetector.detectTools();
+
+      return true;
+    } catch (error) {
+      // Use LoggingUtils for better error display
+      LoggingUtils.error(
+        "Failed to initialize Go command runner:",
+        error.message,
+      );
+      LoggingUtils.info("Run /go-setup to configure your Go project");
+      throw error;
     }
-
-    // Detect tools
-    this.detectedTools = await this.toolDetector.detectTools();
-
-    return true;
   }
 
   /**
    * Check if required Go tool is installed
    */
   async checkTool(toolName, required = true) {
-    const toolInfo = this.goConfig.tools?.[toolName];
+    try {
+      // Use ConfigUtils to check if tool is installed
+      const isInstalled = await ConfigUtils.checkToolInstalled(toolName, {
+        config: this.goConfig,
+        language: "go",
+        required,
+      });
 
-    if (!toolInfo || !toolInfo.installed) {
-      if (required) {
+      if (!isInstalled && required) {
         throw new Error(
           `Required Go tool '${toolName}' is not installed. Run /go-setup to install it.`,
         );
       }
-      return false;
-    }
 
-    return true;
+      return isInstalled;
+    } catch (error) {
+      // Use LoggingUtils for better error display
+      if (required) {
+        LoggingUtils.error(
+          `Go tool '${toolName}' check failed:`,
+          error.message,
+        );
+        LoggingUtils.info(`Run /go-setup to install '${toolName}'`);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -119,12 +182,12 @@ class GoCommandRunner {
           : defaultOptions.env,
       };
 
-      console.log(`🚀 Executing: go ${command} ${args.join(" ")}`);
+      LoggingUtils.info(`🚀 Executing: go ${command} ${args.join(" ")}`);
 
       // Debug: Check if go is in PATH
       if (finalOptions.verbose) {
-        console.log(`🔍 PATH: ${process.env.PATH}`);
-        console.log(
+        LoggingUtils.debug(`🔍 PATH: ${process.env.PATH}`);
+        LoggingUtils.debug(
           `🔍 Go executable check: ${require("child_process").execSync('which go || echo "go not found"').toString()}`,
         );
       }
@@ -144,9 +207,11 @@ class GoCommandRunner {
         });
 
         const cmd = `${goPath} ${command} ${args.join(" ")}`;
-        console.log(`🔍 Executing: ${cmd}`);
-        console.log(`🔍 CWD: ${finalOptions.cwd}`);
-        console.log(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
+        LoggingUtils.debug(`🔍 Executing: ${cmd}`);
+        LoggingUtils.debug(`🔍 CWD: ${finalOptions.cwd}`);
+        LoggingUtils.debug(
+          `🔍 Platform: ${this.platformDetector.getPlatformName()}`,
+        );
 
         exec(cmd, finalOptions, (error, stdout, stderr) => {
           if (error) {
@@ -169,14 +234,14 @@ class GoCommandRunner {
       // Handle error with comprehensive error handler
       const errorInfo = defaultErrorHandler.handleError(error, context);
 
-      // Log user-friendly message
-      console.error("\n" + errorInfo.userMessage);
+      // Log user-friendly message using LoggingUtils
+      LoggingUtils.error(errorInfo.userMessage);
 
-      // Log recovery steps
+      // Log recovery steps using LoggingUtils
       if (errorInfo.recoverySteps && errorInfo.recoverySteps.length > 0) {
-        console.error("\n💡 Recovery steps:");
+        LoggingUtils.info("💡 Recovery steps:");
         errorInfo.recoverySteps.forEach((step, i) => {
-          console.error(`  ${i + 1}. ${step}`);
+          LoggingUtils.info(`  ${i + 1}. ${step}`);
         });
       }
 
@@ -210,9 +275,10 @@ class GoCommandRunner {
     } else {
       // Default output to ./bin/
       const binDir = path.join(this.projectPath, "bin");
-      if (!fs.existsSync(binDir)) {
-        fs.mkdirSync(binDir, { recursive: true });
-      }
+
+      // Use ensureDir to create directory if it doesn't exist
+      ensureDir(binDir);
+
       const outputName = this.getOutputName();
       args.push("-o", path.join(binDir, outputName));
     }
@@ -261,6 +327,17 @@ class GoCommandRunner {
     }
 
     try {
+      // Log some build information before starting
+      const goFiles = this.findGoFiles();
+      if (goFiles.length > 0) {
+        LoggingUtils.debug(`Found ${goFiles.length} Go files to build`);
+      }
+
+      const moduleInfo = this.getGoModuleInfo();
+      if (moduleInfo) {
+        LoggingUtils.debug(`Building module: ${moduleInfo}`);
+      }
+
       const result = await this.executeGoCommand("build", args, options);
 
       // Go-specific: Show build information
@@ -287,6 +364,40 @@ class GoCommandRunner {
 
     // Default to directory name
     return path.basename(this.projectPath);
+  }
+
+  /**
+   * Find Go files in the project
+   */
+  findGoFiles(pattern = "**/*.go", excludePatterns = []) {
+    try {
+      return FileUtils.findFilesByPattern(pattern, {
+        cwd: this.projectPath,
+        exclude: excludePatterns,
+        language: "go",
+      });
+    } catch (error) {
+      LoggingUtils.warn("Failed to find Go files:", error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Get Go module information
+   */
+  getGoModuleInfo() {
+    try {
+      const goModPath = path.join(this.projectPath, "go.mod");
+      if (FileUtils.fileExists(goModPath)) {
+        const content = FileUtils.readFile(goModPath);
+        const moduleMatch = content.match(/module\s+(\S+)/);
+        return moduleMatch ? moduleMatch[1] : null;
+      }
+      return null;
+    } catch (error) {
+      LoggingUtils.debug("Failed to read go.mod:", error.message);
+      return null;
+    }
   }
 
   /**
@@ -331,23 +442,24 @@ class GoCommandRunner {
         cwd: this.projectPath,
       });
 
-      console.log("\n📊 Build Information:");
-      console.log("=".repeat(40));
-      console.log("Go:", versionResult.output.trim());
-      console.log("Module:", moduleResult.output.trim());
+      // Use LoggingUtils for formatted output
+      LoggingUtils.info("\n📊 Build Information:");
+      LoggingUtils.info("=".repeat(40));
+      LoggingUtils.info("Go:", versionResult.output.trim());
+      LoggingUtils.info("Module:", moduleResult.output.trim());
 
       if (options.target) {
-        console.log("Target:", options.target);
+        LoggingUtils.info("Target:", options.target);
       }
 
       if (options.race) {
-        console.log("Race detector: enabled");
+        LoggingUtils.info("Race detector: enabled");
       }
 
       // Show output path
       const outputArg =
         options.output || path.join("bin", this.getOutputName());
-      console.log("Output:", path.resolve(this.projectPath, outputArg));
+      LoggingUtils.info("Output:", path.resolve(this.projectPath, outputArg));
     } catch (error) {
       // Ignore errors in info display
     }
@@ -357,29 +469,31 @@ class GoCommandRunner {
    * Suggest fixes for common build errors
    */
   suggestBuildFix(errorMessage) {
-    console.log("\n💡 Build Error Suggestions:");
+    LoggingUtils.info("\n💡 Build Error Suggestions:");
 
     if (errorMessage.includes("cannot find module providing package")) {
-      console.log("  • Run: go mod tidy");
-      console.log("  • Run: go get <missing-package>");
+      LoggingUtils.info("  • Run: go mod tidy");
+      LoggingUtils.info("  • Run: go get <missing-package>");
     }
 
     if (errorMessage.includes("undefined:")) {
-      console.log("  • Check for typos in function/variable names");
-      console.log("  • Ensure all imports are correct");
+      LoggingUtils.info("  • Check for typos in function/variable names");
+      LoggingUtils.info("  • Ensure all imports are correct");
     }
 
     if (errorMessage.includes("imported and not used")) {
-      console.log("  • Remove unused imports or use blank identifier (_)");
+      LoggingUtils.info(
+        "  • Remove unused imports or use blank identifier (_)",
+      );
     }
 
     if (errorMessage.includes("missing go.sum entry")) {
-      console.log("  • Run: go mod tidy");
-      console.log("  • Run: go mod download");
+      LoggingUtils.info("  • Run: go mod tidy");
+      LoggingUtils.info("  • Run: go mod download");
     }
 
     if (errorMessage.includes("CGO_ENABLED")) {
-      console.log("  • Install C compiler or disable CGO: CGO_ENABLED=0");
+      LoggingUtils.info("  • Install C compiler or disable CGO: CGO_ENABLED=0");
     }
   }
 
@@ -451,7 +565,7 @@ class GoCommandRunner {
    * Run tests with gotestsum for better output
    */
   async runTestsWithGotestsum(args, options) {
-    console.log("📊 Running tests with gotestsum...");
+    LoggingUtils.info("📊 Running tests with gotestsum...");
 
     const gotestsumArgs = ["--"];
 
@@ -517,21 +631,22 @@ class GoCommandRunner {
       args.push(profileFile);
     }
 
-    console.log(`📈 Generating ${outputFormat} coverage report...`);
+    LoggingUtils.info(`📈 Generating ${outputFormat} coverage report...`);
 
     try {
       const result = await this.executeGoCommand("tool", ["cover", ...args]);
 
       if (result.success && outputFormat === "html") {
-        console.log(`✅ Coverage report generated: ${outputFile}`);
-        console.log(
+        LoggingUtils.success(`Coverage report generated: ${outputFile}`);
+        LoggingUtils.info(
           `   Open in browser: file://${path.resolve(this.projectPath, outputFile)}`,
         );
       }
 
       return result;
     } catch (error) {
-      throw new Error(`Failed to generate coverage report: ${error.message}`);
+      LoggingUtils.error(`Failed to generate coverage report:`, error.message);
+      throw error;
     }
   }
 
@@ -588,7 +703,7 @@ class GoCommandRunner {
     // Add path
     args.push("./...");
 
-    console.log("🔍 Running golangci-lint...");
+    LoggingUtils.info("🔍 Running golangci-lint...");
 
     const defaultOptions = {
       cwd: this.projectPath,
@@ -624,7 +739,7 @@ class GoCommandRunner {
 
     const args = ["./..."];
 
-    console.log("🔍 Running staticcheck...");
+    LoggingUtils.info("🔍 Running staticcheck...");
 
     const defaultOptions = {
       cwd: this.projectPath,
@@ -680,7 +795,7 @@ class GoCommandRunner {
       args.push(".");
     }
 
-    console.log(`🎨 Formatting with ${formatter}...`);
+    LoggingUtils.info(`🎨 Formatting with ${formatter}...`);
 
     const defaultOptions = {
       cwd: this.projectPath,
@@ -771,7 +886,7 @@ class GoCommandRunner {
       args.push("./...");
     }
 
-    console.log("⚡ Running benchmarks...");
+    LoggingUtils.info("⚡ Running benchmarks...");
 
     return this.executeGoCommand("test", args, options);
   }
@@ -792,7 +907,7 @@ class GoCommandRunner {
       args.push("-http", options.http);
     }
 
-    console.log("📚 Generating documentation...");
+    LoggingUtils.info("📚 Generating documentation...");
 
     if (this.detectedTools.godoc?.installed) {
       const defaultOptions = {
@@ -810,17 +925,19 @@ class GoCommandRunner {
           : defaultOptions.env,
       };
 
-      console.log(
+      LoggingUtils.debug(
         `🔍 defaultOptions.env keys: ${Object.keys(defaultOptions.env || {}).join(", ")}`,
       );
-      console.log(
+      LoggingUtils.debug(
         `🔍 options.env keys: ${Object.keys(options.env || {}).join(", ")}`,
       );
-      console.log(
+      LoggingUtils.debug(
         `🔍 finalOptions.env keys: ${Object.keys(finalOptions.env || {}).join(", ")}`,
       );
-      console.log(`🔍 finalOptions.env.HOME: ${finalOptions.env?.HOME}`);
-      console.log(`🔍 finalOptions.env.GOCACHE: ${finalOptions.env?.GOCACHE}`);
+      LoggingUtils.debug(`🔍 finalOptions.env.HOME: ${finalOptions.env?.HOME}`);
+      LoggingUtils.debug(
+        `🔍 finalOptions.env.GOCACHE: ${finalOptions.env?.GOCACHE}`,
+      );
 
       return new Promise((resolve, reject) => {
         const process = spawn("godoc", args, finalOptions);
@@ -867,7 +984,7 @@ class GoCommandRunner {
       args.push("-modcache");
     }
 
-    console.log("🧹 Cleaning build artifacts...");
+    LoggingUtils.info("🧹 Cleaning build artifacts...");
 
     return this.executeGoCommand("clean", args, options);
   }
