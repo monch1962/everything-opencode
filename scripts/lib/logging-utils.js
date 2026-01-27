@@ -104,7 +104,6 @@ try {
 
       // Simple table formatting
       const colWidths = [];
-      const allRows = [this.head, ...this.rows];
 
       // Calculate column widths
       for (let i = 0; i < this.head.length; i++) {
@@ -183,10 +182,7 @@ try {
 
     tick(delta = 1, tokens = {}) {
       this.current += delta;
-      const percent = Math.min(
-        100,
-        Math.floor((this.current / this.total) * 100),
-      );
+      const percent = Math.min(100, Math.floor((this.current / this.total) * 100));
       const elapsed = Date.now() - this.startTime;
       const rate = this.current / (elapsed / 1000);
       const estimated = rate > 0 ? (this.total - this.current) / rate : 0;
@@ -220,8 +216,6 @@ try {
     }
   };
 }
-
-const { defaultErrorHandler } = require('./error-handler');
 
 class LoggingUtils {
   /**
@@ -429,9 +423,7 @@ class LoggingUtils {
         else if (progress < 70) color = chalk.yellow;
         else color = chalk.green;
 
-        return color(
-          `  ${tokens.msg || 'Processing'} [${bar}${empty}] ${progress}%`,
-        );
+        return color(`  ${tokens.msg || 'Processing'} [${bar}${empty}] ${progress}%`);
       };
     }
 
@@ -491,9 +483,7 @@ class LoggingUtils {
     const lines = code.split('\n');
     const formattedLines = lines.map((line) => this.colors.code(`  ${line}`));
 
-    const header = language
-      ? this.colors.subtitle(`📝 ${language.toUpperCase()}`)
-      : '';
+    const header = language ? this.colors.subtitle(`📝 ${language.toUpperCase()}`) : '';
 
     return `${header}\n${formattedLines.join('\n')}`;
   }
@@ -566,7 +556,7 @@ class LoggingUtils {
   /**
    * Format error with recovery steps
    */
-  static formatError(error, context = {}) {
+  static formatError(error, _context = {}) {
     if (error.errorInfo) {
       // Already formatted by error handler
       const errorInfo = error.errorInfo;
@@ -589,9 +579,7 @@ class LoggingUtils {
         output += this.colors.debug('\n🔍 Debug information:\n');
         output += this.colors.debug(`  Category: ${errorInfo.category}\n`);
         output += this.colors.debug(`  Tool: ${errorInfo.tool || 'unknown'}\n`);
-        output += this.colors.debug(
-          `  Command: ${errorInfo.command || 'unknown'}\n`,
-        );
+        output += this.colors.debug(`  Command: ${errorInfo.command || 'unknown'}\n`);
 
         if (errorInfo.stack) {
           output += this.colors.debug('\n  Stack trace:\n');
@@ -667,13 +655,9 @@ class LoggingUtils {
       const { vulnerabilities, warnings, advisories } = results.summary;
 
       if (vulnerabilities > 0) {
-        output += this.colors.error(
-          `  ❌ Vulnerabilities: ${vulnerabilities}\n`,
-        );
+        output += this.colors.error(`  ❌ Vulnerabilities: ${vulnerabilities}\n`);
       } else {
-        output += this.colors.success(
-          `  ✅ Vulnerabilities: ${vulnerabilities}\n`,
-        );
+        output += this.colors.success(`  ✅ Vulnerabilities: ${vulnerabilities}\n`);
       }
 
       if (warnings > 0) {
@@ -694,26 +678,19 @@ class LoggingUtils {
       const tableData = [];
       for (const [tool, data] of Object.entries(results.tools)) {
         const issues = data.issues || data.vulnerabilities || 0;
-        const status =
-          issues > 0 ? this.colors.error('✗') : this.colors.success('✓');
+        const status = issues > 0 ? this.colors.error('✗') : this.colors.success('✓');
 
-        tableData.push([
-          status,
-          tool,
-          issues,
-          data.scanned || data.dependencies || 'N/A',
-        ]);
+        tableData.push([status, tool, issues, data.scanned || data.dependencies || 'N/A']);
       }
 
       const table = this.table(['', 'Tool', 'Issues', 'Scanned'], tableData, {
         style: { border: [] },
       });
 
-      output +=
-        `${table
-          .split('\n')
-          .map((line) => `    ${line}`)
-          .join('\n')}\n`;
+      output += `${table
+        .split('\n')
+        .map((line) => `    ${line}`)
+        .join('\n')}\n`;
     }
 
     // Details (if requested and available)
@@ -749,16 +726,12 @@ class LoggingUtils {
             output += severityColor(`      • ${item.title || item.id}\n`);
 
             if (item.description) {
-              output += this.colors.dim(
-                `        ${item.description.substring(0, 100)}...\n`,
-              );
+              output += this.colors.dim(`        ${item.description.substring(0, 100)}...\n`);
             }
           }
 
           if (items.length > 5) {
-            output += this.colors.dim(
-              `      ... and ${items.length - 5} more\n`,
-            );
+            output += this.colors.dim(`      ... and ${items.length - 5} more\n`);
           }
         }
       }
@@ -789,11 +762,7 @@ class LoggingUtils {
     }
 
     const color =
-      level === 1
-        ? this.colors.title
-        : level === 2
-          ? this.colors.subtitle
-          : this.colors.highlight;
+      level === 1 ? this.colors.title : level === 2 ? this.colors.subtitle : this.colors.highlight;
 
     return `\n${color(line)}\n${color(title)}\n${color(line)}\n`;
   }

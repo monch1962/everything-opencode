@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { commandExists, getOpencodeDir, readFile, writeFile, log, runCommand } = require('./utils');
+const { commandExists, getOpencodeDir, readFile, writeFile } = require('./utils');
 
 // Package manager definitions
 const PACKAGE_MANAGERS = {
@@ -207,7 +207,11 @@ function getPackageManager(options = {}) {
 
   // 5. Check global user preference
   const globalConfig = loadConfig();
-  if (globalConfig && globalConfig.packageManager && PACKAGE_MANAGERS[globalConfig.packageManager]) {
+  if (
+    globalConfig &&
+    globalConfig.packageManager &&
+    PACKAGE_MANAGERS[globalConfig.packageManager]
+  ) {
     return {
       name: globalConfig.packageManager,
       config: PACKAGE_MANAGERS[globalConfig.packageManager],
@@ -334,33 +338,13 @@ function getCommandPattern(action) {
   const patterns = [];
 
   if (action === 'dev') {
-    patterns.push(
-      'npm run dev',
-      'pnpm( run)? dev',
-      'yarn dev',
-      'bun run dev',
-    );
+    patterns.push('npm run dev', 'pnpm( run)? dev', 'yarn dev', 'bun run dev');
   } else if (action === 'install') {
-    patterns.push(
-      'npm install',
-      'pnpm install',
-      'yarn( install)?',
-      'bun install',
-    );
+    patterns.push('npm install', 'pnpm install', 'yarn( install)?', 'bun install');
   } else if (action === 'test') {
-    patterns.push(
-      'npm test',
-      'pnpm test',
-      'yarn test',
-      'bun test',
-    );
+    patterns.push('npm test', 'pnpm test', 'yarn test', 'bun test');
   } else if (action === 'build') {
-    patterns.push(
-      'npm run build',
-      'pnpm( run)? build',
-      'yarn build',
-      'bun run build',
-    );
+    patterns.push('npm run build', 'pnpm( run)? build', 'yarn build', 'bun run build');
   } else {
     // Generic run command
     patterns.push(

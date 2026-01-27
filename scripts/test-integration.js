@@ -22,9 +22,7 @@ try {
     command: 'test-command',
   });
   console.log(`✅ Error categorization works: ${result.category}`);
-  console.log(
-    `✅ User message generated: ${result.userMessage.substring(0, 50)}...`,
-  );
+  console.log(`✅ User message generated: ${result.userMessage.substring(0, 50)}...`);
   console.log(`✅ Recovery steps: ${result.recoverySteps.length}`);
 } catch (error) {
   console.error('❌ Error handler test failed:', error.message);
@@ -36,14 +34,11 @@ console.log('\n2. Testing Command Runner Updates...');
 console.log('   Testing Go command runner...');
 try {
   const GoCommandRunner = require('./go/command-runner');
-  const goRunner = new GoCommandRunner();
+  new GoCommandRunner();
   console.log('   ✅ Go command runner loaded');
 
   // Check if error handler is integrated
-  const source = fs.readFileSync(
-    path.join(__dirname, 'go/command-runner.js'),
-    'utf8',
-  );
+  const source = fs.readFileSync(path.join(__dirname, 'go/command-runner.js'), 'utf8');
   if (source.includes('defaultErrorHandler')) {
     console.log('   ✅ Error handler integrated in Go command runner');
   } else {
@@ -57,14 +52,11 @@ try {
 console.log('   Testing Elixir command runner...');
 try {
   const ElixirCommandRunner = require('./elixir/command-runner');
-  const elixirRunner = new ElixirCommandRunner();
+  new ElixirCommandRunner();
   console.log('   ✅ Elixir command runner loaded');
 
   // Check if error handler is integrated
-  const source = fs.readFileSync(
-    path.join(__dirname, 'elixir/command-runner.js'),
-    'utf8',
-  );
+  const source = fs.readFileSync(path.join(__dirname, 'elixir/command-runner.js'), 'utf8');
   if (source.includes('defaultErrorHandler')) {
     console.log('   ✅ Error handler integrated in Elixir command runner');
   } else {
@@ -78,14 +70,11 @@ try {
 console.log('   Testing Python command runner...');
 try {
   const PythonCommandRunner = require('./commands/python-command-runner');
-  const pythonRunner = new PythonCommandRunner();
+  new PythonCommandRunner();
   console.log('   ✅ Python command runner loaded');
 
   // Check if error handler is integrated
-  const source = fs.readFileSync(
-    path.join(__dirname, 'commands/python-command-runner.js'),
-    'utf8',
-  );
+  const source = fs.readFileSync(path.join(__dirname, 'commands/python-command-runner.js'), 'utf8');
   if (source.includes('defaultErrorHandler')) {
     console.log('   ✅ Error handler integrated in Python command runner');
   } else {
@@ -100,10 +89,7 @@ console.log('\n3. Testing Security Scanning Integration...');
 // Check Go deps security scanning
 console.log('   Checking Go deps security scanning...');
 try {
-  const source = fs.readFileSync(
-    path.join(__dirname, 'commands/go-deps.js'),
-    'utf8',
-  );
+  const source = fs.readFileSync(path.join(__dirname, 'commands/go-deps.js'), 'utf8');
   if (
     source.includes('runSecurityAudit') &&
     source.includes('govulncheck') &&
@@ -120,10 +106,7 @@ try {
 // Check Python deps security scanning
 console.log('   Checking Python deps security scanning...');
 try {
-  const source = fs.readFileSync(
-    path.join(__dirname, 'commands/python-deps.js'),
-    'utf8',
-  );
+  const source = fs.readFileSync(path.join(__dirname, 'commands/python-deps.js'), 'utf8');
   if (
     source.includes('runSecurityAudit') &&
     source.includes('safety') &&
@@ -140,10 +123,7 @@ try {
 // Check Elixir deps security scanning
 console.log('   Checking Elixir deps security scanning...');
 try {
-  const source = fs.readFileSync(
-    path.join(__dirname, 'commands/elixir-deps.js'),
-    'utf8',
-  );
+  const source = fs.readFileSync(path.join(__dirname, 'commands/elixir-deps.js'), 'utf8');
   if (
     source.includes('runSecurityAudit') &&
     source.includes('hex.audit') &&
@@ -186,24 +166,16 @@ console.log('='.repeat(60));
 if (allFilesExist) {
   console.log('\n✅ All Phase 3 improvements implemented successfully!');
   console.log('\n🎯 What was accomplished:');
-  console.log(
-    '   1. ✅ Created comprehensive error handler with 12 error categories',
-  );
+  console.log('   1. ✅ Created comprehensive error handler with 12 error categories');
   console.log('   2. ✅ Updated Go command runner with error handling');
   console.log('   3. ✅ Updated Elixir command runner with error handling');
   console.log('   4. ✅ Updated Python command runner with error handling');
-  console.log(
-    '   5. ✅ Enhanced Go deps with security scanning (gosec, govulncheck)',
-  );
-  console.log(
-    '   6. ✅ Enhanced Python deps with security scanning (safety, pip-audit, bandit)',
-  );
+  console.log('   5. ✅ Enhanced Go deps with security scanning (gosec, govulncheck)');
+  console.log('   6. ✅ Enhanced Python deps with security scanning (safety, pip-audit, bandit)');
   console.log(
     '   7. ✅ Enhanced Elixir deps with security scanning (hex.audit, mix_audit, sobelow)',
   );
-  console.log(
-    '   8. ✅ Added user-friendly error messages with recovery steps',
-  );
+  console.log('   8. ✅ Added user-friendly error messages with recovery steps');
   console.log('   9. ✅ Added comprehensive security reports with exit codes');
   console.log('   10.✅ Maintained backward compatibility');
 

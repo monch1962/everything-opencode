@@ -8,7 +8,7 @@ const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { execSync, spawn } = require('child_process');
+const { spawn } = require('child_process');
 
 // Test helper
 function test(name, fn) {
@@ -47,8 +47,8 @@ function runScript(scriptPath, input = '', env = {}) {
     let stdout = '';
     let stderr = '';
 
-    proc.stdout.on('data', (data) => stdout += data);
-    proc.stderr.on('data', (data) => stderr += data);
+    proc.stdout.on('data', (data) => (stdout += data));
+    proc.stderr.on('data', (data) => (stderr += data));
 
     if (input) {
       proc.stdin.write(input);
@@ -87,232 +87,296 @@ async function runTests() {
   // session-start.js tests
   console.log('session-start.js:');
 
-  if (await asyncTest('runs without error', async () => {
-    const result = await runScript(path.join(scriptsDir, 'session-start.js'));
-    assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
-  })) passed++; else failed++;
+  if (
+    await asyncTest('runs without error', async () => {
+      const result = await runScript(path.join(scriptsDir, 'session-start.js'));
+      assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
+    })
+  )
+    passed++;
+  else failed++;
 
-  if (await asyncTest('outputs session info to stderr', async () => {
-    const result = await runScript(path.join(scriptsDir, 'session-start.js'));
-    assert.ok(
-      result.stderr.includes('[SessionStart]') ||
-      result.stderr.includes('Package manager'),
-      'Should output session info',
-    );
-  })) passed++; else failed++;
+  if (
+    await asyncTest('outputs session info to stderr', async () => {
+      const result = await runScript(path.join(scriptsDir, 'session-start.js'));
+      assert.ok(
+        result.stderr.includes('[SessionStart]') || result.stderr.includes('Package manager'),
+        'Should output session info',
+      );
+    })
+  )
+    passed++;
+  else failed++;
 
   // session-end.js tests
   console.log('\nsession-end.js:');
 
-  if (await asyncTest('runs without error', async () => {
-    const result = await runScript(path.join(scriptsDir, 'session-end.js'));
-    assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
-  })) passed++; else failed++;
+  if (
+    await asyncTest('runs without error', async () => {
+      const result = await runScript(path.join(scriptsDir, 'session-end.js'));
+      assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
+    })
+  )
+    passed++;
+  else failed++;
 
-  if (await asyncTest('creates or updates session file', async () => {
-    // Run the script
-    await runScript(path.join(scriptsDir, 'session-end.js'));
+  if (
+    await asyncTest('creates or updates session file', async () => {
+      // Run the script
+      await runScript(path.join(scriptsDir, 'session-end.js'));
 
-    // Check if session file was created
-    const sessionsDir = path.join(os.homedir(), '.opencode', 'sessions');
+      // Check if session file was created
+      const sessionsDir = path.join(os.homedir(), '.opencode', 'sessions');
 
-    // Get today's date in YYYY-MM-DD format (same as getDateString() in utils)
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const sessionFile = path.join(sessionsDir, `${today}-session.tmp`);
+      // Get today's date in YYYY-MM-DD format (same as getDateString() in utils)
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const sessionFile = path.join(sessionsDir, `${today}-session.tmp`);
 
-    // Check if file exists (it should after running the script)
-    if (!fs.existsSync(sessionFile)) {
-      // The file might have been created, let's list what's in the directory
-      const files = fs.readdirSync(sessionsDir);
-      console.log(`    Available files in sessions dir: ${files.join(', ')}`);
-      console.log(`    Looking for: ${sessionFile}`);
-      assert.ok(fs.existsSync(sessionFile), `Session file should exist: ${sessionFile}`);
-    }
-  })) passed++; else failed++;
+      // Check if file exists (it should after running the script)
+      if (!fs.existsSync(sessionFile)) {
+        // The file might have been created, let's list what's in the directory
+        const files = fs.readdirSync(sessionsDir);
+        console.log(`    Available files in sessions dir: ${files.join(', ')}`);
+        console.log(`    Looking for: ${sessionFile}`);
+        assert.ok(fs.existsSync(sessionFile), `Session file should exist: ${sessionFile}`);
+      }
+    })
+  )
+    passed++;
+  else failed++;
 
   // pre-compact.js tests
   console.log('\npre-compact.js:');
 
-  if (await asyncTest('runs without error', async () => {
-    const result = await runScript(path.join(scriptsDir, 'pre-compact.js'));
-    assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
-  })) passed++; else failed++;
+  if (
+    await asyncTest('runs without error', async () => {
+      const result = await runScript(path.join(scriptsDir, 'pre-compact.js'));
+      assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
+    })
+  )
+    passed++;
+  else failed++;
 
-  if (await asyncTest('outputs PreCompact message', async () => {
-    const result = await runScript(path.join(scriptsDir, 'pre-compact.js'));
-    assert.ok(result.stderr.includes('[PreCompact]'), 'Should output PreCompact message');
-  })) passed++; else failed++;
+  if (
+    await asyncTest('outputs PreCompact message', async () => {
+      const result = await runScript(path.join(scriptsDir, 'pre-compact.js'));
+      assert.ok(result.stderr.includes('[PreCompact]'), 'Should output PreCompact message');
+    })
+  )
+    passed++;
+  else failed++;
 
-  if (await asyncTest('creates compaction log', async () => {
-    await runScript(path.join(scriptsDir, 'pre-compact.js'));
-    const logFile = path.join(os.homedir(), '.opencode', 'sessions', 'compaction-log.txt');
-    assert.ok(fs.existsSync(logFile), 'Compaction log should exist');
-  })) passed++; else failed++;
+  if (
+    await asyncTest('creates compaction log', async () => {
+      await runScript(path.join(scriptsDir, 'pre-compact.js'));
+      const logFile = path.join(os.homedir(), '.opencode', 'sessions', 'compaction-log.txt');
+      assert.ok(fs.existsSync(logFile), 'Compaction log should exist');
+    })
+  )
+    passed++;
+  else failed++;
 
   // suggest-compact.js tests
   console.log('\nsuggest-compact.js:');
 
-  if (await asyncTest('runs without error', async () => {
-    const result = await runScript(path.join(scriptsDir, 'suggest-compact.js'), '', {
-      OPENCODE_SESSION_ID: `test-session-${Date.now()}`,
-    });
-    assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
-  })) passed++; else failed++;
-
-  if (await asyncTest('increments counter on each call', async () => {
-    const sessionId = `test-counter-${Date.now()}`;
-
-    // Run multiple times
-    for (let i = 0; i < 3; i++) {
-      await runScript(path.join(scriptsDir, 'suggest-compact.js'), '', {
-        OPENCODE_SESSION_ID: sessionId,
+  if (
+    await asyncTest('runs without error', async () => {
+      const result = await runScript(path.join(scriptsDir, 'suggest-compact.js'), '', {
+        OPENCODE_SESSION_ID: `test-session-${Date.now()}`,
       });
-    }
+      assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
+    })
+  )
+    passed++;
+  else failed++;
 
-    // Check counter file
-    const counterFile = path.join(os.tmpdir(), `opencode-tool-count-${sessionId}`);
-    const count = parseInt(fs.readFileSync(counterFile, 'utf8').trim(), 10);
-    assert.strictEqual(count, 3, `Counter should be 3, got ${count}`);
+  if (
+    await asyncTest('increments counter on each call', async () => {
+      const sessionId = `test-counter-${Date.now()}`;
 
-    // Cleanup
-    fs.unlinkSync(counterFile);
-  })) passed++; else failed++;
+      // Run multiple times
+      for (let i = 0; i < 3; i++) {
+        await runScript(path.join(scriptsDir, 'suggest-compact.js'), '', {
+          OPENCODE_SESSION_ID: sessionId,
+        });
+      }
 
-  if (await asyncTest('suggests compact at threshold', async () => {
-    const sessionId = `test-threshold-${Date.now()}`;
-    const counterFile = path.join(os.tmpdir(), `opencode-tool-count-${sessionId}`);
+      // Check counter file
+      const counterFile = path.join(os.tmpdir(), `opencode-tool-count-${sessionId}`);
+      const count = parseInt(fs.readFileSync(counterFile, 'utf8').trim(), 10);
+      assert.strictEqual(count, 3, `Counter should be 3, got ${count}`);
 
-    // Set counter to threshold - 1
-    fs.writeFileSync(counterFile, '49');
+      // Cleanup
+      fs.unlinkSync(counterFile);
+    })
+  )
+    passed++;
+  else failed++;
 
-    const result = await runScript(path.join(scriptsDir, 'suggest-compact.js'), '', {
-      OPENCODE_SESSION_ID: sessionId,
-      COMPACT_THRESHOLD: '50',
-    });
+  if (
+    await asyncTest('suggests compact at threshold', async () => {
+      const sessionId = `test-threshold-${Date.now()}`;
+      const counterFile = path.join(os.tmpdir(), `opencode-tool-count-${sessionId}`);
 
-    assert.ok(
-      result.stderr.includes('50 tool calls reached'),
-      'Should suggest compact at threshold',
-    );
+      // Set counter to threshold - 1
+      fs.writeFileSync(counterFile, '49');
 
-    // Cleanup
-    fs.unlinkSync(counterFile);
-  })) passed++; else failed++;
+      const result = await runScript(path.join(scriptsDir, 'suggest-compact.js'), '', {
+        OPENCODE_SESSION_ID: sessionId,
+        COMPACT_THRESHOLD: '50',
+      });
+
+      assert.ok(
+        result.stderr.includes('50 tool calls reached'),
+        'Should suggest compact at threshold',
+      );
+
+      // Cleanup
+      fs.unlinkSync(counterFile);
+    })
+  )
+    passed++;
+  else failed++;
 
   // evaluate-session.js tests
   console.log('\nevaluate-session.js:');
 
-  if (await asyncTest('runs without error when no transcript', async () => {
-    const result = await runScript(path.join(scriptsDir, 'evaluate-session.js'));
-    assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
-  })) passed++; else failed++;
+  if (
+    await asyncTest('runs without error when no transcript', async () => {
+      const result = await runScript(path.join(scriptsDir, 'evaluate-session.js'));
+      assert.strictEqual(result.code, 0, `Exit code should be 0, got ${result.code}`);
+    })
+  )
+    passed++;
+  else failed++;
 
-  if (await asyncTest('skips short sessions', async () => {
-    const testDir = createTestDir();
-    const transcriptPath = path.join(testDir, 'transcript.jsonl');
+  if (
+    await asyncTest('skips short sessions', async () => {
+      const testDir = createTestDir();
+      const transcriptPath = path.join(testDir, 'transcript.jsonl');
 
-    // Create a short transcript (less than 10 user messages)
-    const transcript = Array(5).fill('{"type":"user","content":"test"}\n').join('');
-    fs.writeFileSync(transcriptPath, transcript);
+      // Create a short transcript (less than 10 user messages)
+      const transcript = Array(5).fill('{"type":"user","content":"test"}\n').join('');
+      fs.writeFileSync(transcriptPath, transcript);
 
-    const result = await runScript(path.join(scriptsDir, 'evaluate-session.js'), '', {
-      OPENCODE_TRANSCRIPT_PATH: transcriptPath,
-    });
+      const result = await runScript(path.join(scriptsDir, 'evaluate-session.js'), '', {
+        OPENCODE_TRANSCRIPT_PATH: transcriptPath,
+      });
 
-    assert.ok(
-      result.stderr.includes('Session too short'),
-      'Should indicate session is too short',
-    );
+      assert.ok(
+        result.stderr.includes('Session too short'),
+        'Should indicate session is too short',
+      );
 
-    cleanupTestDir(testDir);
-  })) passed++; else failed++;
+      cleanupTestDir(testDir);
+    })
+  )
+    passed++;
+  else failed++;
 
-  if (await asyncTest('processes sessions with enough messages', async () => {
-    const testDir = createTestDir();
-    const transcriptPath = path.join(testDir, 'transcript.jsonl');
+  if (
+    await asyncTest('processes sessions with enough messages', async () => {
+      const testDir = createTestDir();
+      const transcriptPath = path.join(testDir, 'transcript.jsonl');
 
-    // Create a longer transcript (more than 10 user messages)
-    const transcript = Array(15).fill('{"type":"user","content":"test"}\n').join('');
-    fs.writeFileSync(transcriptPath, transcript);
+      // Create a longer transcript (more than 10 user messages)
+      const transcript = Array(15).fill('{"type":"user","content":"test"}\n').join('');
+      fs.writeFileSync(transcriptPath, transcript);
 
-    const result = await runScript(path.join(scriptsDir, 'evaluate-session.js'), '', {
-      OPENCODE_TRANSCRIPT_PATH: transcriptPath,
-    });
+      const result = await runScript(path.join(scriptsDir, 'evaluate-session.js'), '', {
+        OPENCODE_TRANSCRIPT_PATH: transcriptPath,
+      });
 
-    assert.ok(
-      result.stderr.includes('15 messages'),
-      'Should report message count',
-    );
+      assert.ok(result.stderr.includes('15 messages'), 'Should report message count');
 
-    cleanupTestDir(testDir);
-  })) passed++; else failed++;
+      cleanupTestDir(testDir);
+    })
+  )
+    passed++;
+  else failed++;
 
   // hooks.json validation
   console.log('\nhooks.json Validation:');
 
-  if (test('hooks.json is valid JSON', () => {
-    const hooksPath = path.join(__dirname, '..', '..', 'hooks', 'hooks.json');
-    const content = fs.readFileSync(hooksPath, 'utf8');
-    JSON.parse(content); // Will throw if invalid
-  })) passed++; else failed++;
+  if (
+    test('hooks.json is valid JSON', () => {
+      const hooksPath = path.join(__dirname, '..', '..', 'hooks', 'hooks.json');
+      const content = fs.readFileSync(hooksPath, 'utf8');
+      JSON.parse(content); // Will throw if invalid
+    })
+  )
+    passed++;
+  else failed++;
 
-  if (test('hooks.json has required event types', () => {
-    const hooksPath = path.join(__dirname, '..', '..', 'hooks', 'hooks.json');
-    const hooks = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
+  if (
+    test('hooks.json has required event types', () => {
+      const hooksPath = path.join(__dirname, '..', '..', 'hooks', 'hooks.json');
+      const hooks = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
 
-    assert.ok(hooks.hooks.PreToolUse, 'Should have PreToolUse hooks');
-    assert.ok(hooks.hooks.PostToolUse, 'Should have PostToolUse hooks');
-    assert.ok(hooks.hooks.SessionStart, 'Should have SessionStart hooks');
-    assert.ok(hooks.hooks.Stop, 'Should have Stop hooks');
-    assert.ok(hooks.hooks.PreCompact, 'Should have PreCompact hooks');
-  })) passed++; else failed++;
+      assert.ok(hooks.hooks.PreToolUse, 'Should have PreToolUse hooks');
+      assert.ok(hooks.hooks.PostToolUse, 'Should have PostToolUse hooks');
+      assert.ok(hooks.hooks.SessionStart, 'Should have SessionStart hooks');
+      assert.ok(hooks.hooks.Stop, 'Should have Stop hooks');
+      assert.ok(hooks.hooks.PreCompact, 'Should have PreCompact hooks');
+    })
+  )
+    passed++;
+  else failed++;
 
-  if (test('all hook commands use node', () => {
-    const hooksPath = path.join(__dirname, '..', '..', 'hooks', 'hooks.json');
-    const hooks = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
+  if (
+    test('all hook commands use node', () => {
+      const hooksPath = path.join(__dirname, '..', '..', 'hooks', 'hooks.json');
+      const hooks = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
 
-    const checkHooks = (hookArray) => {
-      for (const entry of hookArray) {
-        for (const hook of entry.hooks) {
-          if (hook.type === 'command') {
-            assert.ok(
-              hook.command.startsWith('node'),
-              `Hook command should start with 'node': ${hook.command.substring(0, 50)}...`,
-            );
+      const checkHooks = (hookArray) => {
+        for (const entry of hookArray) {
+          for (const hook of entry.hooks) {
+            if (hook.type === 'command') {
+              assert.ok(
+                hook.command.startsWith('node'),
+                `Hook command should start with 'node': ${hook.command.substring(0, 50)}...`,
+              );
+            }
           }
         }
+      };
+
+      for (const [_eventType, hookArray] of Object.entries(hooks.hooks)) {
+        checkHooks(hookArray);
       }
-    };
+    })
+  )
+    passed++;
+  else failed++;
 
-    for (const [eventType, hookArray] of Object.entries(hooks.hooks)) {
-      checkHooks(hookArray);
-    }
-  })) passed++; else failed++;
+  if (
+    test('script references use OPENCODE_PLUGIN_ROOT variable', () => {
+      const hooksPath = path.join(__dirname, '..', '..', 'hooks', 'hooks.json');
+      const hooks = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
 
-  if (test('script references use OPENCODE_PLUGIN_ROOT variable', () => {
-    const hooksPath = path.join(__dirname, '..', '..', 'hooks', 'hooks.json');
-    const hooks = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
-
-    const checkHooks = (hookArray) => {
-      for (const entry of hookArray) {
-        for (const hook of entry.hooks) {
-          if (hook.type === 'command' && hook.command.includes('scripts/hooks/')) {
-            // Check for the literal string "${OPENCODE_PLUGIN_ROOT}" in the command
-            const hasPluginRoot = hook.command.includes('${OPENCODE_PLUGIN_ROOT}');
-            assert.ok(
-              hasPluginRoot,
-              `Script paths should use OPENCODE_PLUGIN_ROOT: ${hook.command.substring(0, 80)}...`,
-            );
+      const checkHooks = (hookArray) => {
+        for (const entry of hookArray) {
+          for (const hook of entry.hooks) {
+            if (hook.type === 'command' && hook.command.includes('scripts/hooks/')) {
+              // Check for the literal string "${OPENCODE_PLUGIN_ROOT}" in the command
+              const hasPluginRoot = hook.command.includes('${OPENCODE_PLUGIN_ROOT}');
+              assert.ok(
+                hasPluginRoot,
+                `Script paths should use OPENCODE_PLUGIN_ROOT: ${hook.command.substring(0, 80)}...`,
+              );
+            }
           }
         }
-      }
-    };
+      };
 
-    for (const [eventType, hookArray] of Object.entries(hooks.hooks)) {
-      checkHooks(hookArray);
-    }
-  })) passed++; else failed++;
+      for (const [_eventType, hookArray] of Object.entries(hooks.hooks)) {
+        checkHooks(hookArray);
+      }
+    })
+  )
+    passed++;
+  else failed++;
 
   // Summary
   console.log('\n=== Test Results ===');

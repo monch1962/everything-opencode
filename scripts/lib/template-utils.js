@@ -21,9 +21,7 @@ class TemplateUtils {
 
     // Simple template rendering with {{variable}} syntax
     return template.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
-      return variables[variable] !== undefined
-        ? String(variables[variable])
-        : match;
+      return variables[variable] !== undefined ? String(variables[variable]) : match;
     });
   }
 
@@ -35,9 +33,7 @@ class TemplateUtils {
       const template = fs.readFileSync(templatePath, 'utf8');
       return this.renderTemplate(template, variables);
     } catch (error) {
-      throw new Error(
-        `Failed to read template file ${templatePath}: ${error.message}`,
-      );
+      throw new Error(`Failed to read template file ${templatePath}: ${error.message}`);
     }
   }
 
@@ -49,9 +45,7 @@ class TemplateUtils {
 
     // Check if output file exists
     if (fs.existsSync(outputPath) && !overwrite) {
-      throw new Error(
-        `File already exists: ${outputPath}. Use overwrite option to replace.`,
-      );
+      throw new Error(`File already exists: ${outputPath}. Use overwrite option to replace.`);
     }
 
     // Create backup if needed
@@ -81,18 +75,8 @@ class TemplateUtils {
   /**
    * Generate multiple files from template directory
    */
-  static generateFromTemplateDir(
-    templateDir,
-    outputDir,
-    variables = {},
-    options = {},
-  ) {
-    const {
-      overwrite = false,
-      backup = true,
-      ignore = [],
-      transform = null,
-    } = options;
+  static generateFromTemplateDir(templateDir, outputDir, variables = {}, options = {}) {
+    const { _overwrite = false, _backup = true, _ignore = [], _transform = null } = options;
 
     const results = {
       generated: [],
@@ -108,14 +92,7 @@ class TemplateUtils {
     ensureDir(outputDir);
 
     // Process template directory
-    this._processTemplateDir(
-      templateDir,
-      outputDir,
-      variables,
-      options,
-      results,
-      '',
-    );
+    this._processTemplateDir(templateDir, outputDir, variables, options, results, '');
 
     return results;
   }
@@ -123,29 +100,18 @@ class TemplateUtils {
   /**
    * Process template directory recursively
    */
-  static _processTemplateDir(
-    templateDir,
-    outputDir,
-    variables,
-    options,
-    results,
-    relativePath,
-  ) {
+  static _processTemplateDir(templateDir, outputDir, variables, options, results, relativePath) {
     try {
       const entries = fs.readdirSync(templateDir, { withFileTypes: true });
 
       for (const entry of entries) {
         const templatePath = path.join(templateDir, entry.name);
         const outputPath = path.join(outputDir, entry.name);
-        const relPath = relativePath
-          ? path.join(relativePath, entry.name)
-          : entry.name;
+        const relPath = relativePath ? path.join(relativePath, entry.name) : entry.name;
 
         // Check if path should be ignored
         const shouldIgnore = options.ignore.some((pattern) => {
-          const regex = new RegExp(
-            pattern.replace(/\*/g, '.*').replace(/\?/g, '.'),
-          );
+          const regex = new RegExp(pattern.replace(/\*/g, '.*').replace(/\?/g, '.'));
           return regex.test(relPath);
         });
 
@@ -156,14 +122,7 @@ class TemplateUtils {
         if (entry.isDirectory()) {
           // Process subdirectory
           ensureDir(outputPath);
-          this._processTemplateDir(
-            templatePath,
-            outputPath,
-            variables,
-            options,
-            results,
-            relPath,
-          );
+          this._processTemplateDir(templatePath, outputPath, variables, options, results, relPath);
         } else {
           // Process file
           try {
@@ -178,9 +137,7 @@ class TemplateUtils {
 
             if (shouldProcess) {
               // Remove template extension if present
-              finalOutputPath = outputPath
-                .replace(/\.template$/, '')
-                .replace(/\.tmpl\./, '.');
+              finalOutputPath = outputPath.replace(/\.template$/, '').replace(/\.tmpl\./, '.');
 
               // Render template
               const templateContent = fs.readFileSync(templatePath, 'utf8');
@@ -500,12 +457,7 @@ public
   /**
    * Generate project structure for language
    */
-  static generateLanguageProject(
-    language,
-    projectPath,
-    variables = {},
-    options = {},
-  ) {
+  static generateLanguageProject(language, projectPath, variables = {}, options = {}) {
     const templates = this.getLanguageTemplates(language);
 
     if (Object.keys(templates).length === 0) {
@@ -570,12 +522,7 @@ public
   /**
    * Generate configuration file for language
    */
-  static generateLanguageConfig(
-    language,
-    configPath,
-    variables = {},
-    options = {},
-  ) {
+  static generateLanguageConfig(language, configPath, variables = {}, options = {}) {
     const configTemplates = {
       go: {
         tools: {
@@ -634,9 +581,7 @@ public
     const config = configTemplates[language];
 
     if (!config) {
-      throw new Error(
-        `No configuration template available for language: ${language}`,
-      );
+      throw new Error(`No configuration template available for language: ${language}`);
     }
 
     // Merge with variables
@@ -700,11 +645,7 @@ public
     const readmePath = path.join(projectPath, 'README.md');
     const content = this.renderTemplate(readmeTemplate, variables);
 
-    FileUtils.writeJsonFile(
-      readmePath,
-      { content },
-      { ...options, stringify: false },
-    );
+    FileUtils.writeJsonFile(readmePath, { content }, { ...options, stringify: false });
 
     return {
       path: readmePath,
@@ -715,7 +656,7 @@ public
   /**
    * Generate .gitignore file for language
    */
-  static generateGitignore(projectPath, language, options = {}) {
+  static generateGitignore(projectPath, language, _options = {}) {
     const gitignoreTemplates = this.getLanguageTemplates(language);
     const gitignore = gitignoreTemplates['.gitignore'];
 
@@ -781,10 +722,7 @@ Thumbs.db
       invalid.push('version (should be semver: x.y.z)');
     }
 
-    if (
-      variables.email &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(variables.email)
-    ) {
+    if (variables.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(variables.email)) {
       invalid.push('email (invalid format)');
     }
 

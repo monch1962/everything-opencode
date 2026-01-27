@@ -112,11 +112,7 @@ class ProjectUtils {
     }
 
     // Check for lock files
-    for (const lockFile of [
-      'package-lock.json',
-      'yarn.lock',
-      'pnpm-lock.yaml',
-    ]) {
+    for (const lockFile of ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']) {
       if (fs.existsSync(path.join(projectPath, lockFile))) {
         confidence += 10;
         break;
@@ -167,12 +163,7 @@ class ProjectUtils {
     let framework = 'python';
 
     // Check for Python-specific files
-    for (const file of [
-      'requirements.txt',
-      'pyproject.toml',
-      'setup.py',
-      'Pipfile',
-    ]) {
+    for (const file of ['requirements.txt', 'pyproject.toml', 'setup.py', 'Pipfile']) {
       if (fs.existsSync(path.join(projectPath, file))) {
         confidence += 25;
         break;
@@ -500,16 +491,6 @@ class ProjectUtils {
    * Detect .NET project
    */
   static detectDotNetProject(projectPath) {
-    const files = [
-      '*.csproj',
-      '*.sln',
-      '*.vbproj',
-      '*.fsproj',
-      'packages.config',
-      'bin',
-      'obj',
-    ];
-
     let confidence = 0;
     let framework = 'dotnet';
 
@@ -577,7 +558,7 @@ class ProjectUtils {
   static getProjectStructure(projectPath, options = {}) {
     const {
       maxDepth = 3,
-      includeFiles = true,
+      _includeFiles = true,
       includeStats = true,
       ignorePatterns = [
         '**/node_modules/**',
@@ -627,9 +608,7 @@ class ProjectUtils {
 
         for (const entry of entries) {
           const fullPath = path.join(currentPath, entry.name);
-          const relPath = relativePath
-            ? path.join(relativePath, entry.name)
-            : entry.name;
+          const relPath = relativePath ? path.join(relativePath, entry.name) : entry.name;
 
           // Check if path should be ignored
           const shouldIgnore = ignorePatterns.some((pattern) => {
@@ -691,10 +670,7 @@ class ProjectUtils {
       } catch (err) {
         // Ignore permission errors
         if (err.code !== 'EACCES' && err.code !== 'EPERM') {
-          console.error(
-            `Error scanning directory ${currentPath}:`,
-            err.message,
-          );
+          console.error(`Error scanning directory ${currentPath}:`, err.message);
         }
         return [];
       }
@@ -814,9 +790,7 @@ class ProjectUtils {
         gitInfo = {
           isGitRepo: true,
           branch: branchResult.success ? branchResult.output.trim() : 'unknown',
-          remotes: remoteResult.success
-            ? remoteResult.output.trim().split('\n')
-            : [],
+          remotes: remoteResult.success ? remoteResult.output.trim().split('\n') : [],
         };
       }
     } catch (e) {
