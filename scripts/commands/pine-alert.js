@@ -206,7 +206,7 @@ class PineAlertCommand extends PineCommandRunner {
     this.log('1. Test alerts: /pine-alert --action test');
     this.log('2. List configured alerts: /pine-alert --action list');
     this.log(
-      '3. Enable/disable specific alerts: /pine-alert --action enable --alertName ALERT_NAME'
+      '3. Enable/disable specific alerts: /pine-alert --action enable --alertName ALERT_NAME',
     );
 
     return 0;

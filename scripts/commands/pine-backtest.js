@@ -124,7 +124,7 @@ async function main() {
               const base = path.basename(outputPath, ext);
               outputPath = path.join(
                 path.dirname(outputPath),
-                `${base}-${path.basename(file, '.pine')}${ext}`
+                `${base}-${path.basename(file, '.pine')}${ext}`,
               );
             }
 
@@ -185,7 +185,7 @@ function generateSummary(results, _options) {
     const { strategy, performance } = result.results;
     console.log(`\n${index + 1}. ${strategy}`);
     console.log(
-      `   Net Profit: $${performance.netProfit.toFixed(2)} (${((performance.netProfit / result.results.parameters.initialCapital) * 100).toFixed(2)}%)`
+      `   Net Profit: $${performance.netProfit.toFixed(2)} (${((performance.netProfit / result.results.parameters.initialCapital) * 100).toFixed(2)}%)`,
     );
     console.log(`   Win Rate: ${performance.winRate.toFixed(1)}%`);
     console.log(`   Profit Factor: ${performance.profitFactor.toFixed(2)}`);
@@ -215,13 +215,13 @@ function generateSummary(results, _options) {
   console.log('\n🏆 BEST PERFORMERS:');
   console.log('─'.repeat(40));
   console.log(
-    `Highest Profit: ${bestByProfit.results.strategy} ($${bestByProfit.results.performance.netProfit.toFixed(2)})`
+    `Highest Profit: ${bestByProfit.results.strategy} ($${bestByProfit.results.performance.netProfit.toFixed(2)})`,
   );
   console.log(
-    `Best Risk-Adjusted: ${bestBySharpe.results.strategy} (Sharpe: ${bestBySharpe.results.performance.sharpeRatio.toFixed(2)})`
+    `Best Risk-Adjusted: ${bestBySharpe.results.strategy} (Sharpe: ${bestBySharpe.results.performance.sharpeRatio.toFixed(2)})`,
   );
   console.log(
-    `Highest Win Rate: ${bestByWinRate.results.strategy} (${bestByWinRate.results.performance.winRate.toFixed(1)}%)`
+    `Highest Win Rate: ${bestByWinRate.results.strategy} (${bestByWinRate.results.performance.winRate.toFixed(1)}%)`,
   );
 
   console.log(`\n${'='.repeat(60)}`);

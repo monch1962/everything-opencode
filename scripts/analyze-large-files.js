@@ -47,7 +47,7 @@ class FileAnalyzer {
   calculateMetrics(content, lines) {
     // Count imports/requires
     const imports = lines.filter(
-      (line) => line.includes('require(') || line.includes('import ') || line.includes('from ')
+      (line) => line.includes('require(') || line.includes('import ') || line.includes('from '),
     ).length;
 
     // Count functions/methods
@@ -55,7 +55,7 @@ class FileAnalyzer {
       (line) =>
         line.match(/^\s*(async\s+)?function\s+\w+/) ||
         line.match(/^\s*\w+\s*\([^)]*\)\s*\{/) ||
-        line.match(/^\s*(public|private|protected)?\s*\w+\s+\w+\([^)]*\)/)
+        line.match(/^\s*(public|private|protected)?\s*\w+\s+\w+\([^)]*\)/),
     ).length;
 
     // Count classes
@@ -66,7 +66,7 @@ class FileAnalyzer {
 
     // Comment ratio
     const commentLines = lines.filter(
-      (line) => line.trim().startsWith('//') || line.includes('/*') || line.includes('* ')
+      (line) => line.trim().startsWith('//') || line.includes('/*') || line.includes('* '),
     ).length;
     const commentRatio = commentLines / lines.length;
 
@@ -224,7 +224,7 @@ class FileAnalyzer {
       if (
         !inFunction &&
         line.match(
-          /^\s*(async\s+)?(function\s+\w+|const\s+\w+\s*=\s*(async\s+)?\([^)]*\)\s*=>|class\s+\w+)/
+          /^\s*(async\s+)?(function\s+\w+|const\s+\w+\s*=\s*(async\s+)?\([^)]*\)\s*=>|class\s+\w+)/,
         )
       ) {
         inFunction = true;
@@ -485,7 +485,7 @@ class FileAnalyzer {
       console.log(`📁 ${file.file}`);
       console.log(`   Lines: ${file.lines}, Issues: ${file.issues}, Priority: ${file.priority}`);
       console.log(
-        `   Metrics: ${file.metrics.functions} functions, ${file.metrics.imports} imports, ${file.metrics.commentRatio}% comments`
+        `   Metrics: ${file.metrics.functions} functions, ${file.metrics.imports} imports, ${file.metrics.commentRatio}% comments`,
       );
       console.log();
     });

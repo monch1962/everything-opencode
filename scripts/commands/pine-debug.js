@@ -100,9 +100,7 @@ class PineScriptDebugger {
 
     const pineFile = options.file || this.findPineScriptFile();
     if (!pineFile) {
-      throw new Error(
-        'No PineScript file specified and none found in current directory.',
-      );
+      throw new Error('No PineScript file specified and none found in current directory.');
     }
 
     if (!options.var) {
@@ -124,11 +122,7 @@ class PineScriptDebugger {
 
     console.log(`Found ${variables.length} variable(s):`);
 
-    const analysis = await this.analyzeVariables(
-      pineFile,
-      variables,
-      options.bars,
-    );
+    const analysis = await this.analyzeVariables(pineFile, variables, options.bars);
 
     if (options.format === 'json') {
       const output = JSON.stringify(analysis, null, 2);
@@ -186,9 +180,7 @@ class PineScriptDebugger {
 
     const pineFile = options.file || this.findPineScriptFile();
     if (!pineFile) {
-      throw new Error(
-        'No PineScript file specified and none found in current directory.',
-      );
+      throw new Error('No PineScript file specified and none found in current directory.');
     }
 
     console.log(`📊 Tracing variable: ${options.var} for ${options.bars} bars`);
@@ -271,9 +263,7 @@ class PineScriptDebugger {
 
     const pineFile = options.file || this.findPineScriptFile();
     if (!pineFile) {
-      throw new Error(
-        'No PineScript file specified and none found in current directory.',
-      );
+      throw new Error('No PineScript file specified and none found in current directory.');
     }
 
     console.log(`👁️  Monitoring conditions in: ${pineFile}`);
@@ -284,18 +274,13 @@ class PineScriptDebugger {
       console.log(`Condition: ${options.condition}`);
 
       // Analyze condition
-      const conditionAnalysis = this.analyzeCondition(
-        content,
-        options.condition,
-      );
+      const conditionAnalysis = this.analyzeCondition(content, options.condition);
 
       console.log('\n🔍 Condition Analysis:');
       console.log(
         `  Complexity: ${conditionAnalysis.complexity} (${conditionAnalysis.complexityLevel})`,
       );
-      console.log(
-        `  Variables used: ${conditionAnalysis.variables.join(', ')}`,
-      );
+      console.log(`  Variables used: ${conditionAnalysis.variables.join(', ')}`);
       console.log(`  Operators: ${conditionAnalysis.operators.join(', ')}`);
 
       if (conditionAnalysis.suggestions.length > 0) {
@@ -356,9 +341,7 @@ class PineScriptDebugger {
 
     const pineFile = options.file || this.findPineScriptFile();
     if (!pineFile) {
-      throw new Error(
-        'No PineScript file specified and none found in current directory.',
-      );
+      throw new Error('No PineScript file specified and none found in current directory.');
     }
 
     console.log(`⚡ Profiling: ${pineFile} (${options.iterations} iterations)`);
@@ -407,14 +390,10 @@ class PineScriptDebugger {
       console.log('\n🧠 Memory Analysis:');
       const memoryAnalysis = this.analyzeMemoryUsage(content);
 
-      console.log(
-        `  Variable types: ${memoryAnalysis.variableTypes.join(', ')}`,
-      );
+      console.log(`  Variable types: ${memoryAnalysis.variableTypes.join(', ')}`);
       console.log(`  Array usage: ${memoryAnalysis.arrayCount} arrays`);
       console.log(`  Series usage: ${memoryAnalysis.seriesCount} series`);
-      console.log(
-        `  Estimated peak memory: ${memoryAnalysis.estimatedPeak} units`,
-      );
+      console.log(`  Estimated peak memory: ${memoryAnalysis.estimatedPeak} units`);
 
       if (memoryAnalysis.leakRisks.length > 0) {
         console.log('\n⚠️  Memory Leak Risks:');
@@ -447,9 +426,7 @@ class PineScriptDebugger {
       if (coverage.uncovered.length > 0) {
         console.log('\n⚠️  Uncovered Code Sections:');
         coverage.uncovered.forEach((section, i) => {
-          console.log(
-            `  ${i + 1}. Lines ${section.start}-${section.end}: ${section.type}`,
-          );
+          console.log(`  ${i + 1}. Lines ${section.start}-${section.end}: ${section.type}`);
         });
       }
 
@@ -472,14 +449,9 @@ class PineScriptDebugger {
 
       // Also generate memory profiling helpers if memory analysis was done
       if (options.memory) {
-        const memoryHelpersPath = options.output.replace(
-          /\.json$/,
-          '-memory-helpers.pine',
-        );
+        const memoryHelpersPath = options.output.replace(/\.json$/, '-memory-helpers.pine');
         this.generateMemoryProfilingHelpers(memoryHelpersPath);
-        console.log(
-          `🧠 Memory profiling helpers saved to: ${memoryHelpersPath}`,
-        );
+        console.log(`🧠 Memory profiling helpers saved to: ${memoryHelpersPath}`);
       }
     }
   }
@@ -517,10 +489,7 @@ class PineScriptDebugger {
     console.log('\n💡 Press Ctrl+C to stop the server');
 
     // Start the debug server
-    const debugServerPath = path.join(
-      __dirname,
-      '../pinescript/debug-server.js',
-    );
+    const debugServerPath = path.join(__dirname, '../pinescript/debug-server.js');
 
     const serverArgs = [];
     if (options.port) serverArgs.push('--port', options.port.toString());
@@ -569,13 +538,11 @@ class PineScriptDebugger {
     console.log(`✅ Debug helpers generated: ${options.output}`);
     console.log('\n💡 Usage:');
     console.log('  1. Add to your PineScript: //@include "debug-helpers.pine"');
-    console.log(
-      '  2. Use debug.plot(), debug.alert(), debug.trace() functions',
-    );
+    console.log('  2. Use debug.plot(), debug.alert(), debug.trace() functions');
     console.log('  3. Run /pine-debug inspect to analyze your code');
   }
 
-  async runTests(args) {
+  async runTests(_args) {
     console.log('🧪 Running PineScript tests...');
     console.log('This feature is under development.');
     console.log('For now, use /pine-validate for syntax checking.');
@@ -704,7 +671,7 @@ class PineScriptDebugger {
   // Additional helper methods would be implemented here
   // For brevity, I'm showing the structure - actual implementations would follow
 
-  analyzeVariableUsage(content, variableName) {
+  analyzeVariableUsage(_content, _variableName) {
     // TODO: Implement variable usage analysis
     return {
       type: 'unknown',
@@ -715,7 +682,7 @@ class PineScriptDebugger {
     };
   }
 
-  generateDebugPlotCode(content, variableName) {
+  generateDebugPlotCode(_content, variableName) {
     return `// Debug plot for ${variableName}
 // Add this to your PineScript file
 
@@ -763,11 +730,7 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
 
     // Calculate nesting depth
     for (const line of lines) {
-      if (
-        line.includes('if') ||
-        line.includes('for') ||
-        line.includes('while')
-      ) {
+      if (line.includes('if') || line.includes('for') || line.includes('while')) {
         currentDepth++;
         maxDepth = Math.max(maxDepth, currentDepth);
       }
@@ -811,8 +774,7 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
           type: 'nested_loop',
           message: 'Nested loops can cause performance issues',
           line: lineNum,
-          suggestion:
-            'Consider using built-in TA functions or optimize loop logic',
+          suggestion: 'Consider using built-in TA functions or optimize loop logic',
         });
       }
 
@@ -830,10 +792,7 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
       }
 
       // Check for large arrays
-      if (
-        line.includes('array.new_float(100') ||
-        line.includes('array.new_int(100')
-      ) {
+      if (line.includes('array.new_float(100') || line.includes('array.new_int(100')) {
         issues.push({
           type: 'large_array',
           message: 'Large array allocation',
@@ -908,11 +867,7 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
       }
 
       // Count series usage
-      if (
-        line.includes('ta.') ||
-        line.includes('close[') ||
-        line.includes('high[')
-      ) {
+      if (line.includes('ta.') || line.includes('close[') || line.includes('high[')) {
         seriesCount++;
       }
 
@@ -988,10 +943,7 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
       }
     });
 
-    const percentage =
-      executableLines > 0
-        ? Math.round((coveredLines / executableLines) * 100)
-        : 0;
+    const percentage = executableLines > 0 ? Math.round((coveredLines / executableLines) * 100) : 0;
 
     return {
       executableLines,
@@ -1006,21 +958,15 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
 
     // Complexity-based suggestions
     if (complexity.cyclomatic > 10) {
-      suggestions.push(
-        'High cyclomatic complexity. Consider refactoring complex conditionals.',
-      );
+      suggestions.push('High cyclomatic complexity. Consider refactoring complex conditionals.');
     }
 
     if (complexity.maxDepth > 3) {
-      suggestions.push(
-        'Deep nesting detected. Consider flattening the code structure.',
-      );
+      suggestions.push('Deep nesting detected. Consider flattening the code structure.');
     }
 
     if (complexity.memoryEstimate > 500) {
-      suggestions.push(
-        'High memory estimate. Review data structures and variable usage.',
-      );
+      suggestions.push('High memory estimate. Review data structures and variable usage.');
     }
 
     // Performance-based suggestions
@@ -1041,15 +987,11 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
 
   async analyzeWithAI(args) {
     const fs = require('fs');
-    const path = require('path');
 
     const filePath = args.find((arg) => !arg.startsWith('--')) || '';
-    const outputPath =
-      this.getArgValue(args, '--output') || 'ai-suggestions.txt';
+    const outputPath = this.getArgValue(args, '--output') || 'ai-suggestions.txt';
     const includePatterns = this.getArgValue(args, '--patterns') || 'all';
-    const threshold = parseFloat(
-      this.getArgValue(args, '--threshold') || '0.7',
-    );
+    const threshold = parseFloat(this.getArgValue(args, '--threshold') || '0.7');
 
     if (!filePath || !fs.existsSync(filePath)) {
       console.error('Error: Please provide a valid PineScript file path');
@@ -1061,12 +1003,7 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
 
     const content = fs.readFileSync(filePath, 'utf8');
     const patterns = this.loadAIPatterns();
-    const suggestions = this.generateAISuggestions(
-      content,
-      patterns,
-      includePatterns,
-      threshold,
-    );
+    const suggestions = this.generateAISuggestions(content, patterns, includePatterns, threshold);
 
     // Output suggestions
     if (outputPath === 'console') {
@@ -1105,24 +1042,14 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
     };
   }
 
-  generateAISuggestions(
-    content,
-    patterns,
-    includePatterns = 'all',
-    threshold = 0.7,
-  ) {
+  generateAISuggestions(content, patterns, includePatterns = 'all', threshold = 0.7) {
     const suggestions = [];
     const lines = content.split('\n');
 
     // Parse include patterns
     const categories =
       includePatterns === 'all'
-        ? [
-          'common_errors',
-          'performance_issues',
-          'best_practices',
-          'tradingview_specific',
-        ]
+        ? ['common_errors', 'performance_issues', 'best_practices', 'tradingview_specific']
         : includePatterns.split(',');
 
     // Analyze each line for patterns
@@ -1138,7 +1065,7 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
       categories.forEach((category) => {
         if (patterns.patterns[category]) {
           patterns.patterns[category].forEach((pattern) => {
-            if (this.matchesPattern(trimmed, pattern)) {
+            if (this.matchesAIPattern(trimmed, pattern)) {
               suggestions.push({
                 line: lineNum + 1,
                 category: category.replace('_', ' '),
@@ -1162,14 +1089,11 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
       .sort((a, b) => {
         // Sort by severity (high to low), then confidence (high to low)
         const severityOrder = { high: 3, medium: 2, low: 1 };
-        return (
-          severityOrder[b.severity] - severityOrder[a.severity] ||
-          b.confidence - a.confidence
-        );
+        return severityOrder[b.severity] - severityOrder[a.severity] || b.confidence - a.confidence;
       });
   }
 
-  matchesPattern(line, pattern) {
+  matchesAIPattern(line, pattern) {
     // Simple pattern matching - in production would use regex from pattern.pattern
     const lineLower = line.toLowerCase();
 
@@ -1181,25 +1105,15 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
       return true;
     }
 
-    if (
-      pattern.id === 'CE002' &&
-      (lineLower.includes('/ 0') || lineLower.includes('/ close[1]'))
-    ) {
+    if (pattern.id === 'CE002' && (lineLower.includes('/ 0') || lineLower.includes('/ close[1]'))) {
       return true;
     }
 
-    if (
-      pattern.id === 'CE003' &&
-      (lineLower.includes('na +') || lineLower.includes('+ na'))
-    ) {
+    if (pattern.id === 'CE003' && (lineLower.includes('na +') || lineLower.includes('+ na'))) {
       return true;
     }
 
-    if (
-      pattern.id === 'PI001' &&
-      lineLower.includes('ta.sma') &&
-      lineLower.includes('ta.sma')
-    ) {
+    if (pattern.id === 'PI001' && lineLower.includes('ta.sma') && lineLower.includes('ta.sma')) {
       return true;
     }
 
@@ -1249,15 +1163,9 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
 
     suggestions.forEach((suggestion, index) => {
       const severityIcon =
-        suggestion.severity === 'high'
-          ? '🔴'
-          : suggestion.severity === 'medium'
-            ? '🟡'
-            : '🟢';
+        suggestion.severity === 'high' ? '🔴' : suggestion.severity === 'medium' ? '🟡' : '🟢';
 
-      console.log(
-        `\n${severityIcon} Suggestion ${index + 1} (Line ${suggestion.line})`,
-      );
+      console.log(`\n${severityIcon} Suggestion ${index + 1} (Line ${suggestion.line})`);
       console.log(`   Category: ${suggestion.category}`);
       console.log(`   Issue: ${suggestion.patternName}`);
       console.log(`   Description: ${suggestion.description}`);
@@ -1270,9 +1178,7 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
     console.log(`📊 Summary: ${suggestions.length} suggestions found`);
 
     const highCount = suggestions.filter((s) => s.severity === 'high').length;
-    const mediumCount = suggestions.filter(
-      (s) => s.severity === 'medium',
-    ).length;
+    const mediumCount = suggestions.filter((s) => s.severity === 'medium').length;
     const lowCount = suggestions.filter((s) => s.severity === 'low').length;
 
     console.log(`   🔴 High priority: ${highCount}`);
@@ -1313,9 +1219,7 @@ bgcolor(${variableName} > 0 ? color.new(color.green, 90) : ${variableName} < 0 ?
       output += `Total suggestions: ${suggestions.length}\n`;
 
       const highCount = suggestions.filter((s) => s.severity === 'high').length;
-      const mediumCount = suggestions.filter(
-        (s) => s.severity === 'medium',
-      ).length;
+      const mediumCount = suggestions.filter((s) => s.severity === 'medium').length;
       const lowCount = suggestions.filter((s) => s.severity === 'low').length;
 
       output += `High priority: ${highCount}\n`;
