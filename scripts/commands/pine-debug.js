@@ -488,8 +488,8 @@ class PineScriptDebugger {
     console.log(`🔧 Debug interface: http://localhost:${options.port}/debug`);
     console.log('\n💡 Press Ctrl+C to stop the server');
 
-    // Start the debug server
-    const debugServerPath = path.join(__dirname, '../pinescript/debug-server.js');
+    // Start the debug server (using refactored version)
+    const debugServerPath = path.join(__dirname, '../pinescript/debug-server-refactored.js');
 
     const serverArgs = [];
     if (options.port) serverArgs.push('--port', options.port.toString());
