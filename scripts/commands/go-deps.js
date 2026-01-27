@@ -7,7 +7,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const GoCommandRunner = require('../go/command-runner');
+const GoCommandRunner = require("../go/go-command-runner-refactored");
 
 async function main() {
   const args = process.argv.slice(2);

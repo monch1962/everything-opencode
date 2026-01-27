@@ -5,7 +5,7 @@
  * Run Go tests with Go-specific improvements
  */
 
-const GoCommandRunner = require('../go/command-runner');
+const GoCommandRunner = require("../go/go-command-runner-refactored");
 
 async function main() {
   const args = process.argv.slice(2);
