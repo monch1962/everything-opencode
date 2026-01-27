@@ -7,7 +7,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { commandExists, runCommand } = require('../../scripts/lib/utils');
+
 const InteractivePrompts = require('../../scripts/interactive/prompts');
 const ProjectDetector = require('../../scripts/interactive/project-detector');
 const ConfigManager = require('../../scripts/interactive/config-manager');
@@ -42,10 +42,7 @@ class PineScriptConfigWizard {
       const detectedVersion = await this.detectVersion();
 
       // Step 4: Interactive configuration
-      const userConfig = await this.interactiveConfiguration(
-        projectType,
-        detectedVersion,
-      );
+      const userConfig = await this.interactiveConfiguration(projectType, detectedVersion);
 
       // Step 5: Save configuration
       const saved = await this.saveConfiguration(userConfig);
@@ -69,9 +66,7 @@ class PineScriptConfigWizard {
     this.prompts.info('Detecting PineScript project...');
 
     const summary = await this.detector.getProjectSummary();
-    const pineResult = summary.languages.find(
-      (lang) => lang.language === 'pinescript',
-    );
+    const pineResult = summary.languages.find((lang) => lang.language === 'pinescript');
 
     if (!pineResult || pineResult.confidence < 0.3) {
       return {
@@ -135,9 +130,7 @@ class PineScriptConfigWizard {
     const pineResult = await this.detector.detectPineScript();
 
     if (pineResult.detectedVersion) {
-      this.prompts.success(
-        `Detected: PineScript v${pineResult.detectedVersion}`,
-      );
+      this.prompts.success(`Detected: PineScript v${pineResult.detectedVersion}`);
       return pineResult.detectedVersion;
     }
 
@@ -149,15 +142,10 @@ class PineScriptConfigWizard {
 
     for (const file of pineFiles.slice(0, 3)) {
       try {
-        const content = fs.readFileSync(
-          path.join(this.projectPath, file),
-          'utf8',
-        );
+        const content = fs.readFileSync(path.join(this.projectPath, file), 'utf8');
         const versionMatch = content.match(/\/\/@version=(\d+)/);
         if (versionMatch) {
-          this.prompts.success(
-            `Detected: PineScript v${versionMatch[1]} in ${file}`,
-          );
+          this.prompts.success(`Detected: PineScript v${versionMatch[1]} in ${file}`);
           return versionMatch[1];
         }
       } catch (error) {
@@ -279,11 +267,10 @@ class PineScriptConfigWizard {
           },
         ];
 
-        config.backtesting.dataSource =
-          await this.prompts.selectWithDescriptions(
-            'Select data source for backtesting:',
-            dataSourceChoices,
-          );
+        config.backtesting.dataSource = await this.prompts.selectWithDescriptions(
+          'Select data source for backtesting:',
+          dataSourceChoices,
+        );
 
         // Optimization configuration
         const enableOptimization = await this.prompts.confirm(
@@ -300,26 +287,18 @@ class PineScriptConfigWizard {
             0,
           );
 
-          config.backtesting.optimization.method = [
-            'grid',
-            'random',
-            'bayesian',
-            'genetic',
-          ][optimizationMethod];
+          config.backtesting.optimization.method = ['grid', 'random', 'bayesian', 'genetic'][
+            optimizationMethod
+          ];
 
-          const maxIterations = await this.prompts.input(
-            'Maximum optimization iterations:',
-            '100',
+          const maxIterations = await this.prompts.input('Maximum optimization iterations:', '100');
+
+          config.backtesting.optimization.maxIterations = parseInt(maxIterations) || 100;
+
+          config.backtesting.optimization.walkForward = await this.prompts.confirm(
+            'Enable walk-forward optimization?',
+            false,
           );
-
-          config.backtesting.optimization.maxIterations =
-            parseInt(maxIterations) || 100;
-
-          config.backtesting.optimization.walkForward =
-            await this.prompts.confirm(
-              'Enable walk-forward optimization?',
-              false,
-            );
         }
       }
     }
@@ -334,32 +313,18 @@ class PineScriptConfigWizard {
 
     if (enableAlerts) {
       // Webhook configuration
-      const configureWebhooks = await this.prompts.confirm(
-        'Configure webhook alerts?',
-        true,
-      );
+      const configureWebhooks = await this.prompts.confirm('Configure webhook alerts?', true);
 
       if (configureWebhooks) {
-        this.prompts.info(
-          'Webhook configuration can be added later using /pine-alert command',
-        );
+        this.prompts.info('Webhook configuration can be added later using /pine-alert command');
       }
 
       // Notification channels
-      config.alerts.email = await this.prompts.confirm(
-        'Enable email notifications?',
-        false,
-      );
+      config.alerts.email = await this.prompts.confirm('Enable email notifications?', false);
 
-      config.alerts.discord = await this.prompts.confirm(
-        'Enable Discord notifications?',
-        false,
-      );
+      config.alerts.discord = await this.prompts.confirm('Enable Discord notifications?', false);
 
-      config.alerts.telegram = await this.prompts.confirm(
-        'Enable Telegram notifications?',
-        false,
-      );
+      config.alerts.telegram = await this.prompts.confirm('Enable Telegram notifications?', false);
     }
 
     // 4. TradingView integration (for all project types)
@@ -384,10 +349,7 @@ class PineScriptConfigWizard {
           config.tradingview.apiKey = apiKey;
         }
 
-        const workspace = await this.prompts.input(
-          'TradingView workspace name:',
-          'default',
-        );
+        const workspace = await this.prompts.input('TradingView workspace name:', 'default');
 
         config.tradingview.workspace = workspace;
       }
@@ -401,9 +363,7 @@ class PineScriptConfigWizard {
     console.log(`  • PineScript version: v${config.version}`);
 
     if (config.backtesting.enabled) {
-      console.log(
-        `  • Backtesting: Enabled (${config.backtesting.dataSource})`,
-      );
+      console.log(`  • Backtesting: Enabled (${config.backtesting.dataSource})`);
       if (config.backtesting.optimization.enabled) {
         console.log(
           `  • Optimization: ${config.backtesting.optimization.method} (${config.backtesting.optimization.maxIterations} iterations)`,
@@ -422,15 +382,10 @@ class PineScriptConfigWizard {
     }
 
     if (config.tradingview.publish) {
-      console.log(
-        `  • TradingView: Auto-publish enabled (${config.tradingview.workspace})`,
-      );
+      console.log(`  • TradingView: Auto-publish enabled (${config.tradingview.workspace})`);
     }
 
-    config.userApproved = await this.prompts.confirm(
-      '\nSave this configuration?',
-      true,
-    );
+    config.userApproved = await this.prompts.confirm('\nSave this configuration?', true);
 
     return config;
   }
@@ -452,24 +407,15 @@ class PineScriptConfigWizard {
     if (saved) {
       // Set PineScript as primary language if it's the main language
       const summary = await this.detector.getProjectSummary();
-      const pineResult = summary.languages.find(
-        (lang) => lang.language === 'pinescript',
-      );
-      const pythonResult = summary.languages.find(
-        (lang) => lang.language === 'python',
-      );
+      const pineResult = summary.languages.find((lang) => lang.language === 'pinescript');
+      const pythonResult = summary.languages.find((lang) => lang.language === 'python');
 
       // Set PineScript as primary if it has higher confidence than Python
-      if (
-        pineResult &&
-        (!pythonResult || pineResult.confidence > pythonResult.confidence)
-      ) {
+      if (pineResult && (!pythonResult || pineResult.confidence > pythonResult.confidence)) {
         this.configManager.setPrimaryLanguage('pinescript');
       }
 
-      this.prompts.success(
-        'Configuration saved to .opencode/project-config.json',
-      );
+      this.prompts.success('Configuration saved to .opencode/project-config.json');
       return true;
     } else {
       this.prompts.error('Failed to save configuration');
@@ -487,9 +433,7 @@ class PineScriptConfigWizard {
 
     // Version-specific recommendations
     if (config.version === '4') {
-      recommendations.push(
-        'Consider upgrading to PineScript v5 or v6 for modern features',
-      );
+      recommendations.push('Consider upgrading to PineScript v5 or v6 for modern features');
     }
 
     if (config.version === 'auto') {
@@ -500,14 +444,10 @@ class PineScriptConfigWizard {
 
     // Project type specific recommendations
     if (config.projectType === 'strategy' && config.backtesting.enabled) {
-      recommendations.push(
-        'Run backtest: `/pine-backtest` to test your strategy',
-      );
+      recommendations.push('Run backtest: `/pine-backtest` to test your strategy');
 
       if (config.backtesting.optimization.enabled) {
-        recommendations.push(
-          'Optimize strategy: `/pine-optimize` to find best parameters',
-        );
+        recommendations.push('Optimize strategy: `/pine-optimize` to find best parameters');
       }
     }
 
@@ -526,19 +466,13 @@ class PineScriptConfigWizard {
 
     // TradingView integration recommendations
     if (config.tradingview.publish && !config.tradingview.apiKey) {
-      recommendations.push(
-        'Add TradingView API key to configuration for automatic publishing',
-      );
+      recommendations.push('Add TradingView API key to configuration for automatic publishing');
     }
 
     // General recommendations
-    recommendations.push(
-      'Validate PineScript files: `/pine-validate` for syntax checking',
-    );
+    recommendations.push('Validate PineScript files: `/pine-validate` for syntax checking');
     recommendations.push('Convert between versions: `/pine-convert` if needed');
-    recommendations.push(
-      'Check documentation: See PINESCRIPT-INTEGRATION.md for detailed guides',
-    );
+    recommendations.push('Check documentation: See PINESCRIPT-INTEGRATION.md for detailed guides');
 
     // Display recommendations
     if (recommendations.length > 0) {
@@ -558,9 +492,7 @@ class PineScriptConfigWizard {
     console.log('  • /pine-alert    - Configure alert system');
 
     this.prompts.success('\nPineScript configuration complete! 🎉');
-    console.log(
-      '\nStart developing your TradingView indicators and strategies!',
-    );
+    console.log('\nStart developing your TradingView indicators and strategies!');
   }
 
   /**
@@ -611,30 +543,18 @@ class PineScriptConfigWizard {
     this.prompts.info('Using automatic configuration:');
     console.log(`  • Project type: ${config.projectType}`);
     console.log(`  • PineScript version: v${config.version}`);
-    console.log(
-      `  • Backtesting: ${config.backtesting.enabled ? 'Enabled' : 'Disabled'}`,
-    );
-    console.log(
-      `  • Alerts: ${config.alerts.enabled ? 'Enabled' : 'Disabled'}`,
-    );
+    console.log(`  • Backtesting: ${config.backtesting.enabled ? 'Enabled' : 'Disabled'}`);
+    console.log(`  • Alerts: ${config.alerts.enabled ? 'Enabled' : 'Disabled'}`);
 
-    const approved = await this.prompts.confirm(
-      'Apply this configuration?',
-      true,
-    );
+    const approved = await this.prompts.confirm('Apply this configuration?', true);
 
     if (approved) {
       config.userApproved = true;
-      const saved = this.configManager.updateLanguageConfig(
-        'pinescript',
-        config,
-      );
+      const saved = this.configManager.updateLanguageConfig('pinescript', config);
 
       // Set PineScript as primary if appropriate
       const summary = await this.detector.getProjectSummary();
-      const pineResult = summary.languages.find(
-        (lang) => lang.language === 'pinescript',
-      );
+      const pineResult = summary.languages.find((lang) => lang.language === 'pinescript');
       if (pineResult && pineResult.confidence > 0.5) {
         this.configManager.setPrimaryLanguage('pinescript');
       }

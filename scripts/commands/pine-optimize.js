@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const fs = require('fs');
 const { PineCommandRunner } = require('../pinescript/command-runner');
 const { PineScriptOptimizer } = require('../pinescript/optimizer');
 const path = require('path');
@@ -15,9 +16,7 @@ class PineOptimizeCommand extends PineCommandRunner {
       const pineConfig = config.pinescript;
 
       if (!pineConfig) {
-        this.error(
-          'PineScript configuration not found. Run /pine-setup first.',
-        );
+        this.error('PineScript configuration not found. Run /pine-setup first.');
         return 1;
       }
 
@@ -42,8 +41,7 @@ class PineOptimizeCommand extends PineCommandRunner {
         metric: {
           type: 'string',
           alias: 'M',
-          description:
-            'Optimization metric (net_profit, sharpe, win_rate, profit_factor)',
+          description: 'Optimization metric (net_profit, sharpe, win_rate, profit_factor)',
           default: 'net_profit',
         },
         output: {
@@ -67,9 +65,7 @@ class PineOptimizeCommand extends PineCommandRunner {
 
       const pineFile = options.file || this.findPineScriptFile();
       if (!pineFile) {
-        this.error(
-          'No PineScript file specified and none found in current directory.',
-        );
+        this.error('No PineScript file specified and none found in current directory.');
         return 1;
       }
 
@@ -126,15 +122,11 @@ class PineOptimizeCommand extends PineCommandRunner {
       }
 
       if (results.allResults && results.allResults.length > 0) {
-        this.log(
-          `\nEvaluated ${results.allResults.length} parameter combinations`,
-        );
+        this.log(`\nEvaluated ${results.allResults.length} parameter combinations`);
 
         if (options.verbose) {
           this.log('\nTop 10 parameter combinations:');
-          const topResults = results.allResults
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 10);
+          const topResults = results.allResults.sort((a, b) => b.score - a.score).slice(0, 10);
 
           topResults.forEach((result, index) => {
             this.log(`${index + 1}. Score: ${result.score.toFixed(4)}`);
@@ -145,19 +137,13 @@ class PineOptimizeCommand extends PineCommandRunner {
 
       if (results.sensitivity && Object.keys(results.sensitivity).length > 0) {
         this.log('\nParameter sensitivity analysis:');
-        for (const [param, sensitivity] of Object.entries(
-          results.sensitivity,
-        )) {
+        for (const [param, sensitivity] of Object.entries(results.sensitivity)) {
           this.log(`  ${param}: ${sensitivity.toFixed(4)}`);
         }
       }
 
       if (options.outputFile) {
-        await optimizer.generateReport(
-          results,
-          options.output,
-          options.outputFile,
-        );
+        await optimizer.generateReport(results, options.output, options.outputFile);
         this.log(`\nReport saved to: ${options.outputFile}`);
       } else if (options.output !== 'console') {
         const report = await optimizer.generateReport(results, options.output);
@@ -236,9 +222,7 @@ class PineOptimizeCommand extends PineCommandRunner {
         content.match(/input\s+\w+\s*=/);
 
       if (!hasInputs) {
-        this.warn(
-          'No input parameters found. Optimization requires input parameters to vary.',
-        );
+        this.warn('No input parameters found. Optimization requires input parameters to vary.');
         return false;
       }
 

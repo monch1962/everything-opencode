@@ -8,14 +8,7 @@
  * files and notifies opencode of available context to load.
  */
 
-const path = require('path');
-const {
-  getSessionsDir,
-  getLearnedSkillsDir,
-  findFiles,
-  ensureDir,
-  log,
-} = require('../lib/utils');
+const { getSessionsDir, getLearnedSkillsDir, findFiles, ensureDir, log } = require('../lib/utils');
 const { getPackageManager, getSelectionPrompt } = require('../lib/package-manager');
 
 async function main() {

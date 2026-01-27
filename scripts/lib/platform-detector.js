@@ -8,7 +8,6 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs');
-const path = require('path');
 const os = require('os');
 
 class PlatformDetector {
@@ -101,10 +100,7 @@ class PlatformDetector {
             return expandedLocation;
           }
           // Also check with .exe extension if not already present
-          if (
-            !expandedLocation.endsWith('.exe') &&
-            fs.existsSync(`${expandedLocation}.exe`)
-          ) {
+          if (!expandedLocation.endsWith('.exe') && fs.existsSync(`${expandedLocation}.exe`)) {
             return `${expandedLocation}.exe`;
           }
         } else {
@@ -133,11 +129,7 @@ class PlatformDetector {
    * Get the path to a specific tool with fallbacks
    */
   getToolPath(toolName, options = {}) {
-    const {
-      required = true,
-      customLocations = [],
-      fallbackToCommand = true,
-    } = options;
+    const { required = true, customLocations = [], fallbackToCommand = true } = options;
 
     const toolPath = this.findTool(toolName, customLocations);
 

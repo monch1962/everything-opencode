@@ -5,7 +5,7 @@
  * Run Clojure project main function
  */
 
-const ClojureCommandRunner = require('../clojure/command-runner');
+const ClojureCommandRunner = require('../clojure/command-runner-refactored');
 
 async function main() {
   try {

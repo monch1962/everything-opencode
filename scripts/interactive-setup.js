@@ -5,8 +5,6 @@
  * Main entry point for interactive project configuration
  */
 
-const path = require('path');
-const fs = require('fs');
 const InteractivePrompts = require('./interactive/prompts');
 const ProjectDetector = require('./interactive/project-detector');
 const ConfigManager = require('./interactive/config-manager');
@@ -111,7 +109,11 @@ class InteractiveSetup {
           { title: 'TypeScript/JavaScript', description: 'Web development', value: 'typescript' },
           { title: 'Go', description: 'Systems programming', value: 'go' },
           { title: 'Rust', description: 'Systems programming with safety', value: 'rust' },
-          { title: 'PineScript', description: 'TradingView indicators/strategies', value: 'pinescript' },
+          {
+            title: 'PineScript',
+            description: 'TradingView indicators/strategies',
+            value: 'pinescript',
+          },
         ];
 
         return await this.prompts.selectWithDescriptions(
@@ -160,10 +162,7 @@ class InteractiveSetup {
           { title: 'PineScript', value: 'pinescript' },
         ];
 
-        return await this.prompts.selectWithDescriptions(
-          'Select language:',
-          manualChoices,
-        );
+        return await this.prompts.selectWithDescriptions('Select language:', manualChoices);
       }
 
       return selected;
@@ -219,10 +218,7 @@ class InteractiveSetup {
     if (!pythonResult || pythonResult.confidence < 0.3) {
       this.prompts.warning('Python detection confidence is low.');
 
-      const proceed = await this.prompts.confirm(
-        'Continue with Python setup anyway?',
-        false,
-      );
+      const proceed = await this.prompts.confirm('Continue with Python setup anyway?', false);
 
       if (!proceed) {
         return false;
@@ -246,10 +242,7 @@ class InteractiveSetup {
       notes: 'Basic configuration - detailed setup coming soon',
     };
 
-    const save = await this.prompts.confirm(
-      `Save basic ${language} configuration?`,
-      true,
-    );
+    const save = await this.prompts.confirm(`Save basic ${language} configuration?`, true);
 
     if (save) {
       this.configManager.updateLanguageConfig(language, config);
@@ -410,7 +403,11 @@ class InteractiveSetup {
 
     // Show language-specific config
     for (const [language, langConfig] of Object.entries(config)) {
-      if (['project', 'configuredAt', 'primaryLanguage', 'secondaryLanguages', '$schema'].includes(language)) {
+      if (
+        ['project', 'configuredAt', 'primaryLanguage', 'secondaryLanguages', '$schema'].includes(
+          language,
+        )
+      ) {
         continue;
       }
 

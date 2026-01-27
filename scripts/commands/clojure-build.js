@@ -5,14 +5,14 @@
  * Build Clojure projects with intelligent defaults
  */
 
-const ClojureCommandRunner = require('../clojure/command-runner');
+const ClojureCommandRunner = require('../clojure/command-runner-refactored');
 
 async function main() {
   try {
     const runner = new ClojureCommandRunner();
 
     // Parse arguments for build options
-    const args = process.argv.slice(2);
+    let args = process.argv.slice(2);
     const options = {};
 
     // Check for uberjar flag

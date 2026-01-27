@@ -5,7 +5,6 @@
  * Strategy parameter optimization utilities
  */
 
-const path = require('path');
 const fs = require('fs');
 const PineBacktester = require('./backtester');
 
@@ -49,9 +48,7 @@ class PineOptimizer {
     }
 
     // Parse parameter space
-    const paramSpace = this.parseParameterSpace(
-      params || this.detectParameters(strategyFile),
-    );
+    const paramSpace = this.parseParameterSpace(params || this.detectParameters(strategyFile));
     if (Object.keys(paramSpace).length === 0) {
       throw new Error(
         'No parameters specified for optimization. Use --params or add parameter comments.',
@@ -60,9 +57,7 @@ class PineOptimizer {
 
     console.log(`\n📋 Parameter Space:`);
     Object.entries(paramSpace).forEach(([param, range]) => {
-      console.log(
-        `   ${param}: ${range.min} to ${range.max} (step: ${range.step})`,
-      );
+      console.log(`   ${param}: ${range.min} to ${range.max} (step: ${range.step})`);
     });
 
     // Select optimization method
@@ -156,9 +151,7 @@ class PineOptimizer {
 
       // Also look for input parameters that could be optimized
       if (line.includes('input.')) {
-        const inputMatch = line.match(
-          /input\.(int|float)\([^,]+,\s*["']([^"']+)["']/,
-        );
+        const inputMatch = line.match(/input\.(int|float)\([^,]+,\s*["']([^"']+)["']/);
         if (inputMatch) {
           const paramName = inputMatch[2].toLowerCase().replace(/\s+/g, '_');
           detectedParams.push(`${paramName}:1-100-1`);
@@ -173,14 +166,7 @@ class PineOptimizer {
    * Grid search optimization
    */
   async gridSearch(strategyFile, paramSpace, options) {
-    const {
-      metric,
-      iterations,
-      dataSource,
-      dataFile,
-      commission,
-      initialCapital,
-    } = options;
+    const { metric, iterations, dataSource, dataFile, commission, initialCapital } = options;
 
     console.log('\n🔍 Running grid search optimization...');
 
@@ -196,17 +182,13 @@ class PineOptimizer {
     for (let i = 0; i < combinations.length; i++) {
       const params = combinations[i];
       const progress = (((i + 1) / combinations.length) * 100).toFixed(1);
+      let tempStrategy = null;
 
-      process.stdout.write(
-        `   Progress: ${progress}% (${i + 1}/${combinations.length})\r`,
-      );
+      process.stdout.write(`   Progress: ${progress}% (${i + 1}/${combinations.length})\r`);
 
       try {
         // Create temporary strategy with these parameters
-        const tempStrategy = this.createParameterizedStrategy(
-          strategyFile,
-          params,
-        );
+        tempStrategy = this.createParameterizedStrategy(strategyFile, params);
 
         // Run backtest
         const backtestResult = await this.backtester.runBacktest(tempStrategy, {
@@ -218,10 +200,7 @@ class PineOptimizer {
         });
 
         if (backtestResult.success) {
-          const score = this.calculateMetricScore(
-            backtestResult.results.performance,
-            metric,
-          );
+          const score = this.calculateMetricScore(backtestResult.results.performance, metric);
 
           results.push({
             params,
@@ -240,7 +219,7 @@ class PineOptimizer {
       }
 
       // Clean up temp file
-      if (fs.existsSync(tempStrategy) && tempStrategy.includes('.temp.')) {
+      if (tempStrategy && fs.existsSync(tempStrategy) && tempStrategy.includes('.temp.')) {
         fs.unlinkSync(tempStrategy);
       }
     }
@@ -262,14 +241,7 @@ class PineOptimizer {
    * Random search optimization
    */
   async randomSearch(strategyFile, paramSpace, options) {
-    const {
-      metric,
-      iterations,
-      dataSource,
-      dataFile,
-      commission,
-      initialCapital,
-    } = options;
+    const { metric, iterations, dataSource, dataFile, commission, initialCapital } = options;
 
     console.log('\n🎲 Running random search optimization...');
     console.log(`   Testing ${iterations} random parameter combinations`);
@@ -281,19 +253,15 @@ class PineOptimizer {
 
     for (let i = 0; i < iterations; i++) {
       const progress = (((i + 1) / iterations) * 100).toFixed(1);
-      process.stdout.write(
-        `   Progress: ${progress}% (${i + 1}/${iterations})\r`,
-      );
+      process.stdout.write(`   Progress: ${progress}% (${i + 1}/${iterations})\r`);
 
       // Generate random parameters
       const params = this.generateRandomParameters(paramSpace);
+      let tempStrategy = null;
 
       try {
         // Create temporary strategy with these parameters
-        const tempStrategy = this.createParameterizedStrategy(
-          strategyFile,
-          params,
-        );
+        tempStrategy = this.createParameterizedStrategy(strategyFile, params);
 
         // Run backtest
         const backtestResult = await this.backtester.runBacktest(tempStrategy, {
@@ -305,10 +273,7 @@ class PineOptimizer {
         });
 
         if (backtestResult.success) {
-          const score = this.calculateMetricScore(
-            backtestResult.results.performance,
-            metric,
-          );
+          const score = this.calculateMetricScore(backtestResult.results.performance, metric);
 
           results.push({
             params,
@@ -327,7 +292,7 @@ class PineOptimizer {
       }
 
       // Clean up temp file
-      if (fs.existsSync(tempStrategy) && tempStrategy.includes('.temp.')) {
+      if (tempStrategy && fs.existsSync(tempStrategy) && tempStrategy.includes('.temp.')) {
         fs.unlinkSync(tempStrategy);
       }
     }
@@ -427,9 +392,7 @@ class PineOptimizer {
     const combinations = [];
 
     // Simple sampling: take evenly spaced values
-    const samplesPerParam = Math.floor(
-      Math.pow(maxSamples, 1 / paramNames.length),
-    );
+    const samplesPerParam = Math.floor(Math.pow(maxSamples, 1 / paramNames.length));
 
     for (let i = 0; i < maxSamples; i++) {
       const params = {};
@@ -484,13 +447,8 @@ class PineOptimizer {
         if (match) {
           // Replace the default value with our parameter value
           const paramType = match[1];
-          const defaultValueRegex = new RegExp(
-            `input\\.${paramType}\\(\\s*([^,]+)`,
-          );
-          newLine = line.replace(
-            defaultValueRegex,
-            `input.${paramType}(${paramValue}`,
-          );
+          const defaultValueRegex = new RegExp(`input\\.${paramType}\\(\\s*([^,]+)`);
+          newLine = line.replace(defaultValueRegex, `input.${paramType}(${paramValue}`);
         }
       }
 
@@ -546,19 +504,16 @@ class PineOptimizer {
    * Generate optimization report
    */
   generateOptimizationReport(results, options) {
-    const { method, bestParams, bestScore, bestResult, allResults } = results;
-    const { metric, outputFormat = 'console' } = options;
+    const { outputFormat = 'console' } = options;
 
     switch (outputFormat) {
       case 'json':
         return JSON.stringify(results, null, 2);
       case 'html':
-        return this.generateHTMLOptimizationReport(results, options);
-      case 'csv':
-        return this.generateCSVOptimizationReport(results);
+        return this.generateHTMLReport(results, options);
       case 'console':
       default:
-        return this.generateConsoleOptimizationReport(results, options);
+        return this.generateConsoleReport(results, options);
     }
   }
 
@@ -583,9 +538,7 @@ class PineOptimizer {
 
     console.log(`\nOptimization Method: ${method.toUpperCase()}`);
     console.log(`Optimization Metric: ${metric.toUpperCase()}`);
-    console.log(
-      `Parameter Combinations: ${testedCombinations}/${totalCombinations || 'N/A'}`,
-    );
+    console.log(`Parameter Combinations: ${testedCombinations}/${totalCombinations || 'N/A'}`);
 
     console.log('\n🎯 BEST PARAMETERS:');
     console.log('─'.repeat(40));
@@ -648,14 +601,12 @@ class PineOptimizer {
 
     for (const param of paramNames) {
       // Calculate correlation between parameter values and scores
-      const values = allResults.map((r) => r.params[param]);
       const scores = allResults.map((r) => r.score);
 
       // Simple sensitivity: standard deviation of scores for this parameter
       const meanScore = scores.reduce((a, b) => a + b, 0) / scores.length;
       const scoreVariance =
-        scores.reduce((sum, score) => sum + Math.pow(score - meanScore, 2), 0) /
-        scores.length;
+        scores.reduce((sum, score) => sum + Math.pow(score - meanScore, 2), 0) / scores.length;
 
       sensitivities[param] = Math.sqrt(scoreVariance) / meanScore;
     }
@@ -780,9 +731,7 @@ Examples:
     `);
     process.exit(0);
   } else if (args.includes('--test-params')) {
-    const paramSpace = optimizer.parseParameterSpace(
-      'rsi_length:7-21-2,rsi_overbought:70-90-5',
-    );
+    const paramSpace = optimizer.parseParameterSpace('rsi_length:7-21-2,rsi_overbought:70-90-5');
     console.log('Parameter space:', paramSpace);
 
     const combinations = optimizer.generateGridCombinations(paramSpace, 50);

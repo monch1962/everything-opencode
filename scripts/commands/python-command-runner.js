@@ -8,19 +8,13 @@
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
-const { runCommand, commandExists } = require('../lib/utils');
+const { commandExists } = require('../lib/utils');
 const ConfigManager = require('../interactive/config-manager');
 const PythonToolDetector = require('../../languages/python/tool-detector');
 const { defaultErrorHandler } = require('../lib/error-handler');
 
 // Import shared utilities
-const {
-  ConfigUtils,
-  FileUtils,
-  ProjectUtils,
-  LoggingUtils,
-  ensureDir,
-} = require('../lib');
+const { ConfigUtils, FileUtils, ProjectUtils, LoggingUtils } = require('../lib');
 
 class PythonCommandRunner {
   constructor(projectPath = process.cwd()) {
@@ -54,9 +48,7 @@ class PythonCommandRunner {
 
       // Log detected languages if available
       if (projectInfo.languages && projectInfo.languages.length > 0) {
-        LoggingUtils.debug(
-          `Detected languages: ${projectInfo.languages.join(', ')}`,
-        );
+        LoggingUtils.debug(`Detected languages: ${projectInfo.languages.join(', ')}`);
       }
     } catch (error) {
       LoggingUtils.debug('Project detection failed:', error.message);
@@ -72,9 +64,7 @@ class PythonCommandRunner {
       // Get Python configuration
       this.pythonConfig = this.config.python;
       if (!this.pythonConfig) {
-        throw new Error(
-          'Python configuration not found. Run /python-setup first.',
-        );
+        throw new Error('Python configuration not found. Run /python-setup first.');
       }
 
       // Validate Python configuration schema
@@ -83,10 +73,7 @@ class PythonCommandRunner {
       return true;
     } catch (error) {
       // Use LoggingUtils for better error display
-      LoggingUtils.error(
-        'Failed to initialize Python command runner:',
-        error.message,
-      );
+      LoggingUtils.error('Failed to initialize Python command runner:', error.message);
       LoggingUtils.info('Run /python-setup to configure your Python project');
       throw error;
     }
@@ -105,19 +92,14 @@ class PythonCommandRunner {
       });
 
       if (!isInstalled && required) {
-        throw new Error(
-          `${toolName} is not installed. Install it or run /python-setup.`,
-        );
+        throw new Error(`${toolName} is not installed. Install it or run /python-setup.`);
       }
 
       return isInstalled;
     } catch (error) {
       // Use LoggingUtils for better error display
       if (required) {
-        LoggingUtils.error(
-          `Python tool '${toolName}' check failed:`,
-          error.message,
-        );
+        LoggingUtils.error(`Python tool '${toolName}' check failed:`, error.message);
         LoggingUtils.info(`Run /python-setup to install '${toolName}'`);
       }
       throw error;
@@ -139,9 +121,7 @@ class PythonCommandRunner {
       return 'python';
     }
 
-    throw new Error(
-      'Python not found. Install Python 3.8+ and run /python-setup.',
-    );
+    throw new Error('Python not found. Install Python 3.8+ and run /python-setup.');
   }
 
   /**
@@ -165,13 +145,9 @@ class PythonCommandRunner {
   getPythonProjectInfo() {
     try {
       const info = {
-        hasRequirements: fs.existsSync(
-          path.join(this.projectPath, 'requirements.txt'),
-        ),
+        hasRequirements: fs.existsSync(path.join(this.projectPath, 'requirements.txt')),
         hasPipfile: fs.existsSync(path.join(this.projectPath, 'Pipfile')),
-        hasPyproject: fs.existsSync(
-          path.join(this.projectPath, 'pyproject.toml'),
-        ),
+        hasPyproject: fs.existsSync(path.join(this.projectPath, 'pyproject.toml')),
         hasSetupPy: fs.existsSync(path.join(this.projectPath, 'setup.py')),
         pythonFiles: this.findPythonFiles().length,
       };
@@ -483,9 +459,7 @@ class PythonCommandRunner {
 
     // Log dependency manager information
     LoggingUtils.info(`Managing dependencies with ${manager}...`);
-    LoggingUtils.debug(
-      `Action: ${action}, Packages: ${packages.join(', ') || 'none'}`,
-    );
+    LoggingUtils.debug(`Action: ${action}, Packages: ${packages.join(', ') || 'none'}`);
 
     const args = [];
 
@@ -510,10 +484,7 @@ class PythonCommandRunner {
             LoggingUtils.debug('Installing all dependencies');
           } else if (manager === 'pip') {
             // pip needs requirements.txt
-            const requirementsPath = path.join(
-              this.projectPath,
-              'requirements.txt',
-            );
+            const requirementsPath = path.join(this.projectPath, 'requirements.txt');
             if (fs.existsSync(requirementsPath)) {
               args.push('install', '-r', 'requirements.txt');
               LoggingUtils.debug('Installing from requirements.txt');
@@ -538,9 +509,7 @@ class PythonCommandRunner {
           args.push('install', ...packages);
         }
         if (options.dev) {
-          LoggingUtils.debug(
-            `Adding development packages: ${packages.join(', ')}`,
-          );
+          LoggingUtils.debug(`Adding development packages: ${packages.join(', ')}`);
         } else {
           LoggingUtils.debug(`Adding packages: ${packages.join(', ')}`);
         }
@@ -775,7 +744,7 @@ if (require.main === module) {
     }
   }
 
-  async function runCommand() {
+  const runCommand = async () => {
     try {
       switch (command) {
         case 'test':
@@ -787,11 +756,12 @@ if (require.main === module) {
         case 'typecheck':
           await runner.runTypeChecker(options);
           break;
-        case 'deps':
+        case 'deps': {
           const action = args[1];
           const packages = args.slice(2).filter((arg) => !arg.startsWith('--'));
           await runner.manageDependencies(action, packages, options);
           break;
+        }
         case 'setup':
           await runner.runSetup(options);
           break;
@@ -804,7 +774,7 @@ if (require.main === module) {
       LoggingUtils.error(`Error: ${error.message}`);
       process.exit(1);
     }
-  }
+  };
 
   runCommand();
 }

@@ -70,9 +70,7 @@ async function main() {
     }
     if (tools.missing.length > 0) {
       console.log(`❌ Missing: ${tools.missing.join(', ')}`);
-      console.log(
-        '\n💡 Install missing tools for full backtesting capabilities.',
-      );
+      console.log('\n💡 Install missing tools for full backtesting capabilities.');
     }
     process.exit(0);
   }
@@ -95,12 +93,8 @@ async function main() {
     for (const file of files) {
       const content = runner.readPineFile(file);
       if (!content.includes('strategy(')) {
-        console.error(
-          `❌ ${file} is not a strategy (missing strategy() function)`,
-        );
-        console.error(
-          '   Backtesting requires a trading strategy, not an indicator.',
-        );
+        console.error(`❌ ${file} is not a strategy (missing strategy() function)`);
+        console.error('   Backtesting requires a trading strategy, not an indicator.');
         process.exit(1);
       }
     }
@@ -173,7 +167,7 @@ async function main() {
 /**
  * Generate summary for multiple backtests
  */
-function generateSummary(results, options) {
+function generateSummary(results, _options) {
   const successful = results.filter((r) => r.success);
 
   if (successful.length === 0) {
@@ -201,26 +195,21 @@ function generateSummary(results, options) {
 
   // Find best strategy by net profit
   const bestByProfit = successful.reduce((best, current) => {
-    return current.results.performance.netProfit >
-      best.results.performance.netProfit
+    return current.results.performance.netProfit > best.results.performance.netProfit
       ? current
       : best;
   });
 
   // Find best strategy by Sharpe ratio
   const bestBySharpe = successful.reduce((best, current) => {
-    return current.results.performance.sharpeRatio >
-      best.results.performance.sharpeRatio
+    return current.results.performance.sharpeRatio > best.results.performance.sharpeRatio
       ? current
       : best;
   });
 
   // Find best strategy by win rate
   const bestByWinRate = successful.reduce((best, current) => {
-    return current.results.performance.winRate >
-      best.results.performance.winRate
-      ? current
-      : best;
+    return current.results.performance.winRate > best.results.performance.winRate ? current : best;
   });
 
   console.log('\n🏆 BEST PERFORMERS:');

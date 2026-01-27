@@ -45,7 +45,6 @@ async function main() {
   // If no files specified, validate all .pine files in current directory
   if (files.length === 0) {
     const fs = require('fs');
-    const path = require('path');
 
     try {
       const allFiles = fs.readdirSync(process.cwd());

@@ -5,7 +5,7 @@
  * Run Go tests with Go-specific improvements
  */
 
-const GoCommandRunner = require('../go/command-runner');
+const GoCommandRunner = require("../go/go-command-runner-refactored");
 
 async function main() {
   const args = process.argv.slice(2);
@@ -231,11 +231,9 @@ async function generateCoverageReport(runner, options) {
       console.log('✅ Coverage report generated');
 
       // Show coverage statistics if available
-      if (options.coverageProfile || 'coverage.out') {
-        await showCoverageStats(
-          runner,
-          options.coverageProfile || 'coverage.out',
-        );
+      const coverageFile = options.coverageProfile || 'coverage.out';
+      if (coverageFile) {
+        await showCoverageStats(runner, coverageFile);
       }
     }
   } catch (error) {

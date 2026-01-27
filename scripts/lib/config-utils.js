@@ -24,9 +24,7 @@ class ConfigUtils {
 
     const languageConfig = config[language];
     if (!languageConfig) {
-      throw new Error(
-        `${language} configuration not found. Run /${language}-setup first.`,
-      );
+      throw new Error(`${language} configuration not found. Run /${language}-setup first.`);
     }
 
     return {
@@ -58,12 +56,7 @@ class ConfigUtils {
   /**
    * Get tool path from configuration or system
    */
-  static getToolPath(
-    toolName,
-    languageConfig,
-    platformDetector,
-    customLocations = [],
-  ) {
+  static getToolPath(toolName, languageConfig, platformDetector, customLocations = []) {
     // Check if tool has custom path in config
     const toolInfo = languageConfig.tools?.[toolName];
     if (toolInfo?.path && fs.existsSync(toolInfo.path)) {
@@ -71,10 +64,7 @@ class ConfigUtils {
     }
 
     // Use platform detector to find tool
-    if (
-      platformDetector &&
-      typeof platformDetector.getToolPath === 'function'
-    ) {
+    if (platformDetector && typeof platformDetector.getToolPath === 'function') {
       return platformDetector.getToolPath(toolName, {
         required: true,
         customLocations,
@@ -87,9 +77,7 @@ class ConfigUtils {
       return toolName;
     }
 
-    throw new Error(
-      `Tool '${toolName}' not found. Install it or check your PATH.`,
-    );
+    throw new Error(`Tool '${toolName}' not found. Install it or check your PATH.`);
   }
 
   /**
@@ -114,7 +102,7 @@ class ConfigUtils {
     const result = { ...baseConfig };
 
     for (const key in newConfig) {
-      if (newConfig.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(newConfig, key)) {
         if (
           typeof newConfig[key] === 'object' &&
           newConfig[key] !== null &&
@@ -158,30 +146,18 @@ class ConfigUtils {
           const expectedType = fieldSchema.type;
 
           if (expectedType === 'string' && typeof value !== 'string') {
-            errors.push(
-              `Field '${field}' should be string, got ${typeof value}`,
-            );
+            errors.push(`Field '${field}' should be string, got ${typeof value}`);
           } else if (expectedType === 'number' && typeof value !== 'number') {
-            errors.push(
-              `Field '${field}' should be number, got ${typeof value}`,
-            );
+            errors.push(`Field '${field}' should be number, got ${typeof value}`);
           } else if (expectedType === 'boolean' && typeof value !== 'boolean') {
-            errors.push(
-              `Field '${field}' should be boolean, got ${typeof value}`,
-            );
+            errors.push(`Field '${field}' should be boolean, got ${typeof value}`);
           } else if (expectedType === 'array' && !Array.isArray(value)) {
-            errors.push(
-              `Field '${field}' should be array, got ${typeof value}`,
-            );
+            errors.push(`Field '${field}' should be array, got ${typeof value}`);
           } else if (
             expectedType === 'object' &&
-            (typeof value !== 'object' ||
-              value === null ||
-              Array.isArray(value))
+            (typeof value !== 'object' || value === null || Array.isArray(value))
           ) {
-            errors.push(
-              `Field '${field}' should be object, got ${typeof value}`,
-            );
+            errors.push(`Field '${field}' should be object, got ${typeof value}`);
           }
         }
       }
@@ -232,10 +208,7 @@ class ConfigUtils {
   /**
    * Get environment-specific configuration
    */
-  static getEnvironmentConfig(
-    config,
-    environment = process.env.NODE_ENV || 'development',
-  ) {
+  static getEnvironmentConfig(config, environment = process.env.NODE_ENV || 'development') {
     const envConfig = config.environments?.[environment] || {};
     return this.mergeConfigs(config, envConfig);
   }

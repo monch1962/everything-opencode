@@ -34,7 +34,7 @@ try {
   // Test merge configs
   const baseConfig = { a: 1, b: { c: 2 } };
   const newConfig = { b: { d: 3 }, e: 4 };
-  const merged = ConfigUtils.mergeConfigs(baseConfig, newConfig);
+  ConfigUtils.mergeConfigs(baseConfig, newConfig);
   console.log('  ✅ Config merging works');
 
   // Test validation
@@ -70,9 +70,7 @@ try {
   console.log('  ✅ JSON file writing works');
 
   const readData = FileUtils.readJsonFile(testFile);
-  console.log(
-    `  ✅ JSON file reading works: ${readData.name === 'test' ? 'PASS' : 'FAIL'}`,
-  );
+  console.log(`  ✅ JSON file reading works: ${readData.name === 'test' ? 'PASS' : 'FAIL'}`);
 
   // Test file stats
   const stats = FileUtils.getFileStats(testFile);
@@ -88,9 +86,7 @@ try {
 console.log('\n3. Testing Project Utilities...');
 try {
   const projectType = ProjectUtils.detectProjectType(__dirname);
-  console.log(
-    `  ✅ Project detection: ${projectType.detected ? projectType.type : 'unknown'}`,
-  );
+  console.log(`  ✅ Project detection: ${projectType.detected ? projectType.type : 'unknown'}`);
   console.log(`  ✅ Confidence: ${projectType.confidence}%`);
 
   // Test project structure (limited depth for speed)
@@ -98,9 +94,7 @@ try {
     maxDepth: 1,
     includeStats: false,
   });
-  console.log(
-    `  ✅ Project structure: ${structure.children.length} items found`,
-  );
+  console.log(`  ✅ Project structure: ${structure.children.length} items found`);
 } catch (error) {
   console.error('  ❌ Project utilities test failed:', error.message);
 }
@@ -121,9 +115,7 @@ try {
     { name: 'Test', version: '1.0.0', email: 'test@example.com' },
     ['name', 'version'],
   );
-  console.log(
-    `  ✅ Variable validation: ${validation.valid ? 'PASS' : 'FAIL'}`,
-  );
+  console.log(`  ✅ Variable validation: ${validation.valid ? 'PASS' : 'FAIL'}`);
 } catch (error) {
   console.error('  ❌ Template utilities test failed:', error.message);
 }
@@ -140,14 +132,14 @@ try {
   console.log('  ✅ Basic logging works');
 
   // Test formatted output
-  const code = LoggingUtils.code('const x = 42;', 'javascript');
-  const cmd = LoggingUtils.command('npm test', 'Run tests');
-  const file = LoggingUtils.filePath(__filename, { relative: true });
+  LoggingUtils.code('const x = 42;', 'javascript');
+  LoggingUtils.command('npm test', 'Run tests');
+  LoggingUtils.filePath(__filename, { relative: true });
 
   console.log('  ✅ Formatted output works');
 
   // Test table
-  const table = LoggingUtils.table(
+  LoggingUtils.table(
     ['Name', 'Age', 'City'],
     [
       ['Alice', 30, 'New York'],
@@ -167,14 +159,9 @@ try {
   testError.code = 127;
   const context = { tool: 'test', command: 'test-command' };
 
-  const errorInfo = errorHandler.defaultErrorHandler.handleError(
-    testError,
-    context,
-  );
+  const errorInfo = errorHandler.defaultErrorHandler.handleError(testError, context);
   console.log(`  ✅ Error handling: ${errorInfo.category}`);
-  console.log(
-    `  ✅ User message: ${errorInfo.userMessage.substring(0, 50)}...`,
-  );
+  console.log(`  ✅ User message: ${errorInfo.userMessage.substring(0, 50)}...`);
   console.log(`  ✅ Recovery steps: ${errorInfo.recoverySteps.length}`);
 } catch (error) {
   console.error('  ❌ Error handler test failed:', error.message);
@@ -199,18 +186,12 @@ try {
   console.log(`  ✅ Project metadata: ${projectInfo.projectType.type}`);
 
   // Use file utils to find files
-  const files = FileUtils.findLanguageFiles(
-    testScenario.projectPath,
-    testScenario.language,
-  );
+  const files = FileUtils.findLanguageFiles(testScenario.projectPath, testScenario.language);
   console.log(`  ✅ Found ${files.length} ${testScenario.language} files`);
 
   // Use template utils to render something
   const readmeTemplate = `# {{name}}\n\n{{description}}\n\nVersion: {{version}}`;
-  const readme = TemplateUtils.renderTemplate(
-    readmeTemplate,
-    testScenario.variables,
-  );
+  const readme = TemplateUtils.renderTemplate(readmeTemplate, testScenario.variables);
   console.log(
     `  ✅ Template integration: ${readme.includes('Integration Test') ? 'PASS' : 'FAIL'}`,
   );

@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { runCommand, commandExists } = require('../../scripts/lib/utils');
+const { runCommand } = require('../../scripts/lib/utils');
 const GoToolDetector = require('./tool-detector');
 
 class GoConfigWizard {
@@ -25,9 +25,7 @@ class GoConfigWizard {
 
     // Detect tools first
     this.detectedTools = await this.toolDetector.detectTools();
-    const report = this.toolDetector.generateEnvironmentReport(
-      this.detectedTools,
-    );
+    const report = this.toolDetector.generateEnvironmentReport(this.detectedTools);
 
     // Show environment report
     this.showEnvironmentReport(report);
@@ -68,12 +66,8 @@ class GoConfigWizard {
 
     if (report.summary.goInstalled) {
       console.log(`✅ Go ${report.summary.goVersion} installed`);
-      console.log(
-        `📦 Using Go modules: ${report.summary.usingModules ? '✅ Yes' : '❌ No'}`,
-      );
-      console.log(
-        `🏢 Using Go workspace: ${report.summary.usingWorkspace ? '✅ Yes' : '❌ No'}`,
-      );
+      console.log(`📦 Using Go modules: ${report.summary.usingModules ? '✅ Yes' : '❌ No'}`);
+      console.log(`🏢 Using Go workspace: ${report.summary.usingWorkspace ? '✅ Yes' : '❌ No'}`);
       console.log(`🔧 Tools detected: ${report.summary.totalToolsDetected}`);
 
       if (report.environment) {
@@ -89,7 +83,7 @@ class GoConfigWizard {
     // Show recommendations
     if (report.recommendations.length > 0) {
       console.log('💡 Recommendations:');
-      report.recommendations.forEach((rec, i) => {
+      report.recommendations.forEach((rec, _i) => {
         const icon =
           rec.priority === 'critical'
             ? '🔴'
@@ -183,7 +177,7 @@ class GoConfigWizard {
   /**
    * Create default project configuration
    */
-  createDefaultProject(options) {
+  createDefaultProject(_options) {
     console.log('📁 Creating default Go module...');
 
     const moduleName = this.suggestModuleName();
@@ -286,11 +280,7 @@ class GoConfigWizard {
       console.log('✅ Created go.mod');
 
       // Create cmd directory structure
-      const cmdDir = path.join(
-        this.projectPath,
-        'cmd',
-        moduleName.split('/').pop() || 'app',
-      );
+      const cmdDir = path.join(this.projectPath, 'cmd', moduleName.split('/').pop() || 'app');
       fs.mkdirSync(cmdDir, { recursive: true });
 
       // Create main.go template
@@ -352,12 +342,7 @@ func main() {
       runCommand('go get github.com/rs/cors', { cwd: this.projectPath });
 
       // Create directory structure
-      const dirs = [
-        'cmd/api',
-        'internal/handler',
-        'internal/middleware',
-        'internal/service',
-      ];
+      const dirs = ['cmd/api', 'internal/handler', 'internal/middleware', 'internal/service'];
       dirs.forEach((dir) => {
         fs.mkdirSync(path.join(this.projectPath, dir), { recursive: true });
       });
@@ -454,10 +439,7 @@ func main() {
     try {
       const gitUser = runCommand('git config user.name', { stdio: 'pipe' });
       if (gitUser.success) {
-        const username = gitUser.output
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, '');
+        const username = gitUser.output.trim().toLowerCase().replace(/\s+/g, '');
         return `github.com/${username}/${sanitized}`;
       }
     } catch (error) {
@@ -471,7 +453,7 @@ func main() {
   /**
    * Configure project with Go-specific settings
    */
-  async configureProject(projectInfo, options) {
+  async configureProject(projectInfo, _options) {
     console.log('\n⚙️ Configuring Go project...');
 
     const config = {
@@ -556,13 +538,7 @@ func main() {
           tool: 'golangci-lint',
           configFile: '.golangci.yml',
           rules: {
-            enable: [
-              'govet',
-              'errcheck',
-              'staticcheck',
-              'gosimple',
-              'ineffassign',
-            ],
+            enable: ['govet', 'errcheck', 'staticcheck', 'gosimple', 'ineffassign'],
             disable: ['deadcode', 'varcheck'],
           },
         },
@@ -582,12 +558,7 @@ func main() {
         build: projectConfig.build || {
           flags: [],
           ldflags: [],
-          targets: [
-            'linux/amd64',
-            'darwin/amd64',
-            'darwin/arm64',
-            'windows/amd64',
-          ],
+          targets: ['linux/amd64', 'darwin/amd64', 'darwin/arm64', 'windows/amd64'],
         },
 
         // Dependencies

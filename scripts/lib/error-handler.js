@@ -8,7 +8,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { inspect } = require('util');
 
 class ErrorHandler {
   constructor(options = {}) {
@@ -140,7 +139,7 @@ class ErrorHandler {
   /**
    * Categorize error based on message and context
    */
-  categorizeError(error, context) {
+  categorizeError(error, _context) {
     const message = error.message.toLowerCase();
     const code = error.code || '';
 
@@ -183,11 +182,7 @@ class ErrorHandler {
     }
 
     // Check for execution errors
-    if (
-      message.includes('timeout') ||
-      message.includes('timed out') ||
-      code === 'ETIMEDOUT'
-    ) {
+    if (message.includes('timeout') || message.includes('timed out') || code === 'ETIMEDOUT') {
       return 'TIMEOUT';
     }
 
@@ -290,9 +285,7 @@ class ErrorHandler {
         return `⏰ Command timed out. Try increasing timeout or checking system resources.`;
 
       case 'EXECUTION_FAILED':
-        return command
-          ? `🚫 Failed to execute: ${command}`
-          : `🚫 Execution failed: ${message}`;
+        return command ? `🚫 Failed to execute: ${command}` : `🚫 Execution failed: ${message}`;
 
       case 'DEPENDENCY_MISSING':
         return `📦 Missing dependency. ${message}`;
@@ -371,11 +364,7 @@ class ErrorHandler {
         'Resolve version conflicts',
       ],
 
-      NETWORK_ERROR: [
-        'Check internet connection',
-        'Verify network settings',
-        'Try again later',
-      ],
+      NETWORK_ERROR: ['Check internet connection', 'Verify network settings', 'Try again later'],
 
       PLATFORM_UNSUPPORTED: [
         'Check platform requirements',
@@ -389,31 +378,17 @@ class ErrorHandler {
         'Simplify the operation',
       ],
 
-      DISK_SPACE: [
-        'Free up disk space',
-        'Clean temporary files',
-        'Use different storage location',
-      ],
+      DISK_SPACE: ['Free up disk space', 'Clean temporary files', 'Use different storage location'],
     };
 
-    return (
-      steps[category] || [
-        'Check error details',
-        'Consult documentation',
-        'Try again',
-      ]
-    );
+    return steps[category] || ['Check error details', 'Consult documentation', 'Try again'];
   }
 
   /**
    * Determine if operation should be retried
    */
   shouldRetry(category) {
-    const retryableCategories = [
-      'NETWORK_ERROR',
-      'TIMEOUT',
-      'EXECUTION_FAILED',
-    ];
+    const retryableCategories = ['NETWORK_ERROR', 'TIMEOUT', 'EXECUTION_FAILED'];
 
     return retryableCategories.includes(category);
   }
@@ -450,11 +425,7 @@ class ErrorHandler {
       }
 
       // Write back to file
-      fs.writeFileSync(
-        this.options.logFile,
-        JSON.stringify(log, null, 2),
-        'utf8',
-      );
+      fs.writeFileSync(this.options.logFile, JSON.stringify(log, null, 2), 'utf8');
     } catch (e) {
       // Don't fail if logging fails
       console.error('Failed to log error:', e.message);
@@ -474,8 +445,7 @@ class ErrorHandler {
 
     // Count by category
     this.errorHistory.forEach((error) => {
-      stats.byCategory[error.category] =
-        (stats.byCategory[error.category] || 0) + 1;
+      stats.byCategory[error.category] = (stats.byCategory[error.category] || 0) + 1;
       if (error.tool) {
         stats.byTool[error.tool] = (stats.byTool[error.tool] || 0) + 1;
       }
@@ -553,8 +523,7 @@ module.exports = {
   defaultErrorHandler,
 
   // Convenience functions
-  handleError: (error, context) =>
-    defaultErrorHandler.handleError(error, context),
+  handleError: (error, context) => defaultErrorHandler.handleError(error, context),
   wrapFunction: (fn, context) => defaultErrorHandler.wrapFunction(fn, context),
   createCommandRunner: (commandFn, context) =>
     defaultErrorHandler.createCommandRunner(commandFn, context),

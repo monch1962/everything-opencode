@@ -1,0 +1,74 @@
+{
+  "timestamp": "2026-01-27T20:29:25.423Z",
+  "totalFiles": 3,
+  "summary": {
+    "highPriority": 3,
+    "mediumPriority": 3,
+    "totalIssues": 20,
+    "totalSuggestions": 20
+  },
+  "files": [
+    {
+      "file": "scripts/clojure/command-runner.js",
+      "lines": 1025,
+      "issues": 6,
+      "suggestions": 6,
+      "metrics": {
+        "imports": 8,
+        "functions": 74,
+        "classes": 1,
+        "avgLineLength": 30,
+        "commentRatio": 9
+      },
+      "priority": "HIGH"
+    },
+    {
+      "file": "scripts/commands/pine-debug.js",
+      "lines": 1382,
+      "issues": 7,
+      "suggestions": 7,
+      "metrics": {
+        "imports": 11,
+        "functions": 80,
+        "classes": 1,
+        "avgLineLength": 30,
+        "commentRatio": 7
+      },
+      "priority": "HIGH"
+    },
+    {
+      "file": "scripts/pinescript/debug-server.js",
+      "lines": 1765,
+      "issues": 7,
+      "suggestions": 7,
+      "metrics": {
+        "imports": 15,
+        "functions": 96,
+        "classes": 1,
+        "avgLineLength": 29,
+        "commentRatio": 9
+      },
+      "priority": "HIGH"
+    }
+  ],
+  "recommendations": [
+    {
+      "type": "ARCHITECTURE",
+      "description": "Consider architectural changes to reduce file sizes",
+      "files": 3,
+      "priority": "HIGH"
+    },
+    {
+      "type": "REFACTORING",
+      "description": "Focus on extracting logic from long functions",
+      "files": 3,
+      "priority": "HIGH"
+    },
+    {
+      "type": "CODE_QUALITY",
+      "description": "Address code duplication to improve maintainability",
+      "files": 3,
+      "priority": "MEDIUM"
+    }
+  ]
+}

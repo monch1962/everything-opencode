@@ -15,7 +15,6 @@ const {
   getDateString,
   getTimeString,
   ensureDir,
-  readFile,
   writeFile,
   replaceInFile,
   log,

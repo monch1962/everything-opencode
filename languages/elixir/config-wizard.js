@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { runCommand, commandExists } = require('../../scripts/lib/utils');
+const { runCommand } = require('../../scripts/lib/utils');
 const ElixirToolDetector = require('./tool-detector');
 
 class ElixirConfigWizard {
@@ -25,9 +25,7 @@ class ElixirConfigWizard {
 
     // Detect tools first
     this.detectedTools = await this.toolDetector.detectTools();
-    const report = this.toolDetector.generateEnvironmentReport(
-      this.detectedTools,
-    );
+    const report = this.toolDetector.generateEnvironmentReport(this.detectedTools);
 
     // Show environment report
     this.showEnvironmentReport(report);
@@ -66,14 +64,10 @@ class ElixirConfigWizard {
 
     const { summary } = report;
 
-    console.log(
-      `✅ Elixir ${this.detectedTools.elixir?.version || '?'} installed`,
-    );
+    console.log(`✅ Elixir ${this.detectedTools.elixir?.version || '?'} installed`);
     console.log(`📦 Using Mix: ${summary.mixInstalled ? '✅ Yes' : '❌ No'}`);
     console.log(`📦 Using Hex: ${summary.hexInstalled ? '✅ Yes' : '❌ No'}`);
-    console.log(
-      `🔧 Tools detected: ${summary.toolsDetected}/${summary.totalTools}`,
-    );
+    console.log(`🔧 Tools detected: ${summary.toolsDetected}/${summary.totalTools}`);
     console.log(`⭐ Recommended tools: ${summary.recommendedTools}`);
 
     // Show detected tools
@@ -90,8 +84,7 @@ class ElixirConfigWizard {
     if (report.recommendations.length > 0) {
       console.log('\n💡 Recommendations:');
       report.recommendations.forEach((rec) => {
-        const icon =
-          rec.type === 'critical' ? '❌' : rec.type === 'high' ? '⚠️' : '🔵';
+        const icon = rec.type === 'critical' ? '❌' : rec.type === 'high' ? '⚠️' : '🔵';
         console.log(`   ${icon} ${rec.message}`);
         if (rec.installGuide) {
           // Get platform-specific installation guide
@@ -115,17 +108,13 @@ class ElixirConfigWizard {
    */
   async detectOrCreateProject(options) {
     const hasMixExs = fs.existsSync(path.join(this.projectPath, 'mix.exs'));
-    const hasMixLock = fs.existsSync(path.join(this.projectPath, 'mix.lock'));
 
     if (hasMixExs) {
       console.log('\n✅ Existing Elixir project detected');
 
       // Try to read mix.exs to determine project type
       try {
-        const mixExsContent = fs.readFileSync(
-          path.join(this.projectPath, 'mix.exs'),
-          'utf8',
-        );
+        const mixExsContent = fs.readFileSync(path.join(this.projectPath, 'mix.exs'), 'utf8');
 
         if (mixExsContent.includes(':phoenix')) {
           return 'phoenix';
@@ -364,11 +353,7 @@ cover/
    * Get project configuration
    */
   getConfig() {
-    const configFile = path.join(
-      this.projectPath,
-      '.opencode',
-      'elixir-config.json',
-    );
+    const configFile = path.join(this.projectPath, '.opencode', 'elixir-config.json');
 
     if (fs.existsSync(configFile)) {
       try {

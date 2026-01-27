@@ -5,14 +5,14 @@
  * Clean Clojure build artifacts
  */
 
-const ClojureCommandRunner = require('../clojure/command-runner');
+const ClojureCommandRunner = require('../clojure/command-runner-refactored');
 
 async function main() {
   try {
     const runner = new ClojureCommandRunner();
 
     // Parse arguments for clean options
-    const args = process.argv.slice(2);
+    let args = process.argv.slice(2);
     const options = {};
 
     // Check for all flag

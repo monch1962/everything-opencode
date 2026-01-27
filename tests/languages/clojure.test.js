@@ -12,7 +12,8 @@ const os = require('os');
 // Import Clojure modules
 const ClojureToolDetector = require('../../languages/clojure/tool-detector');
 const ClojureConfigWizard = require('../../languages/clojure/config-wizard');
-const ClojureCommandRunner = require('../../scripts/clojure/command-runner');
+const ClojureCommandRunner = require('../../scripts/clojure/command-runner-refactored');
+const BuildToolDetector = require('../../scripts/clojure/command-runner-modules/build-tool-detector');
 
 // Test helper
 function test(name, fn) {
@@ -236,24 +237,44 @@ async function runTests() {
     else failed++;
 
     if (
-      test('getClojureProjectInfo returns object', () => {
+      test('getClojureProjectInfo returns object', async () => {
         const runner = new ClojureCommandRunner();
 
-        // Mock initialization to avoid actual tool detection
-        runner.detectedTools = {
-          java: { installed: false },
-          clojureCli: { installed: false },
-          leiningen: { installed: false },
-          boot: { installed: false },
-          project: {},
-          frameworks: [],
-          linters: [],
-          formatters: [],
-          testFrameworks: [],
-          replTypes: [],
-          clojurescript: {},
+        // Mock the build tool detector to avoid actual tool detection
+        runner.buildToolDetector = {
+          detectedTools: {
+            java: { installed: false },
+            clojureCli: { installed: false },
+            leiningen: { installed: false },
+            boot: { installed: false },
+            project: {},
+            frameworks: [],
+            linters: [],
+            formatters: [],
+            testFrameworks: [],
+            replTypes: [],
+            clojurescript: {},
+          },
+          buildTool: 'clojure-cli',
         };
-        runner.buildTool = 'clojure-cli';
+
+        // Mock project manager
+        runner.projectManager = {
+          getClojureProjectInfo: (detectedTools, buildTool) => ({
+            tools: detectedTools,
+            buildTool: buildTool,
+            project: detectedTools.project,
+            frameworks: detectedTools.frameworks,
+            linters: detectedTools.linters,
+            formatters: detectedTools.formatters,
+            testFrameworks: detectedTools.testFrameworks,
+            replTypes: detectedTools.replTypes,
+            clojurescript: detectedTools.clojurescript,
+          }),
+        };
+
+        // Mock initialized flag
+        runner.initialized = true;
 
         const projectInfo = runner.getClojureProjectInfo();
 
@@ -268,20 +289,23 @@ async function runTests() {
     else failed++;
 
     if (
-      test('_determineBuildTool returns string', () => {
-        const runner = new ClojureCommandRunner();
+      test('build tool detector determines build tool', async () => {
+        const BuildToolDetector = require('../../scripts/clojure/command-runner-modules/build-tool-detector');
+        const detector = new BuildToolDetector();
 
         // Test with mock tools
-        runner.detectedTools = {
+        detector.detectedTools = {
           clojureCli: { installed: true },
-          project: { hasDepsEdn: true },
+          leiningen: { installed: false },
+          boot: { installed: false },
+          project: { hasDepsEdn: true, hasProjectClj: false, hasBuildBoot: false },
         };
 
-        const buildTool = runner._determineBuildTool();
+        const buildTool = detector.determineBuildTool(detector.detectedTools);
 
         assert.ok(buildTool !== null);
         assert.strictEqual(typeof buildTool, 'string');
-        assert.ok(['clojure-cli', 'leiningen', 'boot'].includes(buildTool));
+        assert.strictEqual(buildTool, 'clojure-cli');
       })
     )
       passed++;
@@ -352,13 +376,12 @@ async function runTests() {
   else failed++;
 
   if (
-    test('command runner uses tool detector', () => {
+    test('command runner uses build tool detector', () => {
       const runner = new ClojureCommandRunner();
-      const detector = new ClojureToolDetector();
 
-      // They should be separate instances but compatible
-      assert.ok(runner.toolDetector instanceof ClojureToolDetector);
-      assert.ok(detector instanceof ClojureToolDetector);
+      // Check that build tool detector is properly initialized
+      assert.ok(runner.buildToolDetector !== null);
+      assert.ok(runner.buildToolDetector instanceof BuildToolDetector);
     })
   )
     passed++;

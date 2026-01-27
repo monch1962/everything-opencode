@@ -6,8 +6,6 @@
  */
 
 const readline = require('readline');
-const fs = require('fs');
-const path = require('path');
 
 // ANSI color codes for better UX
 const colors = {
@@ -184,7 +182,8 @@ class InteractivePrompts {
     const answer = await this.question('\nEnter numbers separated by commas (e.g., 1,3,4): ');
 
     if (answer.trim()) {
-      const indices = answer.split(',')
+      const indices = answer
+        .split(',')
         .map((num) => parseInt(num.trim(), 10) - 1)
         .filter((index) => !isNaN(index) && index >= 0 && index < options.length);
 
