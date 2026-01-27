@@ -5,7 +5,7 @@
  * Type check Elixir code with Dialyzer
  */
 
-const ElixirCommandRunner = require('../elixir/command-runner');
+const ElixirCommandRunner = require('../elixir/elixir-command-runner-refactored');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -64,10 +64,7 @@ async function main() {
     console.error(`\n❌ Type checking failed: ${error.message}`);
 
     // Check if Dialyzer/dialyxir is not installed
-    if (
-      error.message.includes('Dialyzer') ||
-      error.message.includes('dialyxir')
-    ) {
+    if (error.message.includes('Dialyzer') || error.message.includes('dialyxir')) {
       console.log('\n💡 Dialyzer/dialyxir is not configured. Add to mix.exs:');
       console.log('   {:dialyxir, "~> 1.4", only: [:dev], runtime: false}');
       console.log('\nThen run:');

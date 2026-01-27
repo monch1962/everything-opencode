@@ -5,7 +5,7 @@
  * Run tests for JavaScript/TypeScript projects
  */
 
-const JSCommandRunner = require('../javascript/command-runner');
+const JSCommandRunner = require('../javascript/javascript-command-runner-refactored');
 
 async function main() {
   try {

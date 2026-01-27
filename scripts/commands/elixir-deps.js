@@ -5,7 +5,7 @@
  * Manage Elixir dependencies with Mix, Hex, and security scanning
  */
 
-const ElixirCommandRunner = require('../elixir/command-runner');
+const ElixirCommandRunner = require('../elixir/elixir-command-runner-refactored');
 const { defaultErrorHandler } = require('../lib/error-handler');
 
 async function main() {
@@ -137,7 +137,7 @@ async function runSecurityAudit(runner, _options) {
           dep.includes('plug') ||
           dep.includes('crypto') ||
           dep.includes('ssl') ||
-          dep.includes('tls'),
+          dep.includes('tls')
       );
       if (securityDeps.length > 0) {
         console.log(`   ⚠️  ${securityDeps.length} security-related dependencies need updates`);
@@ -169,7 +169,7 @@ async function runSecurityAudit(runner, _options) {
       if (auditResult.stdout) {
         const lines = auditResult.stdout.split('\n');
         const vulnCount = lines.filter(
-          (line) => line.includes('Vulnerability') || line.includes('CVE') || line.includes('HIGH'),
+          (line) => line.includes('Vulnerability') || line.includes('CVE') || line.includes('HIGH')
         ).length;
 
         results.tools.mix_audit = {
@@ -194,7 +194,7 @@ async function runSecurityAudit(runner, _options) {
       securityTools.push('hex.audit');
       const lines = hexAuditResult.stdout.split('\n');
       const issues = lines.filter(
-        (line) => line.includes('Vulnerability') || line.includes('found') || line.includes('⚠'),
+        (line) => line.includes('Vulnerability') || line.includes('found') || line.includes('⚠')
       );
 
       results.tools.hex_audit = {
