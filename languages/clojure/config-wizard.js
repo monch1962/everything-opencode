@@ -6,7 +6,7 @@
  */
 
 const path = require('path');
-const ClojureToolDetector = require('./tool-detector');
+const ClojureToolDetector = require('./clojure-tool-detector-refactored');
 
 class ClojureConfigWizard {
   constructor(projectPath = process.cwd()) {
@@ -395,7 +395,7 @@ class ClojureConfigWizard {
         console.log('  • Windows: Use Windows Subsystem for Linux (WSL)');
         console.log('  • Or use install script:');
         console.log(
-          '    curl -O https://download.clojure.org/install/linux-install-1.11.1.1347.sh',
+          '    curl -O https://download.clojure.org/install/linux-install-1.11.1.1347.sh'
         );
         console.log('    chmod +x linux-install-1.11.1.1347.sh');
         console.log('    sudo ./linux-install-1.11.1.1347.sh');
@@ -405,7 +405,7 @@ class ClojureConfigWizard {
         console.log('  Install Leiningen:');
         console.log('  • Download lein script:');
         console.log(
-          '    curl -O https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein',
+          '    curl -O https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein'
         );
         console.log('  • Make it executable:');
         console.log('    chmod +x lein');
@@ -419,7 +419,7 @@ class ClojureConfigWizard {
         console.log('  Install clj-kondo:');
         console.log('  • Using install script:');
         console.log(
-          '    bash <(curl -s https://raw.githubusercontent.com/clj-kondo/clj-kondo/master/script/install-clj-kondo)',
+          '    bash <(curl -s https://raw.githubusercontent.com/clj-kondo/clj-kondo/master/script/install-clj-kondo)'
         );
         console.log('  • Or download binary from:');
         console.log('    https://github.com/clj-kondo/clj-kondo/releases');
@@ -429,7 +429,7 @@ class ClojureConfigWizard {
         console.log('  Install zprint:');
         console.log('  • Using install script:');
         console.log(
-          '    curl -s https://raw.githubusercontent.com/kkinnear/zprint/main/install | bash',
+          '    curl -s https://raw.githubusercontent.com/kkinnear/zprint/main/install | bash'
         );
         console.log('  • Or as a CLI tool:');
         console.log('    clojure -Ttools install-latest :lib io.github.kkinnear/zprint :as zprint');
