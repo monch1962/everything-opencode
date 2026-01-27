@@ -82,7 +82,7 @@ class FileAnalyzer {
   /**
    * Detect common issues in large files
    */
-  detectIssues(analysis, content, lines) {
+  detectIssues(analysis, content, _lines) {
     const { lineCount, metrics } = analysis;
 
     // Issue: Too many lines
@@ -297,7 +297,7 @@ class FileAnalyzer {
         duplicates.push({
           pattern: pattern.toString(),
           count: matches.length,
-          example: matches[0].substring(0, 50) + '...',
+          example: `${matches[0].substring(0, 50)}...`,
         });
       }
     });

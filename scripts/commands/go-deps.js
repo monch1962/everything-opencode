@@ -154,9 +154,7 @@ async function runSecurityAudit(runner, options) {
     console.log('\n🔍 1. Running gosec (Go Security Checker)...');
     if (!commandExists('gosec')) {
       console.log('   ⚠️ gosec not installed. Installing...');
-      const installResult = runCommand(
-        'go install github.com/securego/gosec/v2/cmd/gosec@latest',
-      );
+      const installResult = runCommand('go install github.com/securego/gosec/v2/cmd/gosec@latest');
       if (!installResult.success) {
         console.log('   ❌ Failed to install gosec');
       } else {
@@ -172,25 +170,20 @@ async function runSecurityAudit(runner, options) {
       }
 
       console.log('   📊 Running gosec analysis...');
-      const gosecResult = runCommand(`gosec ${gosecArgs.join(' ')}`, {
+      runCommand(`gosec ${gosecArgs.join(' ')}`, {
         cwd: runner.projectPath,
       });
 
       if (fs.existsSync(path.join(runner.projectPath, 'gosec-report.json'))) {
         const report = JSON.parse(
-          fs.readFileSync(
-            path.join(runner.projectPath, 'gosec-report.json'),
-            'utf8',
-          ),
+          fs.readFileSync(path.join(runner.projectPath, 'gosec-report.json'), 'utf8'),
         );
         results.tools.gosec = {
           issues: report.Issues?.length || 0,
           stats: report.Stats || {},
         };
         results.vulnerabilities += report.Issues?.length || 0;
-        console.log(
-          `   📈 Found ${report.Issues?.length || 0} security issues`,
-        );
+        console.log(`   📈 Found ${report.Issues?.length || 0} security issues`);
 
         // Clean up report file
         fs.unlinkSync(path.join(runner.projectPath, 'gosec-report.json'));
@@ -201,9 +194,7 @@ async function runSecurityAudit(runner, options) {
     console.log('\n🔍 2. Running govulncheck (Go Vulnerability Checker)...');
     if (!commandExists('govulncheck')) {
       console.log('   ⚠️ govulncheck not installed. Installing...');
-      const installResult = runCommand(
-        'go install golang.org/x/vuln/cmd/govulncheck@latest',
-      );
+      const installResult = runCommand('go install golang.org/x/vuln/cmd/govulncheck@latest');
       if (!installResult.success) {
         console.log('   ❌ Failed to install govulncheck');
       } else {
@@ -221,14 +212,11 @@ async function runSecurityAudit(runner, options) {
 
       if (vulnResult.stdout) {
         const lines = vulnResult.stdout.split('\n');
-        const vulnCount = lines.filter((line) =>
-          line.includes('Vulnerability'),
-        ).length;
+        const vulnCount = lines.filter((line) => line.includes('Vulnerability')).length;
         results.tools.govulncheck = {
           vulnerabilities: vulnCount,
           output:
-            vulnResult.stdout.substring(0, 500) +
-            (vulnResult.stdout.length > 500 ? '...' : ''),
+            vulnResult.stdout.substring(0, 500) + (vulnResult.stdout.length > 500 ? '...' : ''),
         };
         results.vulnerabilities += vulnCount;
         console.log(`   📈 Found ${vulnCount} known vulnerabilities`);
@@ -237,13 +225,10 @@ async function runSecurityAudit(runner, options) {
 
     // 3. Check dependency licenses
     console.log('\n🔍 3. Checking dependency licenses...');
-    const licenseResult = runCommand(
-      "go list -m -f '{{.Path}} {{.Version}} {{.Main}}' all",
-      {
-        cwd: runner.projectPath,
-        stdio: 'pipe',
-      },
-    );
+    const licenseResult = runCommand("go list -m -f '{{.Path}} {{.Version}} {{.Main}}' all", {
+      cwd: runner.projectPath,
+      stdio: 'pipe',
+    });
 
     if (licenseResult.stdout) {
       const deps = licenseResult.stdout
@@ -256,9 +241,7 @@ async function runSecurityAudit(runner, options) {
       console.log(`   📦 Found ${deps.length} dependencies to check`);
 
       // Check for problematic licenses (optional - would need license-check tool)
-      console.log(
-        '   ℹ️  Consider using go-licenses for detailed license analysis',
-      );
+      console.log('   ℹ️  Consider using go-licenses for detailed license analysis');
     }
 
     // 4. Check for outdated dependencies with security implications
@@ -272,28 +255,20 @@ async function runSecurityAudit(runner, options) {
     );
 
     if (outdatedResult.stdout) {
-      const updates = outdatedResult.stdout
-        .split('\n')
-        .filter((line) => line.trim());
+      const updates = outdatedResult.stdout.split('\n').filter((line) => line.trim());
       results.tools.outdated = {
         updates: updates.length,
         list: updates,
       };
-      console.log(
-        `   🔄 ${updates.length} dependencies have updates available`,
-      );
+      console.log(`   🔄 ${updates.length} dependencies have updates available`);
 
       // Check for security-related updates
       const securityUpdates = updates.filter(
         (update) =>
-          update.includes('security') ||
-          update.includes('CVE') ||
-          update.includes('vulnerability'),
+          update.includes('security') || update.includes('CVE') || update.includes('vulnerability'),
       );
       if (securityUpdates.length > 0) {
-        console.log(
-          `   ⚠️  ${securityUpdates.length} security-related updates available`,
-        );
+        console.log(`   ⚠️  ${securityUpdates.length} security-related updates available`);
         results.warnings += securityUpdates.length;
       }
     }
@@ -310,17 +285,11 @@ async function runSecurityAudit(runner, options) {
     console.log(`   • Security advisories: ${results.advisories}`);
 
     if (results.vulnerabilities > 0) {
-      console.log(
-        `\n⚠️  CRITICAL: ${results.vulnerabilities} security vulnerabilities found!`,
-      );
+      console.log(`\n⚠️  CRITICAL: ${results.vulnerabilities} security vulnerabilities found!`);
       console.log('   Recommended actions:');
       console.log("   1. Run 'go get -u ./...' to update dependencies");
-      console.log(
-        '   2. Review govulncheck output for specific vulnerabilities',
-      );
-      console.log(
-        '   3. Consider using dependency pinning for critical packages',
-      );
+      console.log('   2. Review govulncheck output for specific vulnerabilities');
+      console.log('   3. Consider using dependency pinning for critical packages');
       console.log('   4. Run security audit regularly in CI/CD pipeline');
       process.exit(2); // Exit code 2 for security vulnerabilities
     } else if (results.warnings > 0) {

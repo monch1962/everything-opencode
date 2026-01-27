@@ -70,9 +70,7 @@ async function main() {
     }
     if (tools.missing.length > 0) {
       console.log(`❌ Missing: ${tools.missing.join(', ')}`);
-      console.log(
-        '\n💡 Install missing tools for full backtesting capabilities.',
-      );
+      console.log('\n💡 Install missing tools for full backtesting capabilities.');
     }
     process.exit(0);
   }
@@ -95,12 +93,8 @@ async function main() {
     for (const file of files) {
       const content = runner.readPineFile(file);
       if (!content.includes('strategy(')) {
-        console.error(
-          `❌ ${file} is not a strategy (missing strategy() function)`,
-        );
-        console.error(
-          '   Backtesting requires a trading strategy, not an indicator.',
-        );
+        console.error(`❌ ${file} is not a strategy (missing strategy() function)`);
+        console.error('   Backtesting requires a trading strategy, not an indicator.');
         process.exit(1);
       }
     }
@@ -130,7 +124,7 @@ async function main() {
               const base = path.basename(outputPath, ext);
               outputPath = path.join(
                 path.dirname(outputPath),
-                `${base}-${path.basename(file, '.pine')}${ext}`,
+                `${base}-${path.basename(file, '.pine')}${ext}`
               );
             }
 
@@ -173,7 +167,7 @@ async function main() {
 /**
  * Generate summary for multiple backtests
  */
-function generateSummary(results, options) {
+function generateSummary(results, _options) {
   const successful = results.filter((r) => r.success);
 
   if (successful.length === 0) {
@@ -191,7 +185,7 @@ function generateSummary(results, options) {
     const { strategy, performance } = result.results;
     console.log(`\n${index + 1}. ${strategy}`);
     console.log(
-      `   Net Profit: $${performance.netProfit.toFixed(2)} (${((performance.netProfit / result.results.parameters.initialCapital) * 100).toFixed(2)}%)`,
+      `   Net Profit: $${performance.netProfit.toFixed(2)} (${((performance.netProfit / result.results.parameters.initialCapital) * 100).toFixed(2)}%)`
     );
     console.log(`   Win Rate: ${performance.winRate.toFixed(1)}%`);
     console.log(`   Profit Factor: ${performance.profitFactor.toFixed(2)}`);
@@ -201,38 +195,33 @@ function generateSummary(results, options) {
 
   // Find best strategy by net profit
   const bestByProfit = successful.reduce((best, current) => {
-    return current.results.performance.netProfit >
-      best.results.performance.netProfit
+    return current.results.performance.netProfit > best.results.performance.netProfit
       ? current
       : best;
   });
 
   // Find best strategy by Sharpe ratio
   const bestBySharpe = successful.reduce((best, current) => {
-    return current.results.performance.sharpeRatio >
-      best.results.performance.sharpeRatio
+    return current.results.performance.sharpeRatio > best.results.performance.sharpeRatio
       ? current
       : best;
   });
 
   // Find best strategy by win rate
   const bestByWinRate = successful.reduce((best, current) => {
-    return current.results.performance.winRate >
-      best.results.performance.winRate
-      ? current
-      : best;
+    return current.results.performance.winRate > best.results.performance.winRate ? current : best;
   });
 
   console.log('\n🏆 BEST PERFORMERS:');
   console.log('─'.repeat(40));
   console.log(
-    `Highest Profit: ${bestByProfit.results.strategy} ($${bestByProfit.results.performance.netProfit.toFixed(2)})`,
+    `Highest Profit: ${bestByProfit.results.strategy} ($${bestByProfit.results.performance.netProfit.toFixed(2)})`
   );
   console.log(
-    `Best Risk-Adjusted: ${bestBySharpe.results.strategy} (Sharpe: ${bestBySharpe.results.performance.sharpeRatio.toFixed(2)})`,
+    `Best Risk-Adjusted: ${bestBySharpe.results.strategy} (Sharpe: ${bestBySharpe.results.performance.sharpeRatio.toFixed(2)})`
   );
   console.log(
-    `Highest Win Rate: ${bestByWinRate.results.strategy} (${bestByWinRate.results.performance.winRate.toFixed(1)}%)`,
+    `Highest Win Rate: ${bestByWinRate.results.strategy} (${bestByWinRate.results.performance.winRate.toFixed(1)}%)`
   );
 
   console.log(`\n${'='.repeat(60)}`);

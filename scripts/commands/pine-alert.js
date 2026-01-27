@@ -18,9 +18,7 @@ class PineAlertCommand extends PineCommandRunner {
       const pineConfig = config.pinescript;
 
       if (!pineConfig) {
-        this.error(
-          'PineScript configuration not found. Run /pine-setup first.',
-        );
+        this.error('PineScript configuration not found. Run /pine-setup first.');
         return 1;
       }
 
@@ -28,8 +26,7 @@ class PineAlertCommand extends PineCommandRunner {
         action: {
           type: 'string',
           alias: 'a',
-          description:
-            'Action to perform (setup, test, list, enable, disable, webhook)',
+          description: 'Action to perform (setup, test, list, enable, disable, webhook)',
           default: 'setup',
         },
         file: {
@@ -40,8 +37,7 @@ class PineAlertCommand extends PineCommandRunner {
         channel: {
           type: 'string',
           alias: 'c',
-          description:
-            'Alert channel (webhook, email, discord, telegram, slack)',
+          description: 'Alert channel (webhook, email, discord, telegram, slack)',
         },
         webhookUrl: {
           type: 'string',
@@ -65,8 +61,7 @@ class PineAlertCommand extends PineCommandRunner {
         },
         frequency: {
           type: 'string',
-          description:
-            'Alert frequency (once_per_bar, once_per_bar_close, once_per_minute)',
+          description: 'Alert frequency (once_per_bar, once_per_bar_close, once_per_minute)',
         },
         verbose: { type: 'boolean', alias: 'v', description: 'Verbose output' },
         force: {
@@ -106,9 +101,7 @@ class PineAlertCommand extends PineCommandRunner {
 
     const pineFile = options.file || this.findPineScriptFile();
     if (!pineFile) {
-      this.error(
-        'No PineScript file specified and none found in current directory.',
-      );
+      this.error('No PineScript file specified and none found in current directory.');
       return 1;
     }
 
@@ -213,7 +206,7 @@ class PineAlertCommand extends PineCommandRunner {
     this.log('1. Test alerts: /pine-alert --action test');
     this.log('2. List configured alerts: /pine-alert --action list');
     this.log(
-      '3. Enable/disable specific alerts: /pine-alert --action enable --alertName ALERT_NAME',
+      '3. Enable/disable specific alerts: /pine-alert --action enable --alertName ALERT_NAME'
     );
 
     return 0;
@@ -230,8 +223,7 @@ class PineAlertCommand extends PineCommandRunner {
       return 1;
     }
 
-    const testMessage =
-      options.testMessage || 'Test alert from PineScript integration';
+    const testMessage = options.testMessage || 'Test alert from PineScript integration';
 
     for (const [fileName, alertConfig] of Object.entries(pineConfig.alerts)) {
       this.log(`\nTesting alerts for: ${fileName}`);
@@ -244,9 +236,7 @@ class PineAlertCommand extends PineCommandRunner {
 
         this.log(`  ${alertName}: Sending test...`);
 
-        for (const [channelName, channelConfig] of Object.entries(
-          alertConfig.channels,
-        )) {
+        for (const [channelName, channelConfig] of Object.entries(alertConfig.channels)) {
           try {
             await this.sendAlert(channelName, channelConfig, {
               message: testMessage,
@@ -269,7 +259,7 @@ class PineAlertCommand extends PineCommandRunner {
     return 0;
   }
 
-  async listAlerts(options) {
+  async listAlerts(_options) {
     const config = await this.loadConfig();
     const pineConfig = config.pinescript;
 
@@ -304,15 +294,10 @@ class PineAlertCommand extends PineCommandRunner {
 
       if (Object.keys(alertConfig.channels).length > 0) {
         this.log('\nChannels:');
-        for (const [channelName, channelConfig] of Object.entries(
-          alertConfig.channels,
-        )) {
+        for (const [channelName, channelConfig] of Object.entries(alertConfig.channels)) {
           this.log(`  ${channelName}:`);
           Object.entries(channelConfig).forEach(([key, value]) => {
-            if (
-              key.toLowerCase().includes('token') ||
-              key.toLowerCase().includes('secret')
-            ) {
+            if (key.toLowerCase().includes('token') || key.toLowerCase().includes('secret')) {
               this.log(`    ${key}: ********`);
             } else {
               this.log(`    ${key}: ${value}`);
@@ -404,8 +389,7 @@ class PineAlertCommand extends PineCommandRunner {
       return 1;
     }
 
-    const webhookUrl =
-      options.webhookUrl || (await this.prompt('Enter webhook URL: '));
+    const webhookUrl = options.webhookUrl || (await this.prompt('Enter webhook URL: '));
 
     if (!webhookUrl.startsWith('http')) {
       this.error('Invalid webhook URL. Must start with http:// or https://');
@@ -511,9 +495,7 @@ class PineAlertCommand extends PineCommandRunner {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Webhook failed: ${response.status} ${response.statusText}`,
-      );
+      throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
     }
   }
 
