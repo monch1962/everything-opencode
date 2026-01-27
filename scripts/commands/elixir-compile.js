@@ -5,7 +5,7 @@
  * Compile Elixir projects with Elixir-specific improvements
  */
 
-const ElixirCommandRunner = require('../elixir/command-runner');
+const ElixirCommandRunner = require('../elixir/elixir-command-runner-refactored');
 
 async function main() {
   const args = process.argv.slice(2);

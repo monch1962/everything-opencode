@@ -51,12 +51,15 @@ try {
 // Test Elixir command runner
 console.log('   Testing Elixir command runner...');
 try {
-  const ElixirCommandRunner = require('./elixir/command-runner');
+  const ElixirCommandRunner = require('./elixir/elixir-command-runner-refactored');
   new ElixirCommandRunner();
   console.log('   ✅ Elixir command runner loaded');
 
   // Check if error handler is integrated
-  const source = fs.readFileSync(path.join(__dirname, 'elixir/command-runner.js'), 'utf8');
+  const source = fs.readFileSync(
+    path.join(__dirname, 'elixir/elixir-command-runner-refactored.js'),
+    'utf8'
+  );
   if (source.includes('defaultErrorHandler')) {
     console.log('   ✅ Error handler integrated in Elixir command runner');
   } else {
@@ -173,7 +176,7 @@ if (allFilesExist) {
   console.log('   5. ✅ Enhanced Go deps with security scanning (gosec, govulncheck)');
   console.log('   6. ✅ Enhanced Python deps with security scanning (safety, pip-audit, bandit)');
   console.log(
-    '   7. ✅ Enhanced Elixir deps with security scanning (hex.audit, mix_audit, sobelow)',
+    '   7. ✅ Enhanced Elixir deps with security scanning (hex.audit, mix_audit, sobelow)'
   );
   console.log('   8. ✅ Added user-friendly error messages with recovery steps');
   console.log('   9. ✅ Added comprehensive security reports with exit codes');

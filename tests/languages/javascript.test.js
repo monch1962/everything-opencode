@@ -12,7 +12,7 @@ const os = require('os');
 // Import the modules
 const JSConfigWizard = require('../../languages/javascript/config-wizard');
 const JSToolDetector = require('../../languages/javascript/tool-detector');
-const JSCommandRunner = require('../../scripts/javascript/command-runner');
+const JSCommandRunner = require('../../scripts/javascript/javascript-command-runner-refactored');
 
 // Test helper
 function test(name, fn) {
