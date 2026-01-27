@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-01-27T02:23:50.667Z",
+  "timestamp": "2026-01-27T20:29:25.423Z",
   "totalFiles": 3,
   "summary": {
     "highPriority": 3,
     "mediumPriority": 3,
-    "totalIssues": 19,
-    "totalSuggestions": 19
+    "totalIssues": 20,
+    "totalSuggestions": 20
   },
   "files": [
     {
@@ -24,29 +24,29 @@
     },
     {
       "file": "scripts/commands/pine-debug.js",
-      "lines": 1478,
-      "issues": 6,
-      "suggestions": 6,
+      "lines": 1382,
+      "issues": 7,
+      "suggestions": 7,
       "metrics": {
-        "imports": 12,
-        "functions": 79,
+        "imports": 11,
+        "functions": 80,
         "classes": 1,
-        "avgLineLength": 28,
+        "avgLineLength": 30,
         "commentRatio": 7
       },
       "priority": "HIGH"
     },
     {
       "file": "scripts/pinescript/debug-server.js",
-      "lines": 1871,
+      "lines": 1765,
       "issues": 7,
       "suggestions": 7,
       "metrics": {
-        "imports": 16,
-        "functions": 95,
+        "imports": 15,
+        "functions": 96,
         "classes": 1,
-        "avgLineLength": 28,
-        "commentRatio": 8
+        "avgLineLength": 29,
+        "commentRatio": 9
       },
       "priority": "HIGH"
     }
