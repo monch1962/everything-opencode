@@ -166,7 +166,7 @@ async function validatePhase2() {
         files.forEach((file) => {
           const fullPath = path.join(modulePath, file);
           try {
-            require(`../../${fullPath}`);
+            require(`../${fullPath}`);
             log(`Module loads successfully: ${file}`);
           } catch (error) {
             log(`Failed to load module ${file}: ${error.message}`, 'error');
