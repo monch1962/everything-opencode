@@ -5,7 +5,7 @@
  * Build Clojure projects with intelligent defaults
  */
 
-const ClojureCommandRunner = require('../clojure/command-runner');
+const ClojureCommandRunner = require('../clojure/command-runner-refactored');
 
 async function main() {
   try {
