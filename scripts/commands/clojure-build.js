@@ -12,7 +12,7 @@ async function main() {
     const runner = new ClojureCommandRunner();
 
     // Parse arguments for build options
-    const args = process.argv.slice(2);
+    let args = process.argv.slice(2);
     const options = {};
 
     // Check for uberjar flag

@@ -6,7 +6,7 @@
  * Includes Elixir-specific improvements for modern Elixir development
  */
 
-const { runCommand, commandExists } = require('../../scripts/lib/utils');
+const { runCommand } = require('../../scripts/lib/utils');
 
 class ElixirToolDetector {
   constructor() {
@@ -98,15 +98,11 @@ class ElixirToolDetector {
       // Dialyzer for type checking
       dialyzer: {
         command: 'mix dialyzer --version',
-        description:
-          'Static analysis tool that identifies software discrepancies',
+        description: 'Static analysis tool that identifies software discrepancies',
         installGuide: {
-          macos:
-            'Add {:dialyxir, "~> 1.4", only: [:dev], runtime: false} to mix.exs',
-          linux:
-            'Add {:dialyxir, "~> 1.4", only: [:dev], runtime: false} to mix.exs',
-          windows:
-            'Add {:dialyxir, "~> 1.4", only: [:dev], runtime: false} to mix.exs',
+          macos: 'Add {:dialyxir, "~> 1.4", only: [:dev], runtime: false} to mix.exs',
+          linux: 'Add {:dialyxir, "~> 1.4", only: [:dev], runtime: false} to mix.exs',
+          windows: 'Add {:dialyxir, "~> 1.4", only: [:dev], runtime: false} to mix.exs',
         },
         priority: 7,
       },
@@ -257,11 +253,9 @@ class ElixirToolDetector {
         elixirInstalled: detectedTools.elixir?.installed || false,
         mixInstalled: detectedTools.mix?.installed || false,
         hexInstalled: detectedTools.hex?.installed || false,
-        toolsDetected: Object.values(detectedTools).filter((t) => t.installed)
+        toolsDetected: Object.values(detectedTools).filter((t) => t.installed).length,
+        recommendedTools: Object.values(detectedTools).filter((t) => t.recommended && t.installed)
           .length,
-        recommendedTools: Object.values(detectedTools).filter(
-          (t) => t.recommended && t.installed,
-        ).length,
         totalTools: Object.keys(detectedTools).length,
       },
       tools: detectedTools,

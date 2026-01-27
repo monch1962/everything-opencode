@@ -5,8 +5,6 @@
  * Manage Elixir dependencies with Mix, Hex, and security scanning
  */
 
-const path = require('path');
-const fs = require('fs');
 const ElixirCommandRunner = require('../elixir/command-runner');
 const { defaultErrorHandler } = require('../lib/error-handler');
 
@@ -64,9 +62,7 @@ async function main() {
           console.log(result.stdout);
         }
       } else {
-        console.log(
-          `\n❌ Dependency operation failed with code ${result.code}`,
-        );
+        console.log(`\n❌ Dependency operation failed with code ${result.code}`);
         if (result.stderr) {
           console.log(result.stderr);
         }
@@ -92,9 +88,7 @@ async function main() {
 
     // Check if Hex is not installed
     if (error.message.includes('Hex')) {
-      console.log(
-        '\n💡 Hex package manager is not installed. Install it with:',
-      );
+      console.log('\n💡 Hex package manager is not installed. Install it with:');
       console.log('   mix local.hex --force');
     }
 
@@ -105,13 +99,11 @@ async function main() {
 /**
  * Run comprehensive security audit on Elixir dependencies
  */
-async function runSecurityAudit(runner, options) {
-  console.log(
-    '🔒 Running comprehensive security audit on Elixir dependencies...',
-  );
+async function runSecurityAudit(runner, _options) {
+  console.log('🔒 Running comprehensive security audit on Elixir dependencies...');
 
   try {
-    const { runCommand, commandExists } = require('../lib/utils');
+    const { runCommand } = require('../lib/utils');
     const securityTools = [];
     const results = {
       vulnerabilities: 0,
@@ -127,13 +119,9 @@ async function runSecurityAudit(runner, options) {
     });
 
     if (outdatedResult.stdout) {
-      const lines = outdatedResult.stdout
-        .split('\n')
-        .filter((line) => line.trim());
+      const lines = outdatedResult.stdout.split('\n').filter((line) => line.trim());
       // Skip header lines and empty lines
-      const deps = lines
-        .slice(2)
-        .filter((line) => !line.includes('===') && line.trim());
+      const deps = lines.slice(2).filter((line) => !line.includes('===') && line.trim());
 
       results.tools.outdated = {
         dependencies: deps.length,
@@ -152,9 +140,7 @@ async function runSecurityAudit(runner, options) {
           dep.includes('tls'),
       );
       if (securityDeps.length > 0) {
-        console.log(
-          `   ⚠️  ${securityDeps.length} security-related dependencies need updates`,
-        );
+        console.log(`   ⚠️  ${securityDeps.length} security-related dependencies need updates`);
         results.warnings += securityDeps.length;
       }
     }
@@ -183,17 +169,13 @@ async function runSecurityAudit(runner, options) {
       if (auditResult.stdout) {
         const lines = auditResult.stdout.split('\n');
         const vulnCount = lines.filter(
-          (line) =>
-            line.includes('Vulnerability') ||
-            line.includes('CVE') ||
-            line.includes('HIGH'),
+          (line) => line.includes('Vulnerability') || line.includes('CVE') || line.includes('HIGH'),
         ).length;
 
         results.tools.mix_audit = {
           vulnerabilities: vulnCount,
           output:
-            auditResult.stdout.substring(0, 500) +
-            (auditResult.stdout.length > 500 ? '...' : ''),
+            auditResult.stdout.substring(0, 500) + (auditResult.stdout.length > 500 ? '...' : ''),
         };
         results.vulnerabilities += vulnCount;
         console.log(`   📈 Found ${vulnCount} potential vulnerabilities`);
@@ -212,10 +194,7 @@ async function runSecurityAudit(runner, options) {
       securityTools.push('hex.audit');
       const lines = hexAuditResult.stdout.split('\n');
       const issues = lines.filter(
-        (line) =>
-          line.includes('Vulnerability') ||
-          line.includes('found') ||
-          line.includes('⚠'),
+        (line) => line.includes('Vulnerability') || line.includes('found') || line.includes('⚠'),
       );
 
       results.tools.hex_audit = {
@@ -226,9 +205,7 @@ async function runSecurityAudit(runner, options) {
       };
 
       if (issues.length > 0) {
-        const vulnCount = issues.filter((line) =>
-          line.includes('Vulnerability'),
-        ).length;
+        const vulnCount = issues.filter((line) => line.includes('Vulnerability')).length;
         results.vulnerabilities += vulnCount;
         console.log(`   📈 Found ${vulnCount} Hex package vulnerabilities`);
       } else {
@@ -244,9 +221,7 @@ async function runSecurityAudit(runner, options) {
 
     if (depsResult.stdout) {
       const lines = depsResult.stdout.split('\n');
-      const deps = lines.filter(
-        (line) => line.includes('*') && !line.includes('Dependency'),
-      );
+      const deps = lines.filter((line) => line.includes('*') && !line.includes('Dependency'));
 
       results.tools.licenses = {
         dependencies: deps.length,
@@ -255,9 +230,7 @@ async function runSecurityAudit(runner, options) {
       console.log(`   📦 Found ${deps.length} dependencies to check`);
 
       // Note: Would need sobelow or similar for license checking
-      console.log(
-        '   ℹ️  Consider using sobelow for security and license analysis',
-      );
+      console.log('   ℹ️  Consider using sobelow for security and license analysis');
     }
 
     // 5. Check for sobelow (security-focused static analysis)
@@ -268,9 +241,7 @@ async function runSecurityAudit(runner, options) {
     }).catch(() => ({ success: false }));
 
     if (!sobelowCheck.success) {
-      console.log(
-        '   ⚠️ sobelow not installed. Consider installing for security analysis:',
-      );
+      console.log('   ⚠️ sobelow not installed. Consider installing for security analysis:');
       console.log('     mix archive.install hex sobelow');
     } else {
       securityTools.push('sobelow');
@@ -333,14 +304,10 @@ async function runSecurityAudit(runner, options) {
     });
 
     if (results.vulnerabilities > 0) {
-      console.log(
-        `\n⚠️  CRITICAL: ${results.vulnerabilities} security vulnerabilities found!`,
-      );
+      console.log(`\n⚠️  CRITICAL: ${results.vulnerabilities} security vulnerabilities found!`);
       console.log('   Recommended actions:');
       console.log("   1. Run 'mix hex.audit' for detailed vulnerability info");
-      console.log(
-        '   2. Update vulnerable packages: mix deps.update <package>',
-      );
+      console.log('   2. Update vulnerable packages: mix deps.update <package>');
       console.log('   3. Install mix_audit for regular vulnerability checking');
       console.log('   4. Use sobelow for code security analysis');
       process.exit(2); // Exit code 2 for security vulnerabilities

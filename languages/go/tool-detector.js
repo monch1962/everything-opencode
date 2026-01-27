@@ -6,7 +6,7 @@
  * Includes Go-specific improvements for modern Go development
  */
 
-const { runCommand, commandExists } = require('../../scripts/lib/utils');
+const { runCommand } = require('../../scripts/lib/utils');
 
 class GoToolDetector {
   constructor() {
@@ -47,8 +47,7 @@ class GoToolDetector {
 
       goimports: {
         command: 'goimports --version',
-        description:
-          'Updates Go import lines, adds missing ones, removes unreferenced ones',
+        description: 'Updates Go import lines, adds missing ones, removes unreferenced ones',
         installGuide: {
           macos: 'go install golang.org/x/tools/cmd/goimports@latest',
           linux: 'go install golang.org/x/tools/cmd/goimports@latest',
@@ -84,8 +83,7 @@ class GoToolDetector {
 
       revive: {
         command: 'revive --version',
-        description:
-          'Fast, configurable, extensible, flexible, and beautiful linter for Go',
+        description: 'Fast, configurable, extensible, flexible, and beautiful linter for Go',
         installGuide: {
           macos: 'go install github.com/mgechev/revive@latest',
           linux: 'go install github.com/mgechev/revive@latest',
@@ -201,9 +199,7 @@ class GoToolDetector {
     const detectionPromises = [];
 
     for (const [toolName, toolInfo] of Object.entries(this.tools)) {
-      detectionPromises.push(
-        this.detectTool(toolName, toolInfo, detectedTools),
-      );
+      detectionPromises.push(this.detectTool(toolName, toolInfo, detectedTools));
     }
 
     await Promise.all(detectionPromises);
@@ -391,10 +387,7 @@ class GoToolDetector {
     }
 
     // Check for recommended tools
-    if (
-      !detectedTools.golangci_lint?.installed &&
-      detectedTools.go?.installed
-    ) {
+    if (!detectedTools.golangci_lint?.installed && detectedTools.go?.installed) {
       recommendations.push({
         tool: 'golangci-lint',
         priority: 'recommended',
@@ -421,8 +414,7 @@ class GoToolDetector {
         recommendations.push({
           tool: 'go work',
           priority: 'info',
-          message:
-            'Consider using Go workspaces for multi-module development (Go 1.18+)',
+          message: 'Consider using Go workspaces for multi-module development (Go 1.18+)',
         });
       }
     }
@@ -439,11 +431,9 @@ class GoToolDetector {
         goInstalled: detectedTools.go?.installed || false,
         goVersion: detectedTools.go?.version || 'not installed',
         usingModules: detectedTools.go_module_support?.enabled || false,
-        usingWorkspace:
-          detectedTools.go_workspace_support?.hasWorkspace || false,
-        totalToolsDetected: Object.keys(detectedTools).filter(
-          (t) => detectedTools[t]?.installed,
-        ).length,
+        usingWorkspace: detectedTools.go_workspace_support?.hasWorkspace || false,
+        totalToolsDetected: Object.keys(detectedTools).filter((t) => detectedTools[t]?.installed)
+          .length,
       },
       tools: {},
       recommendations: this.getInstallationRecommendations(detectedTools),

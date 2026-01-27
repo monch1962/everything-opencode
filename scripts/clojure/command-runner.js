@@ -37,14 +37,14 @@ class ClojureCommandRunner {
 
       if (projectInfo.type !== 'clojure' && projectInfo.confidence < 0.7) {
         LoggingUtils.warn(
-          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`
+          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`,
         );
         LoggingUtils.warn(
-          'This may not be a Clojure project. Some features may not work correctly.'
+          'This may not be a Clojure project. Some features may not work correctly.',
         );
       } else if (projectInfo.type === 'clojure') {
         LoggingUtils.debug(
-          `Detected Clojure project: ${projectInfo.framework || 'standard Clojure'}`
+          `Detected Clojure project: ${projectInfo.framework || 'standard Clojure'}`,
         );
       }
 
@@ -127,14 +127,14 @@ class ClojureCommandRunner {
       case 'clojure-cli':
         if (!this.detectedTools.clojureCli?.installed) {
           throw new Error(
-            'Clojure CLI is not installed. Install with: https://clojure.org/guides/getting_started'
+            'Clojure CLI is not installed. Install with: https://clojure.org/guides/getting_started',
           );
         }
         break;
       case 'leiningen':
         if (!this.detectedTools.leiningen?.installed) {
           throw new Error(
-            'Leiningen is not installed. Install with: https://leiningen.org/#install'
+            'Leiningen is not installed. Install with: https://leiningen.org/#install',
           );
         }
         break;
@@ -395,7 +395,7 @@ class ClojureCommandRunner {
   /**
    * Suggest build tool specific fixes
    */
-  _suggestBuildToolFix(errorMessage, command) {
+  _suggestBuildToolFix(errorMessage, _command) {
     if (this.buildTool === 'clojure-cli') {
       if (errorMessage.includes('deps.edn')) {
         LoggingUtils.info('   • Check deps.edn syntax and structure');
@@ -462,7 +462,7 @@ class ClojureCommandRunner {
       LoggingUtils.info('='.repeat(40));
       LoggingUtils.info(`Build tool: ${this.buildTool}`);
       LoggingUtils.info(
-        `Test framework: ${projectInfo.testFrameworks.join(', ') || 'clojure.test'}`
+        `Test framework: ${projectInfo.testFrameworks.join(', ') || 'clojure.test'}`,
       );
       LoggingUtils.info(`Project type: ${projectInfo.projectType || 'Library'}`);
 
@@ -483,7 +483,7 @@ class ClojureCommandRunner {
     await this.initialize();
 
     const projectInfo = this.getClojureProjectInfo();
-    let buildArgs = args;
+    const buildArgs = args;
 
     LoggingUtils.info('🔨 Building Clojure project...');
 
@@ -582,7 +582,7 @@ class ClojureCommandRunner {
         await this.executeClojureCliCommand(['-M:clj-kondo/install'], options);
       } catch (error) {
         LoggingUtils.error(
-          'Failed to install clj-kondo. Install manually: https://github.com/clj-kondo/clj-kondo'
+          'Failed to install clj-kondo. Install manually: https://github.com/clj-kondo/clj-kondo',
         );
         throw error;
       }
@@ -596,20 +596,20 @@ class ClojureCommandRunner {
         case 'clojure-cli':
           result = await this.executeClojureCliCommand(
             ['-M:clj-kondo', '--lint', '.', ...args],
-            options
+            options,
           );
           break;
         case 'leiningen':
           result = await this.executeLeiningenCommand(
             'clj-kondo',
             ['--lint', '.', ...args],
-            options
+            options,
           );
           break;
         case 'boot':
           result = await this.executeBootCommand(['clj-kondo', '--lint', '.', ...args], options);
           break;
-        default:
+        default: {
           // Fallback to direct clj-kondo if available
           const child = spawn('clj-kondo', ['--lint', '.', ...args], {
             cwd: this.projectPath,
@@ -625,6 +625,7 @@ class ClojureCommandRunner {
               }
             });
           });
+        }
       }
 
       LoggingUtils.info('✅ Linting completed successfully');
@@ -652,7 +653,7 @@ class ClojureCommandRunner {
         await this.executeClojureCliCommand(['-M:zprint/install'], options);
       } catch (error) {
         LoggingUtils.error(
-          'Failed to install zprint. Install manually: https://github.com/kkinnear/zprint'
+          'Failed to install zprint. Install manually: https://github.com/kkinnear/zprint',
         );
         throw error;
       }
@@ -666,20 +667,20 @@ class ClojureCommandRunner {
         case 'clojure-cli':
           result = await this.executeClojureCliCommand(
             ['-M:zprint', '--format', '.', ...args],
-            options
+            options,
           );
           break;
         case 'leiningen':
           result = await this.executeLeiningenCommand(
             'zprint',
             ['--format', '.', ...args],
-            options
+            options,
           );
           break;
         case 'boot':
           result = await this.executeBootCommand(['zprint', '--format', '.', ...args], options);
           break;
-        default:
+        default: {
           // Fallback to direct zprint if available
           const child = spawn('zprint', ['--format', '.', ...args], {
             cwd: this.projectPath,
@@ -695,6 +696,7 @@ class ClojureCommandRunner {
               }
             });
           });
+        }
       }
 
       LoggingUtils.info('✅ Code formatting completed');
@@ -762,7 +764,7 @@ class ClojureCommandRunner {
     try {
       let result;
       switch (this.buildTool) {
-        case 'clojure-cli':
+        case 'clojure-cli': {
           // CLI doesn't have a clean command, but we can clean target directories
           const fs = require('fs');
           const targetDirs = ['target', '.cpcache', '.cljs_rhino_repl'];
@@ -775,6 +777,7 @@ class ClojureCommandRunner {
           });
           result = { success: true, code: 0 };
           break;
+        }
         case 'leiningen':
           result = await this.executeLeiningenCommand('clean', args, options);
           break;

@@ -5,7 +5,7 @@
  * Detects PineScript-related tools and utilities
  */
 
-const { runCommand, commandExists } = require('../../scripts/lib/utils');
+const { runCommand } = require('../../scripts/lib/utils');
 
 class PineScriptToolDetector {
   constructor() {
@@ -20,8 +20,7 @@ class PineScriptToolDetector {
 
       // Backtesting tools
       backtestingPy: {
-        command:
-          'python -c "import backtesting; print(backtesting.__version__)"',
+        command: 'python -c "import backtesting; print(backtesting.__version__)"',
         installed: false,
         version: null,
       },
@@ -136,9 +135,7 @@ class PineScriptToolDetector {
     // Display results
     const installedTools = Object.entries(detectedTools)
       .filter(([_, info]) => info.installed)
-      .map(
-        ([tool, info]) => `${tool}${info.version ? ` v${info.version}` : ''}`,
-      );
+      .map(([tool, info]) => `${tool}${info.version ? ` v${info.version}` : ''}`);
 
     if (installedTools.length > 0) {
       console.log(`✅ Found ${installedTools.length} tools:`);
@@ -202,10 +199,7 @@ class PineScriptToolDetector {
         });
       }
 
-      if (
-        !detectedTools.backtestingPy?.installed &&
-        detectedTools.python?.installed
-      ) {
+      if (!detectedTools.backtestingPy?.installed && detectedTools.python?.installed) {
         recommendations.push({
           tool: 'backtesting.py',
           command: 'pip install backtesting',
@@ -236,10 +230,7 @@ class PineScriptToolDetector {
     }
 
     // Alert system recommendations
-    if (
-      !detectedTools.axios?.installed &&
-      !detectedTools.nodeFetch?.installed
-    ) {
+    if (!detectedTools.axios?.installed && !detectedTools.nodeFetch?.installed) {
       recommendations.push({
         tool: 'axios or node-fetch',
         command: 'npm install axios',

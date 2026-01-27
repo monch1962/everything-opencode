@@ -5,7 +5,7 @@
  * Detects Python tools, versions, and provides installation guides
  */
 
-const { runCommand, commandExists } = require('../../scripts/lib/utils');
+const { runCommand } = require('../../scripts/lib/utils');
 
 class PythonToolDetector {
   constructor() {
@@ -345,7 +345,7 @@ class PythonToolDetector {
   async detectAll() {
     const results = {};
 
-    for (const [toolName, toolInfo] of Object.entries(this.tools)) {
+    for (const [toolName] of Object.entries(this.tools)) {
       const detection = await this.detectTool(toolName);
       results[toolName] = detection;
     }
@@ -474,11 +474,7 @@ class PythonToolDetector {
         const currentParts = result.version.split('.').map(Number);
         const requiredParts = requiredVersion.split('.').map(Number);
 
-        for (
-          let i = 0;
-          i < Math.min(currentParts.length, requiredParts.length);
-          i++
-        ) {
+        for (let i = 0; i < Math.min(currentParts.length, requiredParts.length); i++) {
           if (currentParts[i] > requiredParts[i]) {
             break; // Current is newer
           }
@@ -512,20 +508,8 @@ class PythonToolDetector {
       fastapi: ['fastapi', 'uvicorn', 'pydantic'],
       django: ['django'],
       flask: ['flask'],
-      'data-science': [
-        'pandas',
-        'numpy',
-        'matplotlib',
-        'jupyter',
-        'scikit-learn',
-      ],
-      'machine-learning': [
-        'torch',
-        'tensorflow',
-        'scikit-learn',
-        'pandas',
-        'numpy',
-      ],
+      'data-science': ['pandas', 'numpy', 'matplotlib', 'jupyter', 'scikit-learn'],
+      'machine-learning': ['torch', 'tensorflow', 'scikit-learn', 'pandas', 'numpy'],
       cli: ['click', 'typer'],
       library: ['setuptools', 'wheel', 'build', 'twine'],
     };
@@ -545,7 +529,7 @@ class PythonToolDetector {
   /**
    * Generate installation script
    */
-  generateInstallScript(tools, packageManager = 'pip') {
+  generateInstallScript(tools, _packageManager = 'pip') {
     const script = [];
 
     // Header
@@ -576,9 +560,7 @@ class PythonToolDetector {
     script.push('echo "Verifying installations..."');
     for (const tool of tools) {
       script.push(`echo -n "${tool}: "`);
-      script.push(
-        `${this.tools[tool]?.command} 2>/dev/null && echo "OK" || echo "FAILED"`,
-      );
+      script.push(`${this.tools[tool]?.command} 2>/dev/null && echo "OK" || echo "FAILED"`);
     }
 
     return script.join('\n');
@@ -592,11 +574,9 @@ class PythonToolDetector {
       summary: {
         pythonInstalled: detectedTools.python?.installed || false,
         python3Installed: detectedTools.python3?.installed || false,
-        toolsDetected: Object.values(detectedTools).filter((t) => t.installed)
+        toolsDetected: Object.values(detectedTools).filter((t) => t.installed).length,
+        recommendedTools: Object.values(detectedTools).filter((t) => t.recommended && t.installed)
           .length,
-        recommendedTools: Object.values(detectedTools).filter(
-          (t) => t.recommended && t.installed,
-        ).length,
         totalTools: Object.keys(detectedTools).length,
       },
       tools: detectedTools,
@@ -699,9 +679,7 @@ class PythonToolDetector {
       console.log('');
     }
 
-    console.log(
-      `📊 Summary: ${installed.length} installed, ${missing.length} missing`,
-    );
+    console.log(`📊 Summary: ${installed.length} installed, ${missing.length} missing`);
 
     return {
       installed: installed.length,
@@ -725,9 +703,7 @@ if (require.main === module) {
   if (specificTool) {
     detector.detectTool(specificTool).then((result) => {
       if (result.installed) {
-        console.log(
-          `✅ ${specificTool} v${result.version} - ${result.description}`,
-        );
+        console.log(`✅ ${specificTool} v${result.version} - ${result.description}`);
       } else {
         console.log(`❌ ${specificTool} - ${result.description}`);
         console.log(

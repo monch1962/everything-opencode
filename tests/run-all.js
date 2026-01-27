@@ -10,12 +10,29 @@ const path = require('path');
 const fs = require('fs');
 
 const testsDir = __dirname;
-const testFiles = [
-  'lib/utils.test.js',
-  'lib/package-manager.test.js',
-  'hooks/hooks.test.js',
-  'languages/javascript.test.js',
-];
+
+// Dynamically discover all test files
+function discoverTestFiles() {
+  const testFiles = [];
+  const directories = ['lib', 'hooks', 'languages'];
+
+  for (const dir of directories) {
+    const dirPath = path.join(testsDir, dir);
+    if (fs.existsSync(dirPath)) {
+      const files = fs.readdirSync(dirPath);
+      files.forEach((file) => {
+        if (file.endsWith('.test.js')) {
+          testFiles.push(path.join(dir, file));
+        }
+      });
+    }
+  }
+
+  // Sort for consistent execution order
+  return testFiles.sort();
+}
+
+const testFiles = discoverTestFiles();
 
 console.log('╔══════════════════════════════════════════════════════════╗');
 console.log('║           Everything opencode - Test Suite               ║');

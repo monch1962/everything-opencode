@@ -5,9 +5,6 @@
  * Interactive wizard for configuring Python projects in opencode
  */
 
-const path = require('path');
-const fs = require('fs');
-const { commandExists, runCommand } = require('../../scripts/lib/utils');
 const InteractivePrompts = require('../../scripts/interactive/prompts');
 const ProjectDetector = require('../../scripts/interactive/project-detector');
 const ConfigManager = require('../../scripts/interactive/config-manager');
@@ -44,10 +41,7 @@ class PythonConfigWizard {
       const detectedTools = await this.detectTools();
 
       // Step 4: Interactive configuration
-      const userConfig = await this.interactiveConfiguration(
-        projectType,
-        detectedTools,
-      );
+      const userConfig = await this.interactiveConfiguration(projectType, detectedTools);
 
       // Step 5: Save configuration
       const saved = await this.saveConfiguration(userConfig);
@@ -71,9 +65,7 @@ class PythonConfigWizard {
     this.prompts.info('Detecting Python project...');
 
     const summary = await this.detector.getProjectSummary();
-    const pythonResult = summary.languages.find(
-      (lang) => lang.language === 'python',
-    );
+    const pythonResult = summary.languages.find((lang) => lang.language === 'python');
 
     if (!pythonResult || pythonResult.confidence < 0.3) {
       return {
@@ -152,9 +144,7 @@ class PythonConfigWizard {
       this.prompts.info('Installed tools:');
       for (const [toolName, toolInfo] of Object.entries(detectedTools)) {
         if (toolInfo.installed) {
-          const versionText = toolInfo.version
-            ? `v${toolInfo.version}`
-            : 'unknown version';
+          const versionText = toolInfo.version ? `v${toolInfo.version}` : 'unknown version';
           // Check if tool is recommended (some tools may not have this property)
           const recommended = toolInfo.recommended ? ' ⭐' : '';
           this.prompts.item(`${toolName}: ${versionText}${recommended}`);
@@ -166,8 +156,7 @@ class PythonConfigWizard {
     if (report.recommendations.length > 0) {
       this.prompts.info('Recommendations:');
       report.recommendations.forEach((rec) => {
-        const icon =
-          rec.type === 'critical' ? '❌' : rec.type === 'high' ? '⚠️' : '🔵';
+        const icon = rec.type === 'critical' ? '❌' : rec.type === 'high' ? '⚠️' : '🔵';
         this.prompts.item(`${icon} ${rec.message}`);
       });
     }
@@ -196,8 +185,7 @@ class PythonConfigWizard {
     const depManagerChoices = [
       {
         title: 'uv',
-        description:
-          'Modern, fast Python package manager (recommended for new projects)',
+        description: 'Modern, fast Python package manager (recommended for new projects)',
         value: 'uv',
         recommended: true,
       },
@@ -211,15 +199,13 @@ class PythonConfigWizard {
         title: 'pip',
         description: 'Standard Python package installer',
         value: 'pip',
-        recommended:
-          detectedTools.pip?.installed && !detectedTools.uv?.installed,
+        recommended: detectedTools.pip?.installed && !detectedTools.uv?.installed,
       },
       {
         title: 'conda',
         description: 'Package and environment manager (for data science/ML)',
         value: 'conda',
-        recommended:
-          projectType === 'data-science' || projectType === 'machine-learning',
+        recommended: projectType === 'data-science' || projectType === 'machine-learning',
       },
       {
         title: 'Skip for now',
@@ -245,8 +231,7 @@ class PythonConfigWizard {
         title: 'unittest',
         description: 'Python built-in testing framework',
         value: 'unittest',
-        recommended:
-          detectedTools.unittest?.installed && !detectedTools.pytest?.installed,
+        recommended: detectedTools.unittest?.installed && !detectedTools.pytest?.installed,
       },
       {
         title: 'Skip testing',
@@ -272,8 +257,7 @@ class PythonConfigWizard {
         title: 'flake8',
         description: 'Popular Python style guide enforcement',
         value: 'flake8',
-        recommended:
-          detectedTools.flake8?.installed && !detectedTools.ruff?.installed,
+        recommended: detectedTools.flake8?.installed && !detectedTools.ruff?.installed,
       },
       {
         title: 'pylint',
@@ -288,10 +272,7 @@ class PythonConfigWizard {
       },
     ];
 
-    config.linter = await this.prompts.selectWithDescriptions(
-      'Select linter:',
-      linterChoices,
-    );
+    config.linter = await this.prompts.selectWithDescriptions('Select linter:', linterChoices);
 
     // 4. Formatter selection
     const formatterChoices = [
@@ -337,8 +318,7 @@ class PythonConfigWizard {
         title: 'mypy',
         description: 'Optional static typing for Python',
         value: 'mypy',
-        recommended:
-          detectedTools.mypy?.installed && !detectedTools.pyright?.installed,
+        recommended: detectedTools.mypy?.installed && !detectedTools.pyright?.installed,
       },
       {
         title: 'Skip type checking',
@@ -394,10 +374,7 @@ class PythonConfigWizard {
     console.log(`  • Formatter: ${config.formatter}`);
     console.log(`  • Type checker: ${config.typeChecker}`);
 
-    config.userApproved = await this.prompts.confirm(
-      '\nSave this configuration?',
-      true,
-    );
+    config.userApproved = await this.prompts.confirm('\nSave this configuration?', true);
 
     return config;
   }
@@ -420,9 +397,7 @@ class PythonConfigWizard {
       // Set Python as primary language
       this.configManager.setPrimaryLanguage('python');
 
-      this.prompts.success(
-        'Configuration saved to .opencode/project-config.json',
-      );
+      this.prompts.success('Configuration saved to .opencode/project-config.json');
       return true;
     } else {
       this.prompts.error('Failed to save configuration');
@@ -448,70 +423,40 @@ class PythonConfigWizard {
       );
     }
 
-    if (
-      config.testRunner !== 'none' &&
-      !detectedTools[config.testRunner]?.installed
-    ) {
-      recommendations.push(
-        `Install ${config.testRunner}: Required for running tests`,
-      );
+    if (config.testRunner !== 'none' && !detectedTools[config.testRunner]?.installed) {
+      recommendations.push(`Install ${config.testRunner}: Required for running tests`);
     }
 
     if (config.linter !== 'none' && !detectedTools[config.linter]?.installed) {
-      recommendations.push(
-        `Install ${config.linter}: Required for code linting`,
-      );
+      recommendations.push(`Install ${config.linter}: Required for code linting`);
     }
 
-    if (
-      config.formatter !== 'none' &&
-      !detectedTools[config.formatter]?.installed
-    ) {
-      recommendations.push(
-        `Install ${config.formatter}: Required for code formatting`,
-      );
+    if (config.formatter !== 'none' && !detectedTools[config.formatter]?.installed) {
+      recommendations.push(`Install ${config.formatter}: Required for code formatting`);
     }
 
-    if (
-      config.typeChecker !== 'none' &&
-      !detectedTools[config.typeChecker]?.installed
-    ) {
-      recommendations.push(
-        `Install ${config.typeChecker}: Required for type checking`,
-      );
+    if (config.typeChecker !== 'none' && !detectedTools[config.typeChecker]?.installed) {
+      recommendations.push(`Install ${config.typeChecker}: Required for type checking`);
     }
 
     // Project type specific recommendations
     if (config.projectType === 'fastapi') {
-      recommendations.push(
-        'Run: `uv add fastapi[all]` to install FastAPI with all dependencies',
-      );
-      recommendations.push(
-        'Check out: https://fastapi.tiangolo.com for documentation',
-      );
+      recommendations.push('Run: `uv add fastapi[all]` to install FastAPI with all dependencies');
+      recommendations.push('Check out: https://fastapi.tiangolo.com for documentation');
     }
 
     if (config.projectType === 'data-science') {
-      recommendations.push(
-        'Run: `uv add pandas numpy matplotlib seaborn` for data analysis',
-      );
+      recommendations.push('Run: `uv add pandas numpy matplotlib seaborn` for data analysis');
       recommendations.push('Run: `uv add jupyter` for notebook support');
     }
 
     if (config.projectType === 'machine-learning') {
       recommendations.push('Run: `uv add scikit-learn` for traditional ML');
-      recommendations.push(
-        'Run: `uv add torch` or `uv add tensorflow` for deep learning',
-      );
+      recommendations.push('Run: `uv add torch` or `uv add tensorflow` for deep learning');
     }
 
-    if (
-      config.projectType === 'cli' &&
-      config.cliOptions?.framework !== 'none'
-    ) {
-      recommendations.push(
-        `Run: \`uv add ${config.cliOptions.framework}\` for CLI framework`,
-      );
+    if (config.projectType === 'cli' && config.cliOptions?.framework !== 'none') {
+      recommendations.push(`Run: \`uv add ${config.cliOptions.framework}\` for CLI framework`);
     }
 
     // General recommendations
@@ -519,9 +464,7 @@ class PythonConfigWizard {
     recommendations.push(
       'Activate virtual environment: `source .venv/bin/activate` (Linux/Mac) or `.venv\\Scripts\\activate` (Windows)',
     );
-    recommendations.push(
-      'Initialize git: `git init` (if not already a git repository)',
-    );
+    recommendations.push('Initialize git: `git init` (if not already a git repository)');
 
     // Display recommendations
     if (recommendations.length > 0) {
@@ -598,10 +541,7 @@ class PythonConfigWizard {
     console.log(`  • Formatter: ${config.formatter}`);
     console.log(`  • Type checker: ${config.typeChecker}`);
 
-    const approved = await this.prompts.confirm(
-      'Apply this configuration?',
-      true,
-    );
+    const approved = await this.prompts.confirm('Apply this configuration?', true);
 
     if (approved) {
       config.userApproved = true;

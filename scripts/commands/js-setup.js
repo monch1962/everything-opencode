@@ -5,7 +5,6 @@
  * Interactive setup for JavaScript/TypeScript projects
  */
 
-const path = require('path');
 const JSConfigWizard = require('../../languages/javascript/config-wizard');
 
 async function main() {
