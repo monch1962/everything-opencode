@@ -5,7 +5,7 @@
  * Format Rust code with rustfmt
  */
 
-const RustCommandRunner = require('../rust/command-runner');
+const RustCommandRunner = require('../rust/rust-command-runner-refactored');
 
 async function main() {
   try {

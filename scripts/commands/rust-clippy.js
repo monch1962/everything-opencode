@@ -5,7 +5,7 @@
  * Run clippy linter on Rust code
  */
 
-const RustCommandRunner = require('../rust/command-runner');
+const RustCommandRunner = require('../rust/rust-command-runner-refactored');
 
 async function main() {
   try {
