@@ -342,7 +342,11 @@ async function runTests() {
         }
       };
 
-      for (const [_eventType, hookArray] of Object.entries(hooks.hooks)) {
+      for (const [eventType, hookArray] of Object.entries(hooks.hooks)) {
+        // Use eventType in debug log if needed
+        if (process.env.DEBUG_HOOKS) {
+          console.log(`Checking hooks for event type: ${eventType}`);
+        }
         checkHooks(hookArray);
       }
     })
@@ -370,7 +374,11 @@ async function runTests() {
         }
       };
 
-      for (const [_eventType, hookArray] of Object.entries(hooks.hooks)) {
+      for (const [eventType, hookArray] of Object.entries(hooks.hooks)) {
+        // Use eventType in debug log if needed
+        if (process.env.DEBUG_HOOKS) {
+          console.log(`Checking hooks for event type: ${eventType}`);
+        }
         checkHooks(hookArray);
       }
     })

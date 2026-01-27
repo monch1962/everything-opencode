@@ -76,7 +76,7 @@ class TemplateUtils {
    * Generate multiple files from template directory
    */
   static generateFromTemplateDir(templateDir, outputDir, variables = {}, options = {}) {
-    const { _overwrite = false, _backup = true, _ignore = [], _transform = null } = options;
+    const { _overwrite = false, _backup = true, _ignore = [], _transform = null } = options; // eslint-disable-line no-unused-vars
 
     const results = {
       generated: [],

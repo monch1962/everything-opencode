@@ -558,7 +558,7 @@ class ProjectUtils {
   static getProjectStructure(projectPath, options = {}) {
     const {
       maxDepth = 3,
-      _includeFiles = true,
+      _includeFiles = true, // eslint-disable-line no-unused-vars
       includeStats = true,
       ignorePatterns = [
         '**/node_modules/**',

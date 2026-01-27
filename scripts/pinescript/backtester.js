@@ -7,7 +7,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
+
 const { runCommand } = require('../lib/utils');
 
 class PineBacktester {
@@ -47,9 +47,7 @@ class PineBacktester {
     }
 
     if (!strategyFile.endsWith('.pine')) {
-      throw new Error(
-        `File must be a PineScript file (.pine): ${strategyFile}`,
-      );
+      throw new Error(`File must be a PineScript file (.pine): ${strategyFile}`);
     }
 
     // Check if strategy file contains strategy() function
@@ -99,13 +97,10 @@ class PineBacktester {
    * Backtest using CSV data
    */
   async backtestWithCSV(strategyFile, options) {
-    const { dataFile, fromDate, toDate, commission, slippage, initialCapital } =
-      options;
+    const { dataFile } = options;
 
     if (!dataFile) {
-      throw new Error(
-        'CSV data file required for backtesting. Use --data <file.csv>',
-      );
+      throw new Error('CSV data file required for backtesting. Use --data <file.csv>');
     }
 
     if (!fs.existsSync(dataFile)) {
@@ -186,15 +181,10 @@ class PineBacktester {
         maxDrawdownPct: (maxDrawdown / initialCapital) * 100,
         sharpeRatio,
         sortinoRatio: sharpeRatio * (0.8 + Math.random() * 0.4),
-        calmarRatio:
-          netProfit / initialCapital / (maxDrawdown / initialCapital) || 0,
+        calmarRatio: netProfit / initialCapital / (maxDrawdown / initialCapital) || 0,
       },
       trades: this.generateSampleTrades(totalTrades, initialCapital),
-      equityCurve: this.generateEquityCurve(
-        initialCapital,
-        netProfit,
-        totalTrades,
-      ),
+      equityCurve: this.generateEquityCurve(initialCapital, netProfit, totalTrades),
     };
   }
 
@@ -215,12 +205,8 @@ class PineBacktester {
 
       trades.push({
         id: i + 1,
-        entryTime: new Date(
-          Date.now() - (totalTrades - i) * 86400000,
-        ).toISOString(),
-        exitTime: new Date(
-          Date.now() - (totalTrades - i - 1) * 86400000,
-        ).toISOString(),
+        entryTime: new Date(Date.now() - (totalTrades - i) * 86400000).toISOString(),
+        exitTime: new Date(Date.now() - (totalTrades - i - 1) * 86400000).toISOString(),
         direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
         entryPrice: 100 + Math.random() * 50,
         exitPrice: 100 + Math.random() * 50,
@@ -319,12 +305,8 @@ class PineBacktester {
       `Total Commission: $${trades.reduce((sum, trade) => sum + trade.commission, 0).toFixed(2)}`,
     );
     console.log(`Avg Trade Duration: 1 day`);
-    console.log(
-      `Best Day: $${Math.max(...trades.map((t) => t.profitLoss)).toFixed(2)}`,
-    );
-    console.log(
-      `Worst Day: $${Math.min(...trades.map((t) => t.profitLoss)).toFixed(2)}`,
-    );
+    console.log(`Best Day: $${Math.max(...trades.map((t) => t.profitLoss)).toFixed(2)}`);
+    console.log(`Worst Day: $${Math.min(...trades.map((t) => t.profitLoss)).toFixed(2)}`);
 
     console.log('\n📈 EQUITY CURVE');
     console.log('─'.repeat(40));
@@ -339,9 +321,7 @@ class PineBacktester {
       console.log(`Ending Equity: $${endEquity.toFixed(2)}`);
       console.log(`Peak Equity: $${peakEquity.toFixed(2)}`);
       console.log(`Valley Equity: $${valleyEquity.toFixed(2)}`);
-      console.log(
-        `Total Return: ${(((endEquity - startEquity) / startEquity) * 100).toFixed(2)}%`,
-      );
+      console.log(`Total Return: ${(((endEquity - startEquity) / startEquity) * 100).toFixed(2)}%`);
     }
 
     console.log(`\n${'='.repeat(60)}`);
@@ -361,7 +341,7 @@ class PineBacktester {
   /**
    * Generate HTML report (simplified)
    */
-  generateHTMLReport(results, options) {
+  generateHTMLReport(results, _options) {
     const { strategy, performance, trades } = results;
 
     return `
@@ -454,8 +434,7 @@ class PineBacktester {
     const tools = {
       python: { command: 'python --version', installed: false },
       backtesting: {
-        command:
-          'python -c "import backtesting; print(backtesting.__version__)"',
+        command: 'python -c "import backtesting; print(backtesting.__version__)"',
         installed: false,
       },
       pandas: {
@@ -512,16 +491,12 @@ Examples:
   } else if (args.includes('--check-tools')) {
     backtester.checkBacktestingTools().then((tools) => {
       console.log('\n🔧 Backtesting Tools Check:');
-      console.log(
-        `Available: ${tools.available.length > 0 ? tools.available.join(', ') : 'None'}`,
-      );
+      console.log(`Available: ${tools.available.length > 0 ? tools.available.join(', ') : 'None'}`);
       if (tools.missing.length > 0) {
         console.log(`Missing: ${tools.missing.join(', ')}`);
         console.log('\n💡 Installation recommendations:');
         if (tools.missing.includes('python')) {
-          console.log(
-            '  • Python: https://python.org/ (required for backtesting)',
-          );
+          console.log('  • Python: https://python.org/ (required for backtesting)');
         }
         if (tools.missing.includes('backtesting')) {
           console.log('  • backtesting.py: pip install backtesting');
