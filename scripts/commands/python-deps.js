@@ -139,10 +139,8 @@ async function main() {
 /**
  * Run comprehensive security audit on Python dependencies
  */
-async function runSecurityAudit(runner, options) {
-  console.log(
-    '🔒 Running comprehensive security audit on Python dependencies...',
-  );
+async function runSecurityAudit(runner, _options) {
+  console.log('🔒 Running comprehensive security audit on Python dependencies...');
 
   try {
     const { runCommand, commandExists } = require('../lib/utils');
@@ -207,12 +205,8 @@ async function runSecurityAudit(runner, options) {
 
             // Show critical vulnerabilities
             if (report.vulnerabilities && report.vulnerabilities.length > 0) {
-              const critical = report.vulnerabilities.filter(
-                (v) => v.severity === 'CRITICAL',
-              );
-              const high = report.vulnerabilities.filter(
-                (v) => v.severity === 'HIGH',
-              );
+              const critical = report.vulnerabilities.filter((v) => v.severity === 'CRITICAL');
+              const high = report.vulnerabilities.filter((v) => v.severity === 'HIGH');
               if (critical.length > 0 || high.length > 0) {
                 console.log(
                   `   ⚠️  Critical/High: ${critical.length} critical, ${high.length} high severity`,
@@ -241,12 +235,9 @@ async function runSecurityAudit(runner, options) {
     if (commandExists('bandit')) {
       securityTools.push('bandit');
       console.log('   📊 Running bandit analysis...');
-      const banditResult = runCommand(
-        'bandit -r . -f json -o bandit-report.json',
-        {
-          cwd: runner.projectPath,
-        },
-      );
+      runCommand('bandit -r . -f json -o bandit-report.json', {
+        cwd: runner.projectPath,
+      });
 
       const banditReport = path.join(runner.projectPath, 'bandit-report.json');
       if (fs.existsSync(banditReport)) {
@@ -258,9 +249,7 @@ async function runSecurityAudit(runner, options) {
             severity_high: report.metrics?.SEVERITY.HIGH || 0,
           };
           results.warnings += report.metrics?.total_issues || 0;
-          console.log(
-            `   📈 Found ${report.metrics?.total_issues || 0} security issues in code`,
-          );
+          console.log(`   📈 Found ${report.metrics?.total_issues || 0} security issues in code`);
 
           // Clean up report file
           fs.unlinkSync(banditReport);
@@ -298,9 +287,7 @@ async function runSecurityAudit(runner, options) {
             dependencies: report.dependencies?.length || 0,
           };
           results.vulnerabilities += report.vulnerabilities?.length || 0;
-          console.log(
-            `   📈 Found ${report.vulnerabilities?.length || 0} package vulnerabilities`,
-          );
+          console.log(`   📈 Found ${report.vulnerabilities?.length || 0} package vulnerabilities`);
         } catch (e) {
           console.log('   ℹ️  Could not parse pip-audit JSON output');
         }
@@ -309,13 +296,10 @@ async function runSecurityAudit(runner, options) {
 
     // 4. Check for outdated dependencies
     console.log('\n🔍 4. Checking for outdated dependencies...');
-    const outdatedResult = runCommand(
-      `${python} -m pip list --outdated --format=json`,
-      {
-        cwd: runner.projectPath,
-        stdio: 'pipe',
-      },
-    );
+    const outdatedResult = runCommand(`${python} -m pip list --outdated --format=json`, {
+      cwd: runner.projectPath,
+      stdio: 'pipe',
+    });
 
     if (outdatedResult.stdout) {
       try {
@@ -338,9 +322,7 @@ async function runSecurityAudit(runner, options) {
               p.name.includes('ssl')),
         );
         if (securityPackages.length > 0) {
-          console.log(
-            `   ⚠️  ${securityPackages.length} security-related packages need updates`,
-          );
+          console.log(`   ⚠️  ${securityPackages.length} security-related packages need updates`);
           results.warnings += securityPackages.length;
         }
       } catch (e) {

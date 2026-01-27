@@ -14,13 +14,7 @@
  */
 
 const path = require('path');
-const fs = require('fs');
-const {
-  getTempDir,
-  readFile,
-  writeFile,
-  log,
-} = require('../lib/utils');
+const { getTempDir, readFile, writeFile, log } = require('../lib/utils');
 
 async function main() {
   // Track tool call count (increment in a temp file)
@@ -43,12 +37,16 @@ async function main() {
 
   // Suggest compact after threshold tool calls
   if (count === threshold) {
-    log(`[StrategicCompact] ${threshold} tool calls reached - consider /compact if transitioning phases`);
+    log(
+      `[StrategicCompact] ${threshold} tool calls reached - consider /compact if transitioning phases`,
+    );
   }
 
   // Suggest at regular intervals after threshold
   if (count > threshold && count % 25 === 0) {
-    log(`[StrategicCompact] ${count} tool calls - good checkpoint for /compact if context is stale`);
+    log(
+      `[StrategicCompact] ${count} tool calls - good checkpoint for /compact if context is stale`,
+    );
   }
 
   process.exit(0);
