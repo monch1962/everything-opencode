@@ -10,7 +10,7 @@ const fs = require('fs');
 const os = require('os');
 
 // Import Clojure modules
-const ClojureToolDetector = require('../../languages/clojure/tool-detector');
+const ClojureToolDetector = require('../../languages/clojure/clojure-tool-detector-refactored');
 const ClojureConfigWizard = require('../../languages/clojure/config-wizard');
 const ClojureCommandRunner = require('../../scripts/clojure/command-runner-refactored');
 const BuildToolDetector = require('../../scripts/clojure/command-runner-modules/build-tool-detector');
