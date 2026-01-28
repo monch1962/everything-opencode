@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # Main Everything OpenCode application
+  app:
+    image: everything-opencode:latest
+    container_name: everything-opencode
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000' # Main application
+      - '3005:3005' # PineScript debug server
+      - '4000:4000' # JavaScript command runner
+      - '4001:4001' # Python command runner
+    environment:
+      - NODE_ENV=production
+      - DEBUG_ENABLED=true
+      - PORT=3000
+      - DEBUG_PORT=3005
+      - LOG_LEVEL=info
+      - CORS_ORIGIN=*
+      - MAX_FILE_SIZE=10MB
+    volumes:
+      - everything-opencode-data:/app/data:Z
+      - ./config:/app/config:ro,Z
+      - ./logs:/app/logs:Z
+    networks:
+      - everything-opencode-net
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL database (optional)
+  postgres:
+    image: docker.io/postgres:15-alpine
+    container_name: everything-opencode-postgres
+    environment:
+      - POSTGRES_DB=opencode
+      - POSTGRES_USER=opencode
+      - POSTGRES_PASSWORD=opencode123
+    volumes:
+      - postgres-data:/var/lib/postgresql/data:Z
+      - ./postgres-backups:/backups:Z
+    networks:
+      - everything-opencode-net
+    ports:
+      - '5432:5432'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U opencode']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis cache (optional)
+  redis:
+    image: docker.io/redis:7-alpine
+    container_name: everything-opencode-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data:Z
+    networks:
+      - everything-opencode-net
+    ports:
+      - '6379:6379'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: docker.io/nginx:alpine
+    container_name: everything-opencode-nginx
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro,Z
+      - ./nginx/ssl:/etc/nginx/ssl:ro,Z
+      - ./nginx/logs:/var/log/nginx:Z
+    depends_on:
+      - app
+    networks:
+      - everything-opencode-net
+    restart: unless-stopped
+
+volumes:
+  everything-opencode-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/data
+      o: bind
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  everything-opencode-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
