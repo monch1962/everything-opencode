@@ -1,0 +1,12 @@
+[Unit]
+Description=Everything OpenCode Network
+
+[Network]
+NetworkName=everything-opencode-net
+Driver=bridge
+Subnet=172.20.0.0/16
+Gateway=172.20.0.1
+IPRange=172.20.0.0/24
+
+[Install]
+WantedBy=multi-user.target

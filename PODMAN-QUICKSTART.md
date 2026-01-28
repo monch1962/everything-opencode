@@ -67,6 +67,29 @@ podman-compose up -d
 podman-compose logs -f
 ```
 
+### Option 4: Using Quadlet (Systemd Integration)
+
+```bash
+# Create Quadlet configuration directory
+sudo mkdir -p /etc/containers/systemd
+
+# Copy Quadlet files from the repository
+sudo cp quadlet/*.container /etc/containers/systemd/
+sudo cp quadlet/*.network /etc/containers/systemd/
+
+# Set up environment
+sudo mkdir -p /etc/everything-opencode
+sudo cp .env /etc/everything-opencode/
+
+# Reload systemd and start services
+sudo systemctl daemon-reload
+sudo systemctl enable --now everything-opencode.container
+sudo systemctl enable --now everything-opencode.network
+
+# Check status
+sudo systemctl status everything-opencode.container
+```
+
 ## Access the Application
 
 Once deployed, access the application at:

@@ -10,13 +10,14 @@ This guide provides comprehensive instructions for deploying Everything OpenCode
 4. [Building Container Images](#building-container-images)
 5. [Running Containers](#running-containers)
 6. [Podman Compose](#podman-compose)
-7. [Production Deployment](#production-deployment)
-8. [Networking](#networking)
-9. [Storage & Volumes](#storage--volumes)
-10. [Security](#security)
-11. [Monitoring](#monitoring)
-12. [Troubleshooting](#troubleshooting)
-13. [Migration from Docker](#migration-from-docker)
+7. [Quadlet Deployment](#quadlet-deployment)
+8. [Production Deployment](#production-deployment)
+9. [Networking](#networking)
+10. [Storage & Volumes](#storage--volumes)
+11. [Security](#security)
+12. [Monitoring](#monitoring)
+13. [Troubleshooting](#troubleshooting)
+14. [Migration from Docker](#migration-from-docker)
 
 ## Prerequisites
 
@@ -416,6 +417,596 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
+```
+
+## Quadlet Deployment
+
+Quadlet is Podman's system for generating systemd unit files from container definitions. It provides a declarative way to manage containers as system services.
+
+### What is Quadlet?
+
+Quadlet allows you to write simple `.container` files that describe how to run containers, and automatically generates systemd service files. This provides:
+
+- **Declarative configuration**: Describe containers in simple INI-style files
+- **Systemd integration**: Containers run as native systemd services
+- **Automatic updates**: Regenerate service files when container definitions change
+- **Resource management**: Use systemd for resource limits and dependencies
+
+### Quadlet Installation
+
+Quadlet is included with Podman 4.4+. Check your version:
+
+```bash
+podman --version
+```
+
+If you have an older version, update Podman:
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install podman
+
+# Fedora/RHEL/CentOS
+sudo dnf update podman
+
+# Arch Linux
+sudo pacman -S podman
+```
+
+### Basic Quadlet Configuration
+
+Create `/etc/containers/systemd/everything-opencode.container`:
+
+```ini
+[Unit]
+Description=Everything OpenCode Container
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=everything-opencode:latest
+ContainerName=everything-opencode
+Network=everything-opencode-net
+PublishPort=3000:3000
+PublishPort=3005:3005
+PublishPort=4000:4000
+PublishPort=4001:4001
+Volume=%h/.local/share/containers/everything-opencode/data:/app/data:Z
+Volume=/etc/localtime:/etc/localtime:ro
+Environment=NODE_ENV=production
+Environment=DEBUG_ENABLED=true
+Environment=PORT=3000
+Environment=DEBUG_PORT=3005
+Environment=LOG_LEVEL=info
+Label=io.containers.autoupdate=registry
+AutoUpdate=registry
+PodmanArgs=--security-opt label=disable
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target
+```
+
+### Multi-Service Quadlet Deployment
+
+Create a directory for Quadlet files:
+
+```bash
+sudo mkdir -p /etc/containers/systemd
+```
+
+**1. Main Application** (`/etc/containers/systemd/everything-opencode.container`):
+
+```ini
+[Unit]
+Description=Everything OpenCode Main Application
+After=network-online.target postgres.service redis.service
+Wants=network-online.target
+Requires=postgres.service redis.service
+
+[Container]
+Image=everything-opencode:latest
+ContainerName=everything-opencode
+Network=everything-opencode-net
+PublishPort=3000:3000
+PublishPort=3005:3005
+Volume=%h/.local/share/containers/everything-opencode/data:/app/data:Z
+Volume=/etc/everything-opencode/config:/app/config:ro,Z
+EnvironmentFile=/etc/everything-opencode/env
+Label=io.containers.autoupdate=registry
+AutoUpdate=registry
+PodmanArgs=--security-opt no-new-privileges --read-only --tmpfs /tmp
+
+[Service]
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+TimeoutStopSec=30
+ExecStartPre=/usr/bin/podman pull everything-opencode:latest
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**2. PostgreSQL Database** (`/etc/containers/systemd/postgres.container`):
+
+```ini
+[Unit]
+Description=Everything OpenCode PostgreSQL Database
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=docker.io/postgres:15-alpine
+ContainerName=everything-opencode-postgres
+Network=everything-opencode-net
+Volume=%h/.local/share/containers/postgres/data:/var/lib/postgresql/data:Z
+Environment=POSTGRES_DB=opencode
+Environment=POSTGRES_USER=opencode
+Environment=POSTGRES_PASSWORD_FILE=/etc/everything-opencode/postgres-password
+Label=io.containers.autoupdate=registry
+AutoUpdate=registry
+PodmanArgs=--health-cmd "pg_isready -U opencode" --health-interval 30s --health-timeout 10s --health-retries 3
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**3. Redis Cache** (`/etc/containers/systemd/redis.container`):
+
+```ini
+[Unit]
+Description=Everything OpenCode Redis Cache
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=docker.io/redis:7-alpine
+ContainerName=everything-opencode-redis
+Network=everything-opencode-net
+Volume=%h/.local/share/containers/redis/data:/data:Z
+Label=io.containers.autoupdate=registry
+AutoUpdate=registry
+PodmanArgs=--health-cmd "redis-cli ping" --health-interval 30s --health-timeout 10s --health-retries 3
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**4. Network Definition** (`/etc/containers/systemd/everything-opencode.network`):
+
+```ini
+[Unit]
+Description=Everything OpenCode Network
+
+[Network]
+NetworkName=everything-opencode-net
+Driver=bridge
+Subnet=172.20.0.0/16
+Gateway=172.20.0.1
+IPRange=172.20.0.0/24
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Environment and Secret Files
+
+Create environment file (`/etc/everything-opencode/env`):
+
+```bash
+sudo mkdir -p /etc/everything-opencode
+sudo tee /etc/everything-opencode/env << EOF
+NODE_ENV=production
+DEBUG_ENABLED=false
+PORT=3000
+DEBUG_PORT=3005
+LOG_LEVEL=info
+CORS_ORIGIN=*
+DATABASE_URL=postgresql://opencode:${POSTGRES_PASSWORD}@everything-opencode-postgres:5432/opencode
+REDIS_URL=redis://everything-opencode-redis:6379
+EOF
+```
+
+Create PostgreSQL password file:
+
+```bash
+echo "your-secure-password" | sudo tee /etc/everything-opencode/postgres-password
+sudo chmod 600 /etc/everything-opencode/postgres-password
+```
+
+### Managing Quadlet Services
+
+**Generate and Enable Services:**
+
+```bash
+# Generate systemd units from Quadlet files
+sudo systemctl daemon-reload
+
+# Enable and start services
+sudo systemctl enable --now everything-opencode.container
+sudo systemctl enable --now postgres.container
+sudo systemctl enable --now redis.container
+sudo systemctl enable --now everything-opencode.network
+
+# Check status
+sudo systemctl status everything-opencode.container
+sudo systemctl status postgres.container
+sudo systemctl status redis.container
+
+# View logs
+sudo journalctl -u everything-opencode.container -f
+sudo journalctl -u postgres.container -f
+sudo journalctl -u redis.container -f
+```
+
+**Common Management Commands:**
+
+```bash
+# Start services
+sudo systemctl start everything-opencode.container
+
+# Stop services
+sudo systemctl stop everything-opencode.container
+
+# Restart services
+sudo systemctl restart everything-opencode.container
+
+# Check service status
+sudo systemctl status everything-opencode.container
+
+# View service logs
+sudo journalctl -u everything-opencode.container
+
+# Follow logs in real-time
+sudo journalctl -u everything-opencode.container -f
+
+# Check container status via Podman
+sudo podman ps --filter "name=everything-opencode"
+```
+
+### Auto-Update Configuration
+
+Quadlet supports automatic updates when using container registries:
+
+```ini
+[Container]
+# Auto-update from registry
+Label=io.containers.autoupdate=registry
+AutoUpdate=registry
+
+# Or schedule updates with systemd timer
+AutoUpdate=schedule
+```
+
+Create an auto-update timer (`/etc/containers/systemd/everything-opencode.timer`):
+
+```ini
+[Unit]
+Description=Update Everything OpenCode containers
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+### Health Checks and Monitoring
+
+Quadlet integrates with systemd health checks:
+
+```ini
+[Container]
+PodmanArgs=--health-cmd "curl -f http://localhost:3000/health || exit 1" \
+           --health-interval 30s \
+           --health-timeout 10s \
+           --health-retries 3 \
+           --health-start-period 40s
+```
+
+Monitor health status:
+
+```bash
+# Check container health
+sudo podman healthcheck run everything-opencode
+
+# View health status in systemd
+sudo systemctl status everything-opencode.container | grep -A5 "Health"
+
+# Set up systemd watchdog
+[Service]
+WatchdogSec=30
+Restart=on-watchdog
+```
+
+### Resource Limits with Quadlet
+
+Set resource limits directly in Quadlet files:
+
+```ini
+[Service]
+# CPU limits
+CPUQuota=150%
+CPUWeight=100
+
+# Memory limits
+MemoryMax=1G
+MemorySwapMax=2G
+
+# I/O limits
+IOWeight=100
+IOReadBandwidthMax=/dev/sda 10M
+IOWriteBandwidthMax=/dev/sda 10M
+
+# Process limits
+TasksMax=2048
+```
+
+Or use Podman arguments:
+
+```ini
+[Container]
+PodmanArgs=--memory 1g --memory-swap 2g --cpus 1.5 --cpu-shares 512
+```
+
+### Security Hardening
+
+```ini
+[Container]
+# Security options
+PodmanArgs=--security-opt no-new-privileges \
+           --security-opt label=type:container_runtime_t \
+           --cap-drop ALL \
+           --cap-add NET_BIND_SERVICE \
+           --read-only \
+           --tmpfs /tmp \
+           --tmpfs /run \
+           --tmpfs /var/tmp \
+           --user 1000:1000
+```
+
+### Backup and Recovery
+
+Create backup service (`/etc/containers/systemd/backup-everything-opencode.service`):
+
+```ini
+[Unit]
+Description=Backup Everything OpenCode Data
+After=everything-opencode.container
+Requires=everything-opencode.container
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/podman run --rm \
+  -v everything-opencode-data:/data:ro \
+  -v /backups:/backup:Z \
+  docker.io/alpine:latest \
+  tar czf /backup/everything-opencode-backup-$(date +%%Y%%m%%d).tar.gz -C /data .
+ExecStartPost=/usr/bin/find /backups -name "everything-opencode-backup-*.tar.gz" -mtime +30 -delete
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Create backup timer (`/etc/containers/systemd/backup-everything-opencode.timer`):
+
+```ini
+[Unit]
+Description=Daily backup of Everything OpenCode data
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+### Troubleshooting Quadlet
+
+**Common Issues and Solutions:**
+
+1. **Service fails to start:**
+
+   ```bash
+   # Check Quadlet file syntax
+   sudo podman generate systemd --name everything-opencode --files
+
+   # Check systemd journal
+   sudo journalctl -u everything-opencode.container -xe
+
+   # Test container manually
+   sudo podman run --rm everything-opencode:latest
+   ```
+
+2. **Network issues:**
+
+   ```bash
+   # Check network creation
+   sudo podman network ls
+
+   # Inspect network
+   sudo podman network inspect everything-opencode-net
+
+   # Test connectivity
+   sudo podman exec everything-opencode curl http://google.com
+   ```
+
+3. **Permission issues:**
+
+   ```bash
+   # Check user mappings
+   sudo podman unshare cat /proc/self/uid_map
+
+   # Fix volume permissions
+   sudo podman unshare chown -R 1000:1000 ~/.local/share/containers
+   ```
+
+4. **Auto-update not working:**
+
+   ```bash
+   # Check registry authentication
+   sudo podman login your-registry.io
+
+   # Manually trigger update
+   sudo podman auto-update
+
+   # Check update logs
+   sudo journalctl -u podman-auto-update.timer
+   ```
+
+**Debug Commands:**
+
+```bash
+# Generate systemd unit for debugging
+sudo podman generate systemd --name everything-opencode --files --new
+
+# Check Quadlet file parsing
+sudo podman quadlet /etc/containers/systemd/everything-opencode.container
+
+# View generated systemd unit
+systemctl cat everything-opencode.container
+
+# Test container without Quadlet
+sudo podman run --rm -it everything-opencode:latest /bin/sh
+```
+
+### Quadlet vs Traditional systemd Services
+
+| Feature                | Quadlet                   | Traditional systemd        |
+| ---------------------- | ------------------------- | -------------------------- |
+| **Configuration**      | Declarative INI files     | Complex ExecStart commands |
+| **Updates**            | Auto-regenerate on change | Manual editing required    |
+| **Portability**        | Easy to share and version | System-specific            |
+| **Learning Curve**     | Low (simple syntax)       | High (systemd expertise)   |
+| **Podman Integration** | Native support            | Manual integration         |
+| **Auto-updates**       | Built-in support          | Manual implementation      |
+
+### Migration from systemd Services to Quadlet
+
+If you have existing systemd service files, migrate to Quadlet:
+
+1. **Convert existing service** (`/etc/systemd/system/everything-opencode.service`):
+
+   ```bash
+   # Extract container arguments
+   grep ExecStart /etc/systemd/system/everything-opencode.service
+
+   # Create Quadlet file from existing container
+   sudo podman generate systemd --name everything-opencode --new > /etc/containers/systemd/everything-opencode.container
+   ```
+
+2. **Disable old service:**
+
+   ```bash
+   sudo systemctl disable --now everything-opencode.service
+   sudo rm /etc/systemd/system/everything-opencode.service
+   ```
+
+3. **Enable Quadlet service:**
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now everything-opencode.container
+   ```
+
+### Best Practices for Quadlet Deployment
+
+1. **Use declarative configuration**: Keep Quadlet files simple and focused
+2. **Version control**: Store Quadlet files in Git for configuration management
+3. **Separate concerns**: Use different files for different services
+4. **Use environment files**: Keep secrets in separate, secured files
+5. **Implement health checks**: Ensure services are monitored
+6. **Set resource limits**: Prevent resource exhaustion
+7. **Enable auto-updates**: Keep containers current with security patches
+8. **Regular backups**: Implement backup strategies for persistent data
+9. **Monitoring integration**: Connect with system monitoring tools
+10. **Documentation**: Keep Quadlet configurations well-documented
+
+### Example: Complete Production Deployment
+
+Here's a complete example for production deployment:
+
+**Directory structure:**
+
+```
+/etc/containers/systemd/
+├── everything-opencode.container
+├── postgres.container
+├── redis.container
+├── everything-opencode.network
+├── backup-everything-opencode.service
+├── backup-everything-opencode.timer
+└── update-everything-opencode.timer
+
+/etc/everything-opencode/
+├── env
+├── postgres-password
+└── config/
+    ├── app.config
+    └── security.config
+```
+
+**Deployment script:**
+
+```bash
+#!/bin/bash
+# Deploy Everything OpenCode with Quadlet
+
+set -e
+
+echo "Deploying Everything OpenCode with Quadlet..."
+
+# Create directories
+sudo mkdir -p /etc/containers/systemd /etc/everything-opencode/config
+
+# Copy Quadlet files
+sudo cp everything-opencode.container /etc/containers/systemd/
+sudo cp postgres.container /etc/containers/systemd/
+sudo cp redis.container /etc/containers/systemd/
+sudo cp everything-opencode.network /etc/containers/systemd/
+
+# Set up environment
+sudo tee /etc/everything-opencode/env << EOF
+NODE_ENV=production
+DEBUG_ENABLED=false
+PORT=3000
+DEBUG_PORT=3005
+LOG_LEVEL=info
+CORS_ORIGIN=https://your-domain.com
+DATABASE_URL=postgresql://opencode:${POSTGRES_PASSWORD}@everything-opencode-postgres:5432/opencode
+REDIS_URL=redis://everything-opencode-redis:6379
+EOF
+
+# Set PostgreSQL password
+echo "your-secure-password" | sudo tee /etc/everything-opencode/postgres-password
+sudo chmod 600 /etc/everything-opencode/postgres-password
+
+# Reload systemd and start services
+sudo systemctl daemon-reload
+sudo systemctl enable --now everything-opencode.network
+sudo systemctl enable --now postgres.container
+sudo systemctl enable --now redis.container
+sudo systemctl enable --now everything-opencode.container
+
+echo "Deployment complete!"
+echo "Check status with: sudo systemctl status everything-opencode.container"
 ```
 
 ## Production Deployment

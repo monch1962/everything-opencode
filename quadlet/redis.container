@@ -1,0 +1,25 @@
+[Unit]
+Description=Everything OpenCode Redis Cache
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=docker.io/redis:7-alpine
+ContainerName=everything-opencode-redis
+Network=everything-opencode-net
+Volume=%h/.local/share/containers/redis/data:/data:Z
+Label=io.containers.autoupdate=registry
+AutoUpdate=registry
+PodmanArgs=--health-cmd "redis-cli ping" \
+           --health-interval 30s \
+           --health-timeout 10s \
+           --health-retries 3 \
+           --security-opt no-new-privileges
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -26,6 +26,8 @@ print_header() {
     echo "Everything OpenCode Podman Deployment"
     echo "=========================================="
     echo -e "${NC}"
+    echo "For Quadlet (systemd) deployment, use: sudo ./deploy-quadlet.sh"
+    echo ""
 }
 
 print_step() {

@@ -1,0 +1,41 @@
+[Unit]
+Description=Everything OpenCode Main Application
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=everything-opencode:latest
+ContainerName=everything-opencode
+Network=everything-opencode-net
+PublishPort=3000:3000
+PublishPort=3005:3005
+PublishPort=4000:4000
+PublishPort=4001:4001
+Volume=%h/.local/share/containers/everything-opencode/data:/app/data:Z
+Volume=/etc/everything-opencode/config:/app/config:ro,Z
+EnvironmentFile=/etc/everything-opencode/env
+Label=io.containers.autoupdate=registry
+AutoUpdate=registry
+PodmanArgs=--health-cmd "curl -f http://localhost:3000/health || exit 1" \
+           --health-interval 30s \
+           --health-timeout 10s \
+           --health-retries 3 \
+           --health-start-period 40s \
+           --security-opt no-new-privileges \
+           --read-only \
+           --tmpfs /tmp \
+           --tmpfs /run \
+           --tmpfs /var/tmp \
+           --user 1000:1000
+
+[Service]
+Type=notify
+NotifyAccess=all
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+TimeoutStopSec=30
+ExecStartPre=/usr/bin/podman pull everything-opencode:latest
+
+[Install]
+WantedBy=multi-user.target
