@@ -8,25 +8,17 @@
  * maintaining 100% backward compatibility with the original API.
  */
 
-const DependencyLoader = require('./logging-utils-modules/dependency-loader');
-const ConfigManager = require('./logging-utils-modules/config-manager');
-const BasicLogger = require('./logging-utils-modules/basic-logger');
-const UIComponents = require('./logging-utils-modules/ui-components');
-const FormatterUtils = require('./logging-utils-modules/formatter-utils');
+const dependencyLoader = require('./logging-utils-modules/dependency-loader');
+const configManager = require('./logging-utils-modules/config-manager');
+const basicLogger = require('./logging-utils-modules/basic-logger');
+const uiComponents = require('./logging-utils-modules/ui-components');
+const formatterUtils = require('./logging-utils-modules/formatter-utils');
 
 // Initialize dependencies
-const dependencyLoader = new DependencyLoader();
-const dependencies = dependencyLoader.getDependencies();
-const { chalk, boxen, ora, Table, ProgressBar, colors } = dependencies;
-
-// Initialize other modules with dependencies
-const configManager = new ConfigManager({ chalk });
-const basicLogger = new BasicLogger(dependencies, configManager);
-const uiComponents = new UIComponents(dependencies, configManager);
-const formatterUtils = new FormatterUtils(dependencies, configManager);
+const { chalk, boxen, ora, Table, ProgressBar } = dependencyLoader.loadDependencies();
 
 // Initialize configuration
-configManager.init();
+configManager.initialize(chalk);
 
 class LoggingUtils {
   /**
@@ -34,7 +26,7 @@ class LoggingUtils {
    * @param {Object} config - Configuration options
    */
   static initialize(config = {}) {
-    configManager.init(config);
+    configManager.initialize(chalk, config);
   }
 
   /**
@@ -64,77 +56,77 @@ class LoggingUtils {
 
   // Basic logging methods
   static error(message, ...args) {
-    return basicLogger.error(message, ...args);
+    return basicLogger.error(chalk, message, ...args);
   }
 
   static warn(message, ...args) {
-    return basicLogger.warn(message, ...args);
+    return basicLogger.warn(chalk, message, ...args);
   }
 
   static info(message, ...args) {
-    return basicLogger.info(message, ...args);
+    return basicLogger.info(chalk, message, ...args);
   }
 
   static debug(message, ...args) {
-    return basicLogger.debug(message, ...args);
+    return basicLogger.debug(chalk, message, ...args);
   }
 
   static success(message, ...args) {
-    return basicLogger.success(message, ...args);
+    return basicLogger.success(chalk, message, ...args);
   }
 
   // UI Components
   static spinner(text) {
-    return uiComponents.spinner(text);
+    return uiComponents.spinner(ora, text);
   }
 
   static progressBar(total, options = {}) {
-    return uiComponents.progressBar(total, options);
+    return uiComponents.progressBar(ProgressBar, total, options);
   }
 
   static table(options = {}) {
-    return uiComponents.table(options);
+    return uiComponents.table(Table, options);
   }
 
   static box(text, options = {}) {
-    return uiComponents.box(text, options);
+    return uiComponents.box(boxen, text, options);
   }
 
   static section(title, options = {}) {
-    return uiComponents.section(title, options);
+    return uiComponents.section(chalk, title, options);
   }
 
   static keyValue(key, value, options = {}) {
-    return uiComponents.keyValue(key, value, options);
+    return uiComponents.keyValue(chalk, key, value, options);
   }
 
   // Formatter Utilities
   static formatCode(code, language = 'javascript') {
-    return formatterUtils.formatCode(code, language);
+    return formatterUtils.formatCode(chalk, code, language);
   }
 
   static formatCommand(command) {
-    return formatterUtils.formatCommand(command);
+    return formatterUtils.formatCommand(chalk, command);
   }
 
   static formatFilePath(filePath) {
-    return formatterUtils.formatFilePath(filePath);
+    return formatterUtils.formatFilePath(chalk, filePath);
   }
 
   static formatJson(data, options = {}) {
-    return formatterUtils.formatJson(data, options);
+    return formatterUtils.formatJson(chalk, data, options);
   }
 
   static formatError(error, options = {}) {
-    return formatterUtils.formatError(error, options);
+    return formatterUtils.formatError(chalk, error, options);
   }
 
   static formatSuccessSummary(results, options = {}) {
-    return formatterUtils.formatSuccessSummary(results, options);
+    return formatterUtils.formatSuccessSummary(chalk, results, options);
   }
 
   static formatSecurityResults(results, options = {}) {
-    return formatterUtils.formatSecurityResults(results, options);
+    return formatterUtils.formatSecurityResults(chalk, results, options);
   }
 
   // Static properties for backward compatibility
