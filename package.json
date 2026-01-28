@@ -12,7 +12,10 @@
     "format:check": "prettier --check \"{scripts,languages,tests,hooks}/**/*.js\"",
     "quality": "npm run lint && npm run format:check && npm test",
     "build": "echo 'No build step required for opencode plugin'",
-    "prepublishOnly": "npm run quality && npm run verify"
+    "prepublishOnly": "npm run quality && npm run verify",
+    "docs": "node scripts/generate-docs.js",
+    "docs:api": "node scripts/generate-docs.js --api",
+    "docs:validate": "node validate-optimizer.js && node validate-template-utils.js"
   },
   "keywords": [
     "opencode",

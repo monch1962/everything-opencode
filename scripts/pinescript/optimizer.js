@@ -12,7 +12,24 @@ const ParameterHandler = require('./optimizer-modules/parameter-handler');
 const OptimizationAlgorithms = require('./optimizer-modules/optimization-algorithms');
 const AnalysisReporter = require('./optimizer-modules/analysis-reporter');
 
+/**
+ * PineScript Optimizer - Main class for strategy parameter optimization
+ *
+ * This class delegates to modular components while maintaining 100% backward
+ * compatibility with the original API. It provides methods for optimizing
+ * PineScript strategy parameters using various optimization algorithms.
+ *
+ * @class PineOptimizer
+ */
 class PineOptimizer {
+  /**
+   * Creates a new PineOptimizer instance
+   *
+   * @param {string} [projectPath=process.cwd()] - Project directory path
+   * @example
+   * const optimizer = new PineOptimizer();
+   * const optimizer = new PineOptimizer('/path/to/project');
+   */
   constructor(projectPath = process.cwd()) {
     // Initialize modules
     this.core = new OptimizerCore(projectPath);
@@ -32,7 +49,30 @@ class PineOptimizer {
   }
 
   /**
-   * Optimize strategy parameters
+   * Optimizes strategy parameters using specified optimization method
+   *
+   * @param {string} strategyFile - Path to .pine strategy file
+   * @param {Object} [options={}] - Optimization options
+   * @param {string} [options.method='grid'] - Optimization method: 'grid', 'random', 'bayesian', 'genetic'
+   * @param {string} [options.params] - Parameter specification (e.g., "rsi_length:7-21-2,rsi_overbought:70-90-5")
+   * @param {string} [options.metric='sharpe'] - Optimization metric: 'sharpe', 'profit', 'winrate', 'maxdd', 'profitfactor'
+   * @param {number} [options.iterations=100] - Number of optimization iterations
+   * @param {boolean} [options.walkForward=false] - Enable walk-forward optimization
+   * @param {string} [options.dataSource='csv'] - Data source: 'csv', 'yahoo', 'alpaca'
+   * @param {string} [options.dataFile] - Data file for CSV source
+   * @param {number} [options.commission=0.1] - Commission per trade
+   * @param {number} [options.initialCapital=10000] - Initial capital
+   * @param {string} [options.outputFormat='console'] - Output format: 'console', 'json', 'html'
+   * @param {boolean} [options.dryRun=false] - Show configuration without running
+   * @returns {Promise<Object>} Optimization results
+   * @throws {Error} If strategy file not found or invalid configuration
+   * @example
+   * const result = await optimizer.optimizeStrategy('strategy.pine', {
+   *   method: 'grid',
+   *   params: 'rsi_length:7-21-2',
+   *   metric: 'sharpe',
+   *   iterations: 50
+   * });
    */
   async optimizeStrategy(strategyFile, options = {}) {
     // Get optimization configuration from core

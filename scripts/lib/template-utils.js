@@ -19,9 +19,25 @@ const LanguageTemplates = require('./template-modules/language-templates');
 const ProjectGenerator = require('./template-modules/project-generator');
 const TemplateValidator = require('./template-modules/template-validator');
 
+/**
+ * Template Generation Utilities - Main class for template-based file generation
+ *
+ * This class provides static methods for rendering templates, generating files,
+ * and creating language-specific projects. It delegates to modular components
+ * while maintaining 100% backward compatibility with the original API.
+ *
+ * @class TemplateUtils
+ */
 class TemplateUtils {
   /**
-   * Render template with variables
+   * Renders template string with variables using {{variable}} syntax
+   *
+   * @param {string} template - Template string
+   * @param {Object} [variables={}] - Variables to inject into template
+   * @returns {string} Rendered template
+   * @example
+   * const result = TemplateUtils.renderTemplate('Hello {{name}}!', { name: 'World' });
+   * // Returns: 'Hello World!'
    */
   static renderTemplate(template, variables = {}) {
     return TemplateCore.renderTemplate(template, variables);
