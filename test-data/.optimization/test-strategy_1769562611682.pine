@@ -1,0 +1,37 @@
+// Test strategy for PineScript Optimizer validation
+// @param rsi_length:7-21-2 - RSI period length
+// @param rsi_overbought:70-90-5 - RSI overbought threshold
+
+//@version=5
+strategy("Test Strategy", overlay=true)
+
+// Input parameters
+rsi_length = 17, "RSI Length", minval=1, maxval=100)
+rsi_overbought = 80, "RSI Overbought", minval=50, maxval=100)
+
+// Calculate RSI
+rsi_value = ta.rsi(close, rsi_length)
+
+// Entry condition
+enterLong = rsi_value < 30
+enterShort = rsi_value > rsi_overbought
+
+// Exit conditions
+exitLong = rsi_value > 70
+exitShort = rsi_value < 30
+
+// Strategy logic
+if (enterLong)
+    strategy.entry("Long", strategy.long)
+if (enterShort)
+    strategy.entry("Short", strategy.short)
+if (exitLong)
+    strategy.close("Long")
+if (exitShort)
+    strategy.close("Short")
+
+// Plot RSI
+plot(rsi_value, "RSI", color=color.blue)
+hline(30, "Oversold", color=color.green)
+hline(70, "Overbought", color=color.red)
+hline(rsi_overbought, "Custom Overbought", color=color.orange)

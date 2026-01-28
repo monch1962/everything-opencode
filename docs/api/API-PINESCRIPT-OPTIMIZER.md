@@ -1,6 +1,6 @@
 # PineScript Optimizer API Documentation
 
-*Generated: 2026-01-28T01:07:50.057Z*
+*Generated: 2026-01-28T01:10:24.096Z*
 
 ### Main Class
 
