@@ -13,6 +13,10 @@
 |--------|-------------|------|
 | PineScript Optimizer | Strategy parameter optimization | [API-PINESCRIPT-OPTIMIZER.md](api/API-PINESCRIPT-OPTIMIZER.md) |
 | TemplateUtils | Template generation utilities | [API-TEMPLATE-UTILS.md](api/API-TEMPLATE-UTILS.md) |
+| PineScript Debug Server | Web-based debugging interface | [API-DEBUG-SERVER.md](api/API-DEBUG-SERVER.md) |
+| PineScript Debugger | Command-line debugging utilities | [API-PINE-DEBUG.md](api/API-PINE-DEBUG.md) |
+| Command Runners | Language-specific command execution | [API-COMMAND-RUNNERS.md](api/API-COMMAND-RUNNERS.md) |
+| Go Config Wizard | Go project configuration wizard | [API-GO-CONFIG-WIZARD.md](api/API-GO-CONFIG-WIZARD.md) |
 | All Refactored Modules | Complete module documentation | [REFACTORED-MODULES-API.md](api/REFACTORED-MODULES-API.md) |
 
 ### Guides
@@ -44,4 +48,4 @@
 
 ---
 
-*Generated: 2026-01-28T01:10:24.100Z*
+*Generated: 2026-01-28T01:29:17.980Z*

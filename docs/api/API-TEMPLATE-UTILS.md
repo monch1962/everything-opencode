@@ -1,6 +1,6 @@
 # TemplateUtils API Documentation
 
-*Generated: 2026-01-28T01:10:24.098Z*
+*Generated: 2026-01-28T01:29:17.969Z*
 
 ### Main Class
 

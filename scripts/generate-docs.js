@@ -47,6 +47,30 @@ class DocumentationGenerator {
         modulesDir: 'scripts/lib/template-modules/',
         outputFile: 'API-TEMPLATE-UTILS.md',
       },
+      {
+        name: 'PineScript Debug Server',
+        mainFile: 'scripts/pinescript/debug-server.js',
+        modulesDir: 'scripts/pinescript/debug-server-modules/',
+        outputFile: 'API-DEBUG-SERVER.md',
+      },
+      {
+        name: 'PineScript Debugger',
+        mainFile: 'scripts/commands/pine-debug.js',
+        modulesDir: 'scripts/commands/pine-debug-modules/',
+        outputFile: 'API-PINE-DEBUG.md',
+      },
+      {
+        name: 'Command Runners',
+        mainFile: 'scripts/clojure/command-runner.js',
+        modulesDir: 'scripts/clojure/command-runner-modules/',
+        outputFile: 'API-COMMAND-RUNNERS.md',
+      },
+      {
+        name: 'Go Config Wizard',
+        mainFile: 'languages/go/config-wizard.js',
+        modulesDir: 'languages/go/config-wizard-modules/',
+        outputFile: 'API-GO-CONFIG-WIZARD.md',
+      },
     ];
 
     for (const module of modules) {
@@ -203,6 +227,36 @@ class DocumentationGenerator {
 - [Complete API Reference](api/API-TEMPLATE-UTILS.md) - All methods and modules
 - [Refactored Modules API](api/REFACTORED-MODULES-API.md) - Comprehensive module documentation
 
+### PineScript Debug Server
+- [Complete API Reference](api/API-DEBUG-SERVER.md) - Web-based debugging interface
+- [Security Manager](api/API-DEBUG-SERVER.md#security-manager-module) - Authentication and security
+- [Debug State Manager](api/API-DEBUG-SERVER.md#debug-state-manager-module) - Debug state management
+- [Code Analyzer](api/API-DEBUG-SERVER.md#code-analyzer-module) - Code analysis utilities
+- [WebSocket Manager](api/API-DEBUG-SERVER.md#websocket-manager-module) - Real-time communication
+
+### PineScript Debugger
+- [Complete API Reference](api/API-PINE-DEBUG.md) - Command-line debugging utilities
+- [Argument Parser](api/API-PINE-DEBUG.md#argument-parser-module) - Command line argument parsing
+- [Code Analyzer](api/API-PINE-DEBUG.md#code-analyzer-module) - Code analysis and metrics
+- [AI Analyzer](api/API-PINE-DEBUG.md#ai-analyzer-module) - AI-assisted debugging suggestions
+- [Command Handler](api/API-PINE-DEBUG.md#command-handler-module) - Command execution and handling
+
+### Command Runners
+- [Complete API Reference](api/API-COMMAND-RUNNERS.md) - Language-specific command execution
+- [Clojure Command Runner](api/API-COMMAND-RUNNERS.md#clojure-command-runner) - Clojure project management
+- [JavaScript/TypeScript Command Runner](api/API-COMMAND-RUNNERS.md#javascripttypescript-command-runner) - JS/TS project management
+- [Python Command Runner](api/API-COMMAND-RUNNERS.md#python-command-runner) - Python project management
+- [Go Command Runner](api/API-COMMAND-RUNNERS.md#go-command-runner) - Go project management
+- [Rust Command Runner](api/API-COMMAND-RUNNERS.md#rust-command-runner) - Rust project management
+- [Elixir Command Runner](api/API-COMMAND-RUNNERS.md#elixir-command-runner) - Elixir project management
+
+### Go Config Wizard
+- [Complete API Reference](api/API-GO-CONFIG-WIZARD.md) - Go project configuration wizard
+- [Go Wizard Core](api/API-GO-CONFIG-WIZARD.md#go-wizard-core-module) - Core wizard functionality
+- [Go Project Detector](api/API-GO-CONFIG-WIZARD.md#go-project-detector-module) - Project detection
+- [Go Config Generator](api/API-GO-CONFIG-WIZARD.md#go-config-generator-module) - Configuration generation
+- [Go Project Creator](api/API-GO-CONFIG-WIZARD.md#go-project-creator-module) - Project creation utilities
+
 ## 🚀 Quick Start
 
 ### Getting Started
@@ -259,6 +313,10 @@ class DocumentationGenerator {
 ### Module Status
 - **PineScript Optimizer**: ✅ Production ready
 - **TemplateUtils**: ✅ Production ready
+- **PineScript Debug Server**: ✅ Production ready
+- **PineScript Debugger**: ✅ Production ready
+- **Command Runners**: ✅ Production ready
+- **Go Config Wizard**: ✅ Production ready
 - **Validation Scripts**: ✅ All passing
 - **Documentation**: ✅ Complete
 
@@ -302,6 +360,10 @@ This documentation is automatically generated. To update:
 |--------|-------------|------|
 | PineScript Optimizer | Strategy parameter optimization | [API-PINESCRIPT-OPTIMIZER.md](api/API-PINESCRIPT-OPTIMIZER.md) |
 | TemplateUtils | Template generation utilities | [API-TEMPLATE-UTILS.md](api/API-TEMPLATE-UTILS.md) |
+| PineScript Debug Server | Web-based debugging interface | [API-DEBUG-SERVER.md](api/API-DEBUG-SERVER.md) |
+| PineScript Debugger | Command-line debugging utilities | [API-PINE-DEBUG.md](api/API-PINE-DEBUG.md) |
+| Command Runners | Language-specific command execution | [API-COMMAND-RUNNERS.md](api/API-COMMAND-RUNNERS.md) |
+| Go Config Wizard | Go project configuration wizard | [API-GO-CONFIG-WIZARD.md](api/API-GO-CONFIG-WIZARD.md) |
 | All Refactored Modules | Complete module documentation | [REFACTORED-MODULES-API.md](api/REFACTORED-MODULES-API.md) |
 
 ### Guides
