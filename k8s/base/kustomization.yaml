@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: everything-opencode
+
+resources:
+  - deployment.yaml
+  - pinescript-debug.yaml
+  - command-runners.yaml
+  - configmap.yaml
+  - ingress.yaml
+
+commonLabels:
+  app: everything-opencode
+  version: v1.0.0
+  managed-by: kustomize
+
+configMapGenerator:
+  - name: everything-opencode-config
+    behavior: merge
+    literals:
+      - APP_VERSION=v1.0.0
+      - BUILD_DATE=2025-01-28
+
+images:
+  - name: everything-opencode
+    newName: everything-opencode
+    newTag: latest

@@ -1,0 +1,279 @@
+name: Monitoring and Alerts
+
+on:
+  schedule:
+    # Run every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'k8s/**'
+      - '.github/workflows/monitoring.yml'
+
+jobs:
+  check-deployment:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 --decode > $HOME/.kube/config
+          kubectl config use-context ${{ secrets.KUBERNETES_CONTEXT_PRODUCTION }}
+
+      - name: Check deployment status
+        id: deployment-check
+        run: |
+          # Check all deployments
+          DEPLOYMENTS=("everything-opencode" "pinescript-debug" "command-runners")
+          ALL_HEALTHY=true
+
+          for deployment in "${DEPLOYMENTS[@]}"; do
+            echo "Checking $deployment..."
+            
+            # Check if deployment exists
+            if ! kubectl get deployment $deployment --namespace everything-opencode > /dev/null 2>&1; then
+              echo "❌ Deployment $deployment not found"
+              ALL_HEALTHY=false
+              continue
+            fi
+            
+            # Check replica status
+            DESIRED=$(kubectl get deployment $deployment --namespace everything-opencode -o jsonpath='{.spec.replicas}')
+            READY=$(kubectl get deployment $deployment --namespace everything-opencode -o jsonpath='{.status.readyReplicas}')
+            
+            if [ "$DESIRED" != "$READY" ]; then
+              echo "❌ Deployment $deployment: $READY/$DESIRED replicas ready"
+              ALL_HEALTHY=false
+              
+              # Get pod status for debugging
+              echo "Pod status:"
+              kubectl get pods --namespace everything-opencode -l app=everything-opencode,component=${deployment//-/_} -o wide
+              
+              # Get pod logs for failed pods
+              FAILED_PODS=$(kubectl get pods --namespace everything-opencode -l app=everything-opencode,component=${deployment//-/_} --field-selector=status.phase!=Running -o jsonpath='{.items[*].metadata.name}')
+              for pod in $FAILED_PODS; do
+                echo "Logs for $pod:"
+                kubectl logs $pod --namespace everything-opencode --tail=50 || true
+              done
+            else
+              echo "✅ Deployment $deployment: $READY/$DESIRED replicas ready"
+            fi
+          done
+
+          if [ "$ALL_HEALTHY" = true ]; then
+            echo "DEPLOYMENT_STATUS=healthy" >> $GITHUB_OUTPUT
+          else
+            echo "DEPLOYMENT_STATUS=unhealthy" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send alert if unhealthy
+        if: steps.deployment-check.outputs.DEPLOYMENT_STATUS == 'unhealthy'
+        uses: 8398a7/action-slack@v3
+        with:
+          channel: '#alerts'
+          status: ${{ job.status }}
+          text: |
+            ❌ Everything OpenCode deployment is unhealthy!
+
+            Check the GitHub Actions run for details:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          username: 'Deployment Monitor'
+          icon_emoji: ':warning:'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  check-resources:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 --decode > $HOME/.kube/config
+          kubectl config use-context ${{ secrets.KUBERNETES_CONTEXT_PRODUCTION }}
+
+      - name: Check resource usage
+        id: resource-check
+        run: |
+          # Check pod resource usage
+          echo "Checking resource usage..."
+
+          # Get top pods by CPU
+          echo "Top pods by CPU usage:"
+          kubectl top pods --namespace everything-opencode --sort-by=cpu | head -10
+
+          # Get top pods by memory
+          echo "Top pods by memory usage:"
+          kubectl top pods --namespace everything-opencode --sort-by=memory | head -10
+
+          # Check HPA status
+          echo "HPA status:"
+          kubectl get hpa --namespace everything-opencode
+
+          # Check for resource warnings
+          WARNINGS=false
+
+          # Check CPU usage > 80%
+          HIGH_CPU_PODS=$(kubectl top pods --namespace everything-opencode --no-headers | awk '$3 > 80 {print $1}')
+          if [ -n "$HIGH_CPU_PODS" ]; then
+            echo "⚠️ High CPU usage detected: $HIGH_CPU_PODS"
+            WARNINGS=true
+          fi
+
+          # Check memory usage > 80%
+          HIGH_MEM_PODS=$(kubectl top pods --namespace everything-opencode --no-headers | awk '$4 > 80 {print $1}')
+          if [ -n "$HIGH_MEM_PODS" ]; then
+            echo "⚠️ High memory usage detected: $HIGH_MEM_PODS"
+            WARNINGS=true
+          fi
+
+          if [ "$WARNINGS" = true ]; then
+            echo "RESOURCE_STATUS=warning" >> $GITHUB_OUTPUT
+          else
+            echo "RESOURCE_STATUS=normal" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send resource warning
+        if: steps.resource-check.outputs.RESOURCE_STATUS == 'warning'
+        uses: 8398a7/action-slack@v3
+        with:
+          channel: '#alerts'
+          status: ${{ job.status }}
+          text: |
+            ⚠️ Everything OpenCode resource usage is high!
+
+            Check the GitHub Actions run for details:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          username: 'Resource Monitor'
+          icon_emoji: ':chart_with_upwards_trend:'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  check-application-health:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 --decode > $HOME/.kube/config
+          kubectl config use-context ${{ secrets.KUBERNETES_CONTEXT_PRODUCTION }}
+
+      - name: Get ingress URL
+        id: ingress
+        run: |
+          INGRESS_HOST=$(kubectl get ingress everything-opencode --namespace everything-opencode -o jsonpath='{.spec.rules[0].host}')
+          echo "INGRESS_HOST=$INGRESS_HOST" >> $GITHUB_OUTPUT
+
+      - name: Check application endpoints
+        id: health-check
+        run: |
+          HOST=${{ steps.ingress.outputs.INGRESS_HOST }}
+          ALL_HEALTHY=true
+
+          # Define endpoints to check
+          ENDPOINTS=(
+            "/health"
+            "/api/status"
+            "/debug/health"
+            "/api/commands/health"
+            "/api/python/health"
+          )
+
+          for endpoint in "${ENDPOINTS[@]}"; do
+            URL="https://$HOST$endpoint"
+            echo "Checking $URL..."
+            
+            if curl -f -s -o /dev/null -w "%{http_code}" "$URL" | grep -q "200\|201\|204"; then
+              echo "✅ $endpoint is healthy"
+            else
+              echo "❌ $endpoint is unhealthy"
+              ALL_HEALTHY=false
+              
+              # Try to get error details
+              curl -v "$URL" 2>&1 | tail -20 || true
+            fi
+          done
+
+          if [ "$ALL_HEALTHY" = true ]; then
+            echo "APPLICATION_STATUS=healthy" >> $GITHUB_OUTPUT
+          else
+            echo "APPLICATION_STATUS=unhealthy" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send application alert
+        if: steps.health-check.outputs.APPLICATION_STATUS == 'unhealthy'
+        uses: 8398a7/action-slack@v3
+        with:
+          channel: '#alerts'
+          status: ${{ job.status }}
+          text: |
+            ❌ Everything OpenCode application endpoints are unhealthy!
+
+            Check the GitHub Actions run for details:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          username: 'Application Monitor'
+          icon_emoji: ':hospital:'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  generate-report:
+    runs-on: ubuntu-latest
+    needs: [check-deployment, check-resources, check-application-health]
+    environment: production
+
+    steps:
+      - name: Generate monitoring report
+        run: |
+          echo "# Everything OpenCode Monitoring Report" > monitoring-report.md
+          echo "Generated: $(date)" >> monitoring-report.md
+          echo "" >> monitoring-report.md
+
+          echo "## Summary" >> monitoring-report.md
+          echo "- Deployment Status: ${{ needs.check-deployment.outputs.DEPLOYMENT_STATUS }}" >> monitoring-report.md
+          echo "- Resource Status: ${{ needs.check-resources.outputs.RESOURCE_STATUS }}" >> monitoring-report.md
+          echo "- Application Status: ${{ needs.check-application-health.outputs.APPLICATION_STATUS }}" >> monitoring-report.md
+          echo "" >> monitoring-report.md
+
+          echo "## Details" >> monitoring-report.md
+          echo "Run ID: ${{ github.run_id }}" >> monitoring-report.md
+          echo "Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> monitoring-report.md
+
+          # Upload report as artifact
+          echo "monitoring-report.md" > artifact-list.txt
+
+      - name: Upload monitoring report
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitoring-report
+          path: monitoring-report.md
+          retention-days: 7

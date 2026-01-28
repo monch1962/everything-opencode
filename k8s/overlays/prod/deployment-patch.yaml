@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: everything-opencode
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: main
+          resources:
+            requests:
+              memory: '512Mi'
+              cpu: '500m'
+            limits:
+              memory: '1Gi'
+              cpu: '1000m'
+          env:
+            - name: NODE_ENV
+              value: 'production'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pinescript-debug
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: debug-server
+          resources:
+            requests:
+              memory: '1Gi'
+              cpu: '1000m'
+            limits:
+              memory: '2Gi'
+              cpu: '2000m'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: command-runners
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: javascript-runner
+          resources:
+            requests:
+              memory: '512Mi'
+              cpu: '500m'
+            limits:
+              memory: '1Gi'
+              cpu: '1000m'
+        - name: python-runner
+          resources:
+            requests:
+              memory: '512Mi'
+              cpu: '500m'
+            limits:
+              memory: '1Gi'
+              cpu: '1000m'

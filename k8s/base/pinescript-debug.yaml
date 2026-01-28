@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pinescript-debug
+  labels:
+    app: everything-opencode
+    component: pinescript-debug
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: everything-opencode
+      component: pinescript-debug
+  template:
+    metadata:
+      labels:
+        app: everything-opencode
+        component: pinescript-debug
+    spec:
+      containers:
+        - name: debug-server
+          image: everything-opencode:latest
+          imagePullPolicy: IfNotPresent
+          command: ['node']
+          args: ['scripts/pinescript/debug-server.js', '--port', '3005']
+          ports:
+            - containerPort: 3005
+              name: http
+            - containerPort: 3006
+              name: websocket
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: PORT
+              value: '3005'
+          resources:
+            requests:
+              memory: '512Mi'
+              cpu: '500m'
+            limits:
+              memory: '1Gi'
+              cpu: '1000m'
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: data-volume
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pinescript-debug
+  labels:
+    app: everything-opencode
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3005
+      targetPort: http
+      name: http
+    - port: 3006
+      targetPort: websocket
+      name: websocket
+  selector:
+    app: everything-opencode
+    component: pinescript-debug

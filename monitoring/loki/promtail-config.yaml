@@ -1,0 +1,92 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: kubernetes-pods
+    kubernetes_sd_configs:
+      - role: pod
+    pipeline_stages:
+      - docker: {}
+    relabel_configs:
+      - source_labels:
+          - __meta_kubernetes_pod_label_app
+        action: keep
+        regex: everything-opencode
+      - source_labels:
+          - __meta_kubernetes_pod_container_name
+        target_label: container
+      - source_labels:
+          - __meta_kubernetes_pod_node_name
+        target_label: node
+      - source_labels:
+          - __meta_kubernetes_namespace
+        target_label: namespace
+      - source_labels:
+          - __meta_kubernetes_pod_name
+        target_label: pod
+      - source_labels:
+          - __meta_kubernetes_pod_label_component
+        target_label: component
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+          - __meta_kubernetes_pod_uid
+          - __meta_kubernetes_pod_container_name
+        target_label: __path__
+      - source_labels:
+          - __meta_kubernetes_pod_container_name
+        regex: (.+)
+        target_label: __service__
+      - source_labels:
+          - __meta_kubernetes_pod_name
+        target_label: job
+      - replacement: everything-opencode
+        target_label: job
+
+  - job_name: kubernetes-pods-app
+    kubernetes_sd_configs:
+      - role: pod
+    pipeline_stages:
+      - docker: {}
+    relabel_configs:
+      - source_labels:
+          - __meta_kubernetes_pod_label_app
+        action: keep
+        regex: everything-opencode
+      - source_labels:
+          - __meta_kubernetes_pod_container_name
+        target_label: container
+      - source_labels:
+          - __meta_kubernetes_pod_node_name
+        target_label: node
+      - source_labels:
+          - __meta_kubernetes_namespace
+        target_label: namespace
+      - source_labels:
+          - __meta_kubernetes_pod_name
+        target_label: pod
+      - source_labels:
+          - __meta_kubernetes_pod_label_component
+        target_label: component
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+          - __meta_kubernetes_pod_uid
+          - __meta_kubernetes_pod_container_name
+        target_label: __path__
+      - source_labels:
+          - __meta_kubernetes_pod_container_name
+        regex: (.+)
+        target_label: __service__
+      - source_labels:
+          - __meta_kubernetes_pod_name
+        target_label: job
+      - replacement: everything-opencode-app
+        target_label: job

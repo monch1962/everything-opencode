@@ -1,0 +1,241 @@
+name: CD - Docker Build and Push
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Run security scan
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload security scan results
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  test-docker:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run container tests
+        run: |
+          # Pull the built image
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+          # Test 1: Container starts
+          docker run --rm -d --name test-container \
+            -p 3000:3000 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+          # Wait for container to start
+          sleep 10
+
+          # Test 2: Health check
+          curl -f http://localhost:3000/health || exit 1
+
+          # Test 3: Stop container
+          docker stop test-container
+
+          # Test 4: Run with different configurations
+          docker run --rm --name test-debug \
+            -e NODE_ENV=development \
+            -e DEBUG_ENABLED=true \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            node --version
+
+          echo "✅ All Docker tests passed"
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, test-docker]
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    environment: staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 --decode > $HOME/.kube/config
+          kubectl config use-context ${{ secrets.KUBERNETES_CONTEXT_STAGING }}
+
+      - name: Deploy to staging
+        run: |
+          # Update image tag in kustomization
+          cd k8s/overlays/staging
+          kustomize edit set image everything-opencode=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+          # Apply configuration
+          kubectl apply -k . --namespace everything-opencode-staging
+
+          # Wait for rollout
+          kubectl rollout status deployment/everything-opencode --namespace everything-opencode-staging --timeout=300s
+          kubectl rollout status deployment/pinescript-debug --namespace everything-opencode-staging --timeout=300s
+          kubectl rollout status deployment/command-runners --namespace everything-opencode-staging --timeout=300s
+
+      - name: Run staging tests
+        run: |
+          # Get staging ingress URL
+          STAGING_URL=$(kubectl get ingress everything-opencode --namespace everything-opencode-staging -o jsonpath='{.spec.rules[0].host}')
+
+          # Wait for service to be ready
+          sleep 30
+
+          # Run smoke tests
+          curl -f https://$STAGING_URL/health || exit 1
+          echo "✅ Staging deployment successful"
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, test-docker, deploy-staging]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 --decode > $HOME/.kube/config
+          kubectl config use-context ${{ secrets.KUBERNETES_CONTEXT_PRODUCTION }}
+
+      - name: Extract version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(date +%Y%m%d-%H%M%S)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Deploy to production
+        run: |
+          # Update image tag in kustomization
+          cd k8s/overlays/prod
+          kustomize edit set image everything-opencode=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.TAG }}
+
+          # Apply configuration
+          kubectl apply -k . --namespace everything-opencode
+
+          # Wait for rollout
+          kubectl rollout status deployment/everything-opencode --namespace everything-opencode --timeout=300s
+          kubectl rollout status deployment/pinescript-debug --namespace everything-opencode --timeout=300s
+          kubectl rollout status deployment/command-runners --namespace everything-opencode --timeout=300s
+
+      - name: Run production tests
+        run: |
+          # Get production ingress URL
+          PROD_URL=$(kubectl get ingress everything-opencode --namespace everything-opencode -o jsonpath='{.spec.rules[0].host}')
+
+          # Wait for service to be ready
+          sleep 60
+
+          # Run comprehensive tests
+          curl -f https://$PROD_URL/health || exit 1
+
+          # Test main endpoints
+          curl -f https://$PROD_URL/api/status || exit 1
+
+          echo "✅ Production deployment successful"
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          files: |
+            k8s/overlays/prod/*
+          tag_name: ${{ steps.version.outputs.TAG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

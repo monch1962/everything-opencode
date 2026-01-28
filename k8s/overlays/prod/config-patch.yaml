@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: everything-opencode-config
+data:
+  NODE_ENV: 'production'
+  LOG_LEVEL: 'warn'
+  DEBUG_ENABLED: 'false'
+  CORS_ORIGIN: 'https://everything-opencode.example.com'
+  DATABASE_URL: 'postgresql://postgres:${DB_PASSWORD}@postgres-prod:5432/opencode'
+  REDIS_URL: 'redis://redis-prod:6379'
+  JWT_SECRET: '${JWT_SECRET}'
+  SESSION_SECRET: '${SESSION_SECRET}'

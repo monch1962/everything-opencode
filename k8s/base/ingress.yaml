@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: everything-opencode
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/proxy-body-size: '10m'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '300'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '300'
+    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - everything-opencode.example.com
+      secretName: everything-opencode-tls
+  rules:
+    - host: everything-opencode.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: everything-opencode
+                port:
+                  name: http
+          - path: /debug
+            pathType: Prefix
+            backend:
+              service:
+                name: pinescript-debug
+                port:
+                  name: http
+          - path: /api/commands
+            pathType: Prefix
+            backend:
+              service:
+                name: command-runners
+                port:
+                  name: javascript
+          - path: /api/python
+            pathType: Prefix
+            backend:
+              service:
+                name: command-runners
+                port:
+                  name: python

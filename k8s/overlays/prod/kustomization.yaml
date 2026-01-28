@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: everything-opencode
+
+resources:
+  - ../../base
+
+patchesStrategicMerge:
+  - deployment-patch.yaml
+  - config-patch.yaml
+  - ingress-patch.yaml
+  - hpa.yaml
+
+commonLabels:
+  environment: production
+
+images:
+  - name: everything-opencode
+    newName: everything-opencode
+    newTag: v1.0.0
+
+configMapGenerator:
+  - name: everything-opencode-config
+    behavior: merge
+    literals:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+      - DEBUG_ENABLED=false
+      - API_RATE_LIMIT=100

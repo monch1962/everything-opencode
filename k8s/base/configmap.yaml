@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: everything-opencode-config
+data:
+  NODE_ENV: 'production'
+  LOG_LEVEL: 'info'
+  DEBUG_ENABLED: 'true'
+  CORS_ORIGIN: '*'
+  MAX_FILE_SIZE: '10MB'
+  SESSION_SECRET: 'change-in-production'
+  DATABASE_URL: 'postgresql://postgres:password@postgres:5432/opencode'
+  REDIS_URL: 'redis://redis:6379'
+  JWT_SECRET: 'change-in-production-jwt-secret'
+  API_RATE_LIMIT: '100'
+  API_RATE_WINDOW: '900000'
+  PINECONE_API_KEY: ''
+  OPENAI_API_KEY: ''
+  GITHUB_TOKEN: ''
+  # Application-specific settings
+  PINESCRIPT_DEBUG_PORT: '3005'
+  COMMAND_RUNNER_PORT: '4000'
+  TEMPLATE_CACHE_TTL: '3600000'
+  MAX_CONCURRENT_JOBS: '10'
+  JOB_TIMEOUT: '300000'
+  UPLOAD_DIR: '/app/uploads'
+  DATA_DIR: '/app/data'
+  TEMP_DIR: '/tmp'

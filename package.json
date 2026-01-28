@@ -5,6 +5,11 @@
   "main": "index.js",
   "scripts": {
     "test": "node tests/run-all.js",
+    "test:unit": "node tests/run-all.js",
+    "test:integration": "node tests/integration/module-interaction.test.js",
+    "test:e2e": "node tests/e2e/complete-workflow.test.js",
+    "test:performance": "node tests/performance/benchmarks.test.js",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e && npm run test:performance",
     "verify": "node scripts/verify-installation.js",
     "lint": "eslint \"{scripts,languages,tests,hooks}/**/*.js\"",
     "lint:fix": "eslint \"{scripts,languages,tests,hooks}/**/*.js\" --fix",

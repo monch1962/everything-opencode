@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: everything-opencode-config
+data:
+  NODE_ENV: 'development'
+  LOG_LEVEL: 'debug'
+  DEBUG_ENABLED: 'true'
+  CORS_ORIGIN: '*'
+  API_RATE_LIMIT: '1000'
+  DATABASE_URL: 'postgresql://postgres:password@postgres-dev:5432/opencode-dev'
+  REDIS_URL: 'redis://redis-dev:6379'

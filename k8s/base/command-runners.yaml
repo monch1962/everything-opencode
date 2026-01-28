@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: command-runners
+  labels:
+    app: everything-opencode
+    component: command-runners
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: everything-opencode
+      component: command-runners
+  template:
+    metadata:
+      labels:
+        app: everything-opencode
+        component: command-runners
+    spec:
+      containers:
+        - name: javascript-runner
+          image: everything-opencode:latest
+          imagePullPolicy: IfNotPresent
+          command: ['node']
+          args: ['scripts/javascript/javascript-command-runner.js', '--port', '4000']
+          ports:
+            - containerPort: 4000
+              name: http
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: RUNNER_TYPE
+              value: 'javascript'
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+        - name: python-runner
+          image: everything-opencode:latest
+          imagePullPolicy: IfNotPresent
+          command: ['python3']
+          args: ['scripts/python/python-command-runner.py', '--port', '4001']
+          ports:
+            - containerPort: 4001
+              name: http
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: RUNNER_TYPE
+              value: 'python'
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: command-runners
+  labels:
+    app: everything-opencode
+spec:
+  type: ClusterIP
+  ports:
+    - port: 4000
+      targetPort: 4000
+      name: javascript
+    - port: 4001
+      targetPort: 4001
+      name: python
+  selector:
+    app: everything-opencode
+    component: command-runners

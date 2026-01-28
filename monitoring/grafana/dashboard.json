@@ -1,0 +1,179 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "everything-opencode",
+    "title": "Everything OpenCode",
+    "tags": ["everything-opencode", "monitoring", "kubernetes"],
+    "timezone": "browser",
+    "schemaVersion": 37,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "CPU Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(container_cpu_usage_seconds_total{container!=\"POD\", pod=~\"everything-opencode.*\"}[5m])) by (pod)",
+            "legendFormat": "{{pod}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "red", "value": 0.8 }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+      },
+      {
+        "id": 2,
+        "title": "Memory Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(container_memory_working_set_bytes{container!=\"POD\", pod=~\"everything-opencode.*\"}) by (pod) / 1024 / 1024 / 1024",
+            "legendFormat": "{{pod}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes",
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "red", "value": 1073741824 }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+      },
+      {
+        "id": 3,
+        "title": "Request Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{job=\"everything-opencode\"}[5m])) by (status_code)",
+            "legendFormat": "Status {{status_code}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 }
+      },
+      {
+        "id": 4,
+        "title": "Error Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"5..\", job=\"everything-opencode\"}[5m])) / sum(rate(http_requests_total{job=\"everything-opencode\"}[5m])) * 100",
+            "legendFormat": "Error Rate",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 1 },
+                { "color": "red", "value": 5 }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 }
+      },
+      {
+        "id": 5,
+        "title": "Response Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"everything-opencode\"}[5m])) by (le))",
+            "legendFormat": "95th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"everything-opencode\"}[5m])) by (le))",
+            "legendFormat": "50th percentile",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 }
+      },
+      {
+        "id": 6,
+        "title": "Pod Status",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "kube_pod_status_phase{pod=~\"everything-opencode.*\"}",
+            "legendFormat": "{{pod}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "displayMode": "color-background"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 }
+      },
+      {
+        "id": 7,
+        "title": "Replica Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "kube_deployment_status_replicas_available{deployment=~\"everything-opencode.*\"}",
+            "legendFormat": "{{deployment}} available",
+            "refId": "A"
+          },
+          {
+            "expr": "kube_deployment_spec_replicas{deployment=~\"everything-opencode.*\"}",
+            "legendFormat": "{{deployment}} desired",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  },
+  "folderUid": "everything-opencode",
+  "message": "Dashboard updated",
+  "overwrite": true
+}
