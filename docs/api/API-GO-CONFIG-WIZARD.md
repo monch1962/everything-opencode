@@ -1,19 +1,19 @@
 # Go Config Wizard API Documentation
 
-*Generated: 2026-01-28T01:29:17.977Z*
+_Generated: 2026-01-28T01:29:17.977Z_
 
 ### Main Class
 
-*File: languages/go/config-wizard.js*
+_File: languages/golang/config-wizard.js_
 
 #### Methods
 
 ##### `runWizard()`
 
 Go Configuration Wizard - Refactored Version
- Interactive configuration for Go projects with Go-specific improvements
- This is a refactored version that delegates to modular components while
- maintaining 100% backward compatibility with the original API.
+Interactive configuration for Go projects with Go-specific improvements
+This is a refactored version that delegates to modular components while
+maintaining 100% backward compatibility with the original API.
 
 ##### `showEnvironmentReport()`
 
@@ -87,19 +87,18 @@ Show completion message with Go-specific resources
 
 `GoConfigWizard`
 
-
 ## Modules
 
 ### Go Config Generator
 
-*File: languages/go/config-wizard-modules/go-config-generator.js*
+_File: languages/golang/config-wizard-modules/go-config-generator.js_
 
 #### Methods
 
 ##### `configureProject()`
 
 Go Config Generator Module for GoConfigWizard
- Configuration methods: configureProject, generateConfiguration, saveConfiguration
+Configuration methods: configureProject, generateConfiguration, saveConfiguration
 
 ##### `generateConfiguration()`
 
@@ -127,15 +126,15 @@ Create README.md for Go project
 
 ### Go Project Creator
 
-*File: languages/go/config-wizard-modules/go-project-creator.js*
+_File: languages/golang/config-wizard-modules/go-project-creator.js_
 
 #### Methods
 
 ##### `interactiveProjectCreation()`
 
 Go Project Creator Module for GoConfigWizard
- Project creation methods: interactiveProjectCreation, createModuleProject, createCLIProject,
- createWebProject, createLibraryProject, createWorkspaceProject
+Project creation methods: interactiveProjectCreation, createModuleProject, createCLIProject,
+createWebProject, createLibraryProject, createWorkspaceProject
 
 ##### `createModuleProject()`
 
@@ -167,14 +166,14 @@ Create project based on type
 
 ### Go Project Detector
 
-*File: languages/go/config-wizard-modules/go-project-detector.js*
+_File: languages/golang/config-wizard-modules/go-project-detector.js_
 
 #### Methods
 
 ##### `detectOrCreateProject()`
 
 Go Project Detector Module for GoConfigWizard
- Project detection methods: detectOrCreateProject, hasGoFiles, suggestModuleName, readGoMod
+Project detection methods: detectOrCreateProject, hasGoFiles, suggestModuleName, readGoMod
 
 ##### `hasGoFiles()`
 
@@ -218,14 +217,14 @@ Get Go version from project
 
 ### Go Wizard Core
 
-*File: languages/go/config-wizard-modules/go-wizard-core.js*
+_File: languages/golang/config-wizard-modules/go-wizard-core.js_
 
 #### Methods
 
 ##### `runWizard()`
 
 Go Wizard Core Module for GoConfigWizard
- Core wizard methods: constructor, runWizard, showEnvironmentReport, showInstallationGuide, showCompletionMessage
+Core wizard methods: constructor, runWizard, showEnvironmentReport, showInstallationGuide, showCompletionMessage
 
 ##### `showEnvironmentReport()`
 
@@ -255,16 +254,17 @@ Get project path
 
 `GoWizardCore`
 
-
 ## Usage Examples
 
 For detailed usage examples, see:
+
 - `docs/examples/QUICK-START-EXAMPLES.md` - Quick start examples
 - `docs/examples/` - Comprehensive examples directory
 
 ## Validation
 
 Run validation scripts to ensure module functionality:
+
 ```bash
 node validate-template-utils.js
 ```
@@ -272,7 +272,7 @@ node validate-template-utils.js
 ## Testing
 
 Run the test suite to verify functionality:
+
 ```bash
 npm test
 ```
-

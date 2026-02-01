@@ -42,7 +42,7 @@ This repository is a **converted version** of [everything-claude-code](https://g
 
 **Documentation Coverage:**
 
-- ✅ **Go documentation**: Added 4 missing command docs (`go-deps`, `go-fmt`, `go-lint`, `go-test`)
+- ✅ **Go documentation**: Added comprehensive command docs (`go-mod`, `go-format`, `go-lint`, `go-test`, `go-clean`, `go-run`, `go-security`)
 - ✅ **Elixir documentation**: Created 7 comprehensive command docs (previously zero)
 - ✅ **PineScript documentation**: Added `pine-debug` documentation
 - ✅ **Standardized format**: Consistent documentation structure across all languages
@@ -117,7 +117,7 @@ The plugin includes intelligent language tool detection with **cross-platform pa
 node languages/python/tool-detector.js
 
 # Check Go installation
-node scripts/go/command-runner.js --check
+node scripts/golang/command-runner.js --check
 
 # Get platform-specific installation help
 node scripts/lib/platform-detector.js --help
@@ -184,8 +184,11 @@ everything-opencode/
  |   |-- pine-debug.md       # /pine-debug - Debug PineScript with AI-assisted analysis
  |   |-- go-setup.md         # /go-setup - Configure Go project with Go-specific improvements
  |   |-- go-build.md         # /go-build - Build Go projects with cross-compilation
- |   |-- go-deps.md          # /go-deps - Manage Go dependencies with security auditing
- |   |-- go-fmt.md           # /go-fmt - Format Go code with multiple formatters
+ |   |-- go-mod.md           # /go-mod - Manage Go modules with security auditing
+ |   |-- go-format.md        # /go-format - Format Go code with multiple formatters
+ |   |-- go-clean.md         # /go-clean - Clean build artifacts and cache
+ |   |-- go-run.md           # /go-run - Run Go programs with enhanced features
+ |   |-- go-security.md      # /go-security - Security scanning for Go code and dependencies
  |   |-- go-lint.md          # /go-lint - Lint Go code with golangci-lint/staticcheck
  |   |-- go-test.md          # /go-test - Run Go tests with coverage and race detection
 |   |-- elixir-setup.md     # /elixir-setup - Configure Elixir project with Elixir-specific improvements

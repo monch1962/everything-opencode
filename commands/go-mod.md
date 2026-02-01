@@ -1,15 +1,46 @@
-# /go-deps
+# /go-mod
 
-Manage Go dependencies with Go-specific improvements.
+Manage Go modules with Go-specific improvements.
 
 ## Description
 
-The `/go-deps` command manages Go project dependencies including downloading, updating, tidying, and auditing. It provides intelligent dependency management with security scanning, dependency graph visualization, and Go module support.
+The `/go-mod` command manages Go modules including downloading, updating, tidying, and auditing. It provides intelligent module management with security scanning, dependency graph visualization, and Go module support.
 
 ## Usage
 
 ```bash
-/go-deps [action] [options]
+/go-mod [action] [options]
+```
+
+## Examples
+
+```bash
+# Run go mod tidy (default action)
+/go-mod
+
+# Download dependencies to local cache
+/go-mod download
+
+# Vendor dependencies
+/go-mod vendor
+
+# Show dependency graph
+/go-mod --graph
+
+# Explain why a package is needed
+/go-mod why --package github.com/gorilla/mux
+
+# Update specific package
+/go-mod --update
+
+# Run security audit
+/go-mod --security
+
+# Verbose tidy operation
+/go-mod tidy --verbose
+
+# Dry run update
+/go-mod --update --dry-run
 ```
 
 ## Actions

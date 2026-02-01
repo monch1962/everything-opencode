@@ -7,36 +7,39 @@
 
 const path = require('path');
 const fs = require('fs');
-const GoCommandRunner = require("../go/go-command-runner-refactored");
+const GoCommandRunner = require('../golang/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
   const options = {};
 
   // Parse command line arguments
+  const modArgs = [];
+  let action = 'tidy'; // Default action
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     if (arg === '--tidy' || arg === '-t') {
-      options.action = 'tidy';
+      action = 'tidy';
     } else if (arg === '--download' || arg === '-d') {
-      options.action = 'download';
+      action = 'download';
     } else if (arg === '--vendor' || arg === '-v') {
-      options.action = 'vendor';
+      action = 'vendor';
     } else if (arg === '--verify') {
-      options.action = 'verify';
+      action = 'verify';
     } else if (arg === '--graph') {
-      options.action = 'graph';
+      action = 'graph';
     } else if (arg === '--why') {
-      options.action = 'why';
+      action = 'why';
     } else if (arg === '--package' || arg === '-p') {
-      options.package = args[++i];
+      modArgs.push(args[++i]);
     } else if (arg === '--update') {
       options.update = true;
     } else if (arg === '--update-all') {
       options.updateAll = true;
     } else if (arg === '--dry-run') {
-      options.dryRun = true;
+      modArgs.push('-dry-run');
     } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
     } else if (arg === '--security') {
@@ -50,21 +53,12 @@ async function main() {
       console.error(`Unknown option: ${arg}`);
       showHelp();
       process.exit(1);
-    } else if (!options.action) {
-      // First non-option argument is action
-      options.action = arg;
-    } else if (options.action === 'why' && !options.package) {
-      options.package = arg;
+    } else if (action === 'why' && modArgs.length === 0) {
+      modArgs.push(arg);
     } else {
-      // Additional arguments for specific actions
-      options.extraArgs = options.extraArgs || [];
-      options.extraArgs.push(arg);
+      // Additional arguments
+      modArgs.push(arg);
     }
-  }
-
-  // Default action
-  if (!options.action) {
-    options.action = 'tidy';
   }
 
   try {
@@ -78,18 +72,20 @@ async function main() {
 
     // Handle update actions
     if (options.update || options.updateAll) {
-      return updateDependencies(runner, options);
+      return updateDependencies(runner, options, modArgs);
     }
 
-    console.log(`📦 Managing Go dependencies: ${options.action}`);
+    console.log(`📦 Managing Go modules: ${action}`);
 
-    const result = await runner.manageDependencies(options);
+    // Build mod command args
+    const commandArgs = [action, ...modArgs];
+    const result = await runner.mod(commandArgs, options);
 
     if (result.success) {
-      console.log(`\n✅ Dependency management completed: ${options.action}`);
+      console.log(`\n✅ Go modules operation completed: ${action}`);
 
       // Show additional information for specific actions
-      switch (options.action) {
+      switch (action) {
         case 'tidy':
           console.log('   • Added missing dependencies');
           console.log('   • Removed unused dependencies');
@@ -115,7 +111,7 @@ async function main() {
           break;
       }
     } else {
-      console.error(`\n❌ Dependency management failed: ${options.action}`);
+      console.error(`\n❌ Go modules operation failed: ${action}`);
       process.exit(1);
     }
   } catch (error) {
@@ -176,7 +172,7 @@ async function runSecurityAudit(runner, options) {
 
       if (fs.existsSync(path.join(runner.projectPath, 'gosec-report.json'))) {
         const report = JSON.parse(
-          fs.readFileSync(path.join(runner.projectPath, 'gosec-report.json'), 'utf8'),
+          fs.readFileSync(path.join(runner.projectPath, 'gosec-report.json'), 'utf8')
         );
         results.tools.gosec = {
           issues: report.Issues?.length || 0,
@@ -251,7 +247,7 @@ async function runSecurityAudit(runner, options) {
       {
         cwd: runner.projectPath,
         stdio: 'pipe',
-      },
+      }
     );
 
     if (outdatedResult.stdout) {
@@ -265,7 +261,7 @@ async function runSecurityAudit(runner, options) {
       // Check for security-related updates
       const securityUpdates = updates.filter(
         (update) =>
-          update.includes('security') || update.includes('CVE') || update.includes('vulnerability'),
+          update.includes('security') || update.includes('CVE') || update.includes('vulnerability')
       );
       if (securityUpdates.length > 0) {
         console.log(`   ⚠️  ${securityUpdates.length} security-related updates available`);
@@ -335,7 +331,7 @@ async function runSecurityAudit(runner, options) {
 /**
  * Update dependencies
  */
-async function updateDependencies(runner, options) {
+async function updateDependencies(runner, options, modArgs) {
   console.log('🔄 Updating dependencies...');
 
   try {
@@ -354,27 +350,28 @@ async function updateDependencies(runner, options) {
 
         // Run go mod tidy
         console.log('🧹 Tidying up...');
-        await runner.manageDependencies({ action: 'tidy' });
+        await runner.mod(['tidy'], options);
       } else {
         console.error('\n❌ Failed to update dependencies');
         process.exit(1);
       }
-    } else if (options.package) {
+    } else if (modArgs.length > 0) {
       // Update specific package
-      console.log(`📦 Updating package: ${options.package}`);
-      const result = runCommand(`go get -u ${options.package}`, {
+      const packageName = modArgs[0];
+      console.log(`📦 Updating package: ${packageName}`);
+      const result = runCommand(`go get -u ${packageName}`, {
         cwd: runner.projectPath,
         stdio: 'inherit',
       });
 
       if (result.success) {
-        console.log(`\n✅ Package updated: ${options.package}`);
+        console.log(`\n✅ Package updated: ${packageName}`);
 
         // Run go mod tidy
         console.log('🧹 Tidying up...');
-        await runner.manageDependencies({ action: 'tidy' });
+        await runner.mod(['tidy'], options);
       } else {
-        console.error(`\n❌ Failed to update package: ${options.package}`);
+        console.error(`\n❌ Failed to update package: ${packageName}`);
         process.exit(1);
       }
     }
@@ -386,11 +383,11 @@ async function updateDependencies(runner, options) {
 
 function showHelp() {
   console.log(`
-📦 Go Dependencies Command
+📦 Go Modules Command
 
-Usage: /go-deps [action] [options]
+Usage: /go-mod [action] [options]
 
-Manage Go dependencies with Go-specific improvements and security auditing.
+Manage Go modules with Go-specific improvements and security auditing.
 
 Actions:
   tidy (default)         Add missing and remove unused modules
@@ -418,16 +415,16 @@ Go-specific features:
   • Checksum verification
 
 Examples:
-  /go-deps                     # Run go mod tidy (default)
-  /go-deps tidy               # Tidy dependencies
-  /go-deps vendor             # Vendor dependencies
-  /go-deps verify             # Verify dependency integrity
-  /go-deps graph              # Show dependency graph
-  /go-deps why github.com/pkg/errors # Explain why package is needed
-  /go-deps update --package github.com/gorilla/mux # Update specific package
-  /go-deps update-all         # Update all dependencies
-  /go-deps security           # Run security audit
-  /go-deps --verbose tidy     # Verbose tidy operation
+  /go-mod                     # Run go mod tidy (default)
+  /go-mod tidy               # Tidy dependencies
+  /go-mod vendor             # Vendor dependencies
+  /go-mod verify             # Verify dependency integrity
+  /go-mod graph              # Show dependency graph
+  /go-mod why github.com/pkg/errors # Explain why package is needed
+  /go-mod update --package github.com/gorilla/mux # Update specific package
+  /go-mod update-all         # Update all dependencies
+  /go-mod security           # Run security audit
+  /go-mod --verbose tidy     # Verbose tidy operation
 
 Dependency management:
   • Uses Go modules (go.mod, go.sum)
@@ -472,8 +469,8 @@ Environment variables:
   GOSUMDB              - Checksum database
 
 Tips:
-  • Run /go-deps tidy regularly to keep go.mod clean
-  • Use /go-deps security in CI pipelines
+  • Run /go-mod tidy regularly to keep go.mod clean
+  • Use /go-mod security in CI pipelines
   • Consider vendoring for reproducible builds
   • Use version constraints in go.mod
   • Audit dependencies for security vulnerabilities

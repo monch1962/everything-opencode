@@ -27,8 +27,11 @@ hello-world/
 - `/go-build` - Building with optimizations
 - `/go-test` - Testing with coverage
 - `/go-lint` - Code quality checking
-- `/go-fmt` - Code formatting
-- `/go-deps` - Dependency management
+- `/go-format` - Code formatting
+- `/go-mod` - Module management
+- `/go-clean` - Clean build artifacts
+- `/go-run` - Run Go programs
+- `/go-security` - Security scanning
 
 ## Usage Examples
 
@@ -78,29 +81,23 @@ cd examples/go-projects/hello-world
 
 ```bash
 # Format code
-/go-fmt --write
+/go-format --write
 
 # Check formatting
-/go-fmt --check
-
-# Lint code
-/go-lint
-
-# Lint and fix issues
-/go-lint --fix
+/go-format --check
 ```
 
 ### Dependencies
 
 ```bash
-# Tidy dependencies
-/go-deps tidy
+# Tidy modules
+/go-mod tidy
 
 # Run security audit
-/go-deps security
+/go-mod security
 
 # Update dependencies
-/go-deps update-all
+/go-mod update-all
 ```
 
 ## Go-Specific Improvements
@@ -257,7 +254,7 @@ jobs:
       - uses: actions/setup-go@v4
       - run: /go-test --coverage --race
       - run: /go-lint
-      - run: /go-fmt --check
+      - run: /go-format --check
 
   build:
     runs-on: ubuntu-latest

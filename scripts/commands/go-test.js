@@ -5,13 +5,14 @@
  * Run Go tests with Go-specific improvements
  */
 
-const GoCommandRunner = require("../go/go-command-runner-refactored");
+const GoCommandRunner = require('../golang/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
   const options = {};
 
   // Parse command line arguments
+  const testArgs = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
@@ -28,27 +29,27 @@ async function main() {
     } else if (arg === '--race') {
       options.race = true;
     } else if (arg === '--timeout') {
-      options.timeout = args[++i];
+      testArgs.push('-timeout', args[++i]);
     } else if (arg === '--count') {
-      options.count = parseInt(args[++i]);
+      testArgs.push('-count', args[++i]);
     } else if (arg === '--parallel') {
-      options.parallel = parseInt(args[++i]);
+      testArgs.push('-parallel', args[++i]);
     } else if (arg === '--bench' || arg === '-b') {
       options.bench = true;
     } else if (arg === '--benchtime') {
-      options.benchtime = args[++i];
+      testArgs.push('-benchtime', args[++i]);
     } else if (arg === '--benchmem') {
-      options.benchmem = true;
+      testArgs.push('-benchmem');
     } else if (arg === '--cpu') {
-      options.cpu = args[++i];
+      testArgs.push('-cpu', args[++i]);
     } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
     } else if (arg === '--short') {
-      options.short = true;
+      testArgs.push('-short');
     } else if (arg === '--fail-fast') {
-      options.failFast = true;
+      testArgs.push('-failfast');
     } else if (arg === '--json') {
-      options.json = true;
+      testArgs.push('-json');
     } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
@@ -58,7 +59,7 @@ async function main() {
       process.exit(1);
     } else {
       // Assume it's a test pattern
-      options.pattern = arg;
+      testArgs.push(arg);
     }
   }
 
@@ -68,12 +69,12 @@ async function main() {
 
     // Check if we're running benchmarks
     if (options.bench) {
-      return runBenchmarks(runner, options);
+      return runBenchmarks(runner, options, testArgs);
     }
 
     // Run tests
     console.log('🧪 Running Go tests...');
-    const result = await runner.test(options);
+    const result = await runner.test(testArgs, options);
 
     if (result.success) {
       console.log('\n✅ All tests passed!');
@@ -82,9 +83,6 @@ async function main() {
       if (options.coverage) {
         await generateCoverageReport(runner, options);
       }
-    } else if (result.hasIssues) {
-      console.log('\n⚠️ Tests completed with issues');
-      process.exit(1);
     } else {
       console.error('\n❌ Tests failed');
       process.exit(1);
@@ -98,11 +96,14 @@ async function main() {
 /**
  * Run benchmarks
  */
-async function runBenchmarks(runner, options) {
+async function runBenchmarks(runner, options, testArgs) {
   console.log('⚡ Running Go benchmarks...');
 
   try {
-    const result = await runner.benchmark(options);
+    // Add benchmark flag to test args
+    const benchmarkArgs = ['-bench', '.', ...testArgs];
+
+    const result = await runner.test(benchmarkArgs, options);
 
     if (result.success) {
       console.log('\n✅ Benchmarks completed!');
@@ -221,20 +222,34 @@ async function generateCoverageReport(runner, options) {
   console.log('\n📈 Generating coverage report...');
 
   try {
-    const result = await runner.coverage({
-      profile: options.coverageProfile,
-      format: options.coverageFormat || 'html',
-      output: options.coverageOutput,
+    const { runCommand } = require('../lib/utils');
+    const coverageFile = options.coverageProfile || 'coverage.out';
+
+    // Generate coverage profile
+    const result = runCommand(`go test -coverprofile=${coverageFile} ./...`, {
+      cwd: runner.projectPath,
+      stdio: 'pipe',
     });
 
     if (result.success) {
-      console.log('✅ Coverage report generated');
+      console.log('✅ Coverage profile generated');
 
-      // Show coverage statistics if available
-      const coverageFile = options.coverageProfile || 'coverage.out';
-      if (coverageFile) {
-        await showCoverageStats(runner, coverageFile);
+      // Generate HTML report if requested
+      if (options.coverageFormat === 'html') {
+        const htmlResult = runCommand(`go tool cover -html=${coverageFile} -o coverage.html`, {
+          cwd: runner.projectPath,
+          stdio: 'pipe',
+        });
+
+        if (htmlResult.success) {
+          console.log('✅ HTML coverage report generated: coverage.html');
+        }
       }
+
+      // Show coverage statistics
+      await showCoverageStats(runner, coverageFile);
+    } else {
+      console.log(`⚠️ Could not generate coverage report: ${result.error}`);
     }
   } catch (error) {
     console.log(`⚠️ Could not generate coverage report: ${error.message}`);
@@ -271,7 +286,7 @@ async function showCoverageStats(runner, profileFile) {
         const match = totalCoverage.match(/(\d+\.\d+)%/);
         if (match) {
           const coverage = parseFloat(match[1]);
-          const threshold = runner.goConfig?.testing?.coverage?.threshold || 80;
+          const threshold = 80; // Default threshold
 
           if (coverage >= threshold) {
             console.log(`✅ Coverage meets threshold (${threshold}%)`);

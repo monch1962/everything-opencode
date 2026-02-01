@@ -33,12 +33,12 @@ console.log('\n2. Testing Command Runner Updates...');
 // Test Go command runner
 console.log('   Testing Go command runner...');
 try {
-  const GoCommandRunner = require('./go/command-runner');
+  const GoCommandRunner = require('./golang/command-runner');
   new GoCommandRunner();
   console.log('   ✅ Go command runner loaded');
 
   // Check if error handler is integrated
-  const source = fs.readFileSync(path.join(__dirname, 'go/command-runner.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, 'golang/command-runner.js'), 'utf8');
   if (source.includes('defaultErrorHandler')) {
     console.log('   ✅ Error handler integrated in Go command runner');
   } else {
@@ -92,7 +92,7 @@ console.log('\n3. Testing Security Scanning Integration...');
 // Check Go deps security scanning
 console.log('   Checking Go deps security scanning...');
 try {
-  const source = fs.readFileSync(path.join(__dirname, 'commands/go-deps.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, 'commands/go-mod.js'), 'utf8');
   if (
     source.includes('runSecurityAudit') &&
     source.includes('govulncheck') &&
@@ -143,10 +143,10 @@ try {
 console.log('\n4. Testing File Structure...');
 const requiredFiles = [
   'scripts/lib/error-handler.js',
-  'scripts/go/command-runner.js',
+  'scripts/golang/command-runner.js',
   'scripts/elixir/command-runner.js',
   'scripts/commands/python-command-runner.js',
-  'scripts/commands/go-deps.js',
+  'scripts/commands/go-mod.js',
   'scripts/commands/python-deps.js',
   'scripts/commands/elixir-deps.js',
 ];
@@ -173,7 +173,7 @@ if (allFilesExist) {
   console.log('   2. ✅ Updated Go command runner with error handling');
   console.log('   3. ✅ Updated Elixir command runner with error handling');
   console.log('   4. ✅ Updated Python command runner with error handling');
-  console.log('   5. ✅ Enhanced Go deps with security scanning (gosec, govulncheck)');
+  console.log('   5. ✅ Enhanced Go modules with security scanning (gosec, govulncheck)');
   console.log('   6. ✅ Enhanced Python deps with security scanning (safety, pip-audit, bandit)');
   console.log(
     '   7. ✅ Enhanced Elixir deps with security scanning (hex.audit, mix_audit, sobelow)'

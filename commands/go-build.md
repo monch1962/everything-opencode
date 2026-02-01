@@ -232,7 +232,7 @@ Error: cannot find module providing package github.com/example/pkg
 **Fix:**
 
 ```bash
-/go-deps tidy
+/go-mod tidy
 # or
 go get github.com/example/pkg
 ```
@@ -269,7 +269,7 @@ Error: missing go.sum entry for module
 **Fix:**
 
 ```bash
-/go-deps tidy
+/go-mod tidy
 # or
 go mod download
 ```
@@ -364,8 +364,11 @@ clean-build:
 - `/go-setup` - Configure Go project
 - `/go-test` - Run Go tests
 - `/go-lint` - Lint Go code
-- `/go-fmt` - Format Go code
-- `/go-deps` - Manage dependencies
+- `/go-format` - Format Go code
+- `/go-mod` - Manage modules
+- `/go-clean` - Clean build artifacts
+- `/go-run` - Run Go programs
+- `/go-security` - Security scanning
 - [Go Build Command](https://pkg.go.dev/cmd/go#hdr-Compile_packages_and_dependencies)
 - [Cross-compilation Guide](https://go.dev/doc/install/source#environment)
 - [Build Constraints](https://pkg.go.dev/go/build#hdr-Build_Constraints)

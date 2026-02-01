@@ -5,34 +5,35 @@
  * Lint Go code with Go-specific improvements
  */
 
-const GoCommandRunner = require("../go/go-command-runner-refactored");
+const GoCommandRunner = require('../golang/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
   const options = {};
 
   // Parse command line arguments
+  const lintArgs = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     if (arg === '--fix') {
-      options.fix = true;
+      lintArgs.push('--fix');
     } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
     } else if (arg === '--timeout') {
-      options.timeout = args[++i];
+      lintArgs.push('--timeout', args[++i]);
     } else if (arg === '--config') {
-      options.config = args[++i];
+      lintArgs.push('--config', args[++i]);
     } else if (arg === '--linter') {
       options.linter = args[++i];
     } else if (arg === '--fast') {
-      options.fast = true;
+      lintArgs.push('--fast');
     } else if (arg === '--no-config') {
-      options.noConfig = true;
+      lintArgs.push('--no-config');
     } else if (arg === '--out-format') {
-      options.outFormat = args[++i];
+      lintArgs.push('--out-format', args[++i]);
     } else if (arg === '--issues-exit-code') {
-      options.issuesExitCode = parseInt(args[++i]);
+      lintArgs.push('--issues-exit-code', args[++i]);
     } else if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
@@ -42,8 +43,7 @@ async function main() {
       process.exit(1);
     } else {
       // Assume it's a file or directory path
-      options.paths = options.paths || [];
-      options.paths.push(arg);
+      lintArgs.push(arg);
     }
   }
 
@@ -51,24 +51,11 @@ async function main() {
     const runner = new GoCommandRunner(process.cwd());
     await runner.initialize();
 
-    // Override linter from command line
-    if (options.linter && runner.goConfig.linting) {
-      runner.goConfig.linting.tool = options.linter;
-    }
-
-    // Override config file from command line
-    if (options.config && runner.goConfig.linting) {
-      runner.goConfig.linting.configFile = options.config;
-    }
-
     console.log('🔍 Linting Go code...');
-    const result = await runner.lint(options);
+    const result = await runner.lint(lintArgs, options);
 
     if (result.success) {
       console.log('\n✅ No linting issues found!');
-    } else if (result.hasIssues) {
-      console.log('\n⚠️ Linting issues found');
-      process.exit(options.issuesExitCode || 1);
     } else {
       console.error('\n❌ Linting failed');
       process.exit(1);
@@ -79,9 +66,7 @@ async function main() {
     // Provide helpful suggestions for common linting errors
     if (error.message.includes('golangci-lint')) {
       console.log('\n💡 Try installing golangci-lint:');
-      console.log(
-        '   go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest',
-      );
+      console.log('   go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest');
     } else if (error.message.includes('staticcheck')) {
       console.log('\n💡 Try installing staticcheck:');
       console.log('   go install honnef.co/go/tools/cmd/staticcheck@latest');

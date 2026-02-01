@@ -87,8 +87,11 @@ everything-opencode/
 - **/go-build** - Build Go projects with cross-compilation for 5 platforms and race detection
 - **/go-test** - Run comprehensive tests with coverage, benchmarks, and race detection
 - **/go-lint** - Lint code with multiple linter support (golangci-lint, staticcheck, revive)
-- **/go-fmt** - Format code with gofmt/goimports and formatting checks
-- **/go-deps** - Manage dependencies with security auditing and update management
+- **/go-format** - Format code with gofmt/goimports and formatting checks
+- **/go-mod** - Manage modules with security auditing and update management
+- **/go-clean** - Clean build artifacts and cache
+- **/go-run** - Run Go programs with enhanced features
+- **/go-security** - Security scanning for Go code and dependencies
 
 #### Elixir Commands
 
@@ -259,9 +262,9 @@ toolName: {
 
 ```javascript
 // Check for project type markers
-const hasMarkers = await checkPythonProjectType(projectPath, "new-type", [
-  "import newframework",
-  "from newframework import",
+const hasMarkers = await checkPythonProjectType(projectPath, 'new-type', [
+  'import newframework',
+  'from newframework import',
 ]);
 ```
 

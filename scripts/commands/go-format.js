@@ -5,24 +5,25 @@
  * Format Go code with Go-specific improvements
  */
 
-const GoCommandRunner = require("../go/go-command-runner-refactored");
+const GoCommandRunner = require('../golang/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
   const options = {};
 
   // Parse command line arguments
+  const formatArgs = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     if (arg === '--write' || arg === '-w') {
-      options.write = true;
+      formatArgs.push('-w');
     } else if (arg === '--diff' || arg === '-d') {
-      options.diff = true;
+      formatArgs.push('-d');
     } else if (arg === '--simplify' || arg === '-s') {
-      options.simplify = true;
+      formatArgs.push('-s');
     } else if (arg === '--list' || arg === '-l') {
-      options.list = true;
+      formatArgs.push('-l');
     } else if (arg === '--formatter') {
       options.formatter = args[++i];
     } else if (arg === '--verbose' || arg === '-v') {
@@ -38,8 +39,7 @@ async function main() {
       process.exit(1);
     } else {
       // Assume it's a file or directory path
-      options.paths = options.paths || [];
-      options.paths.push(arg);
+      formatArgs.push(arg);
     }
   }
 
@@ -47,23 +47,18 @@ async function main() {
     const runner = new GoCommandRunner(process.cwd());
     await runner.initialize();
 
-    // Override formatter from command line
-    if (options.formatter && runner.goConfig.tools) {
-      runner.goConfig.tools.formatter = options.formatter;
-    }
-
     // Handle check mode (dry run)
     if (options.check) {
-      return runFormatCheck(runner, options);
+      return runFormatCheck(runner, options, formatArgs);
     }
 
     console.log('🎨 Formatting Go code...');
-    const result = await runner.format(options);
+    const result = await runner.format(formatArgs, options);
 
     if (result.success) {
-      if (options.write) {
+      if (formatArgs.includes('-w')) {
         console.log('\n✅ Code formatted successfully!');
-      } else if (options.diff) {
+      } else if (formatArgs.includes('-d')) {
         // Diff output is already shown by the formatter
         console.log('\n📋 Formatting diff shown above');
       } else {
@@ -82,22 +77,18 @@ async function main() {
 /**
  * Run format check (dry run)
  */
-async function runFormatCheck(runner, options) {
+async function runFormatCheck(runner, options, formatArgs) {
   console.log('🔍 Checking Go code formatting...');
 
   try {
     // First check with gofmt
-    const gofmtResult = await runner.format({
-      ...options,
-      diff: true,
-      write: false,
-      stdio: 'pipe',
-    });
+    const checkArgs = ['-d', '.', ...formatArgs.filter((arg) => !arg.startsWith('-w'))];
+    const gofmtResult = await runner.format(checkArgs, { ...options, stdio: 'pipe' });
 
     if (gofmtResult.stdout && gofmtResult.stdout.trim()) {
       console.log('\n⚠️ Formatting issues found:');
       console.log(gofmtResult.stdout);
-      console.log('\n💡 Run /go-fmt --write to fix these issues');
+      console.log('\n💡 Run /go-format --write to fix these issues');
       process.exit(1);
     } else {
       console.log('\n✅ All Go files are properly formatted!');
@@ -116,9 +107,7 @@ async function runFormatCheck(runner, options) {
       if (importResult.stdout && importResult.stdout.trim()) {
         console.log('\n⚠️ Import organization issues found:');
         console.log(importResult.stdout);
-        console.log(
-          '\n💡 Run /go-fmt --write --formatter goimports to fix imports',
-        );
+        console.log('\n💡 Run /go-format --write --formatter goimports to fix imports');
         process.exit(1);
       } else {
         console.log('✅ Imports are properly organized!');
@@ -134,7 +123,7 @@ function showHelp() {
   console.log(`
 🎨 Go Format Command
 
-Usage: /go-fmt [options] [paths...]
+Usage: /go-format [options] [paths...]
 
 Format Go code with Go-specific improvements and multiple formatter support.
 
@@ -161,14 +150,14 @@ Go-specific features:
   • Batch formatting support
 
 Examples:
-  /go-fmt                     # Check formatting of all Go files
-  /go-fmt --write            # Format all Go files
-  /go-fmt --diff             # Show formatting differences
-  /go-fmt --check            # Check formatting without modifying
-  /go-fmt --formatter goimports # Format with import organization
-  /go-fmt --simplify --write # Simplify and format code
-  /go-fmt main.go pkg/       # Format specific files/directories
-  /go-fmt --list             # List files needing formatting
+  /go-format                     # Check formatting of all Go files
+  /go-format --write            # Format all Go files
+  /go-format --diff             # Show formatting differences
+  /go-format --check            # Check formatting without modifying
+  /go-format --formatter goimports # Format with import organization
+  /go-format --simplify --write # Simplify and format code
+  /go-format main.go pkg/       # Format specific files/directories
+  /go-format --list             # List files needing formatting
 
 gofmt features:
   • Standard Go code formatting

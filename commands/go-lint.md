@@ -282,13 +282,13 @@ golangci-lint run --debug
 # In .golangci.yml
 issues:
   exclude:
-    - "EXC0001" # Exclude specific check
-    - "from regexp:.*" # Exclude by regex
+    - 'EXC0001' # Exclude specific check
+    - 'from regexp:.*' # Exclude by regex
 ```
 
 ## Related Commands
 
-- `/go-fmt` - Format code (complements linting)
+- `/go-format` - Format code (complements linting)
 - `/go-build` - Build code (catches compilation errors)
 - `/go-test` - Test code (catches runtime issues)
 - `/go-setup` - Configure linting tools

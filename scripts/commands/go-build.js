@@ -5,28 +5,29 @@
  * Build Go projects with Go-specific improvements
  */
 
-const GoCommandRunner = require("../go/go-command-runner-refactored");
+const GoCommandRunner = require('../golang/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);
   const options = {};
 
   // Parse command line arguments
+  const buildArgs = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     if (arg === '--output' || arg === '-o') {
-      options.output = args[++i];
+      buildArgs.push('-o', args[++i]);
     } else if (arg === '--target') {
       options.target = args[++i];
     } else if (arg === '--race') {
-      options.race = true;
+      buildArgs.push('-race');
     } else if (arg === '--tags') {
-      options.tags = args[++i];
+      buildArgs.push('-tags', args[++i]);
     } else if (arg === '--build-mode') {
-      options.buildMode = args[++i];
+      buildArgs.push('-buildmode', args[++i]);
     } else if (arg === '--ldflags') {
-      options.ldflags = args[++i];
+      buildArgs.push('-ldflags', args[++i]);
     } else if (arg === '--verbose' || arg === '-v') {
       options.verbose = true;
     } else if (arg === '--clean') {
@@ -42,7 +43,7 @@ async function main() {
       process.exit(1);
     } else {
       // Assume it's a package path
-      options.package = arg;
+      buildArgs.push(arg);
     }
   }
 
@@ -58,27 +59,28 @@ async function main() {
 
     // Handle cross-compilation
     if (options.crossCompile) {
-      await handleCrossCompilation(runner, options);
+      await handleCrossCompilation(runner, options, buildArgs);
       return;
     }
 
     // Build the project
     console.log('🔨 Building Go project...');
-    const result = await runner.build(options);
+    const result = await runner.build(buildArgs, options);
 
     if (result.success) {
       console.log('\n✅ Build successful!');
 
       // Show build summary
-      if (options.output) {
-        console.log(`   Output: ${options.output}`);
+      const outputIndex = buildArgs.indexOf('-o');
+      if (outputIndex !== -1 && outputIndex + 1 < buildArgs.length) {
+        console.log(`   Output: ${buildArgs[outputIndex + 1]}`);
       }
 
       if (options.target) {
         console.log(`   Target: ${options.target}`);
       }
 
-      if (options.race) {
+      if (buildArgs.includes('-race')) {
         console.log('   Race detector: enabled');
       }
     } else {
@@ -94,7 +96,7 @@ async function main() {
 /**
  * Handle cross-compilation for multiple platforms
  */
-async function handleCrossCompilation(runner, options) {
+async function handleCrossCompilation(runner, options, buildArgs) {
   console.log('🌍 Cross-compiling for multiple platforms...');
 
   const platforms = [
@@ -109,17 +111,23 @@ async function handleCrossCompilation(runner, options) {
 
   for (const platform of platforms) {
     const target = `${platform.os}/${platform.arch}`;
-    const output = options.output
-      ? `${options.output}-${platform.os}-${platform.arch}${platform.os === 'windows' ? '.exe' : ''}`
-      : undefined;
+
+    // Create platform-specific build args
+    const platformBuildArgs = [...buildArgs];
+    const outputIndex = platformBuildArgs.indexOf('-o');
+
+    // Update output filename for platform
+    if (outputIndex !== -1 && outputIndex + 1 < platformBuildArgs.length) {
+      const originalOutput = platformBuildArgs[outputIndex + 1];
+      platformBuildArgs[outputIndex + 1] =
+        `${originalOutput}-${platform.os}-${platform.arch}${platform.os === 'windows' ? '.exe' : ''}`;
+    }
 
     console.log(`\n🔨 Building for ${target}...`);
 
     try {
-      const result = await runner.build({
+      const result = await runner.build(platformBuildArgs, {
         ...options,
-        target,
-        output,
         env: {
           ...process.env,
           GOOS: platform.os,
@@ -129,7 +137,11 @@ async function handleCrossCompilation(runner, options) {
       });
 
       if (result.success) {
-        builds.push({ platform: target, success: true, output });
+        builds.push({
+          platform: target,
+          success: true,
+          output: platformBuildArgs[outputIndex + 1],
+        });
         console.log(`   ✅ Success`);
       } else {
         builds.push({
@@ -160,9 +172,7 @@ async function handleCrossCompilation(runner, options) {
     builds
       .filter((b) => b.success)
       .forEach((build) => {
-        console.log(
-          `   • ${build.platform}: ${build.output || 'default location'}`,
-        );
+        console.log(`   • ${build.platform}: ${build.output || 'default location'}`);
       });
   }
 

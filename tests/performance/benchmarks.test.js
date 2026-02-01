@@ -541,7 +541,7 @@ class PerformanceBenchmarks {
   async benchmarkConfigWizard() {
     console.log('⚡ Benchmarking Config Wizard...\n');
 
-    const GoConfigWizard = require('../../languages/go/config-wizard');
+    const GoConfigWizard = require('../../languages/golang/config-wizard');
 
     const benchmarks = [];
 

@@ -250,7 +250,7 @@ class CompleteWorkflowTests {
 
       // Step 2: Setup Go backend using Config Wizard
       console.log('🐹 Step 1: Setting up Go backend...');
-      const GoConfigWizard = require('../../languages/go/config-wizard');
+      const GoConfigWizard = require('../../languages/golang/config-wizard');
       const goWizard = new GoConfigWizard({
         projectPath: path.join(projectDir, 'backend'),
         interactive: false,

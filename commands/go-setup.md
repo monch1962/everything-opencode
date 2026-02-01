@@ -139,12 +139,7 @@ Creates `.opencode/go-config.json` with:
     "build": {
       "flags": [],
       "ldflags": [],
-      "targets": [
-        "linux/amd64",
-        "darwin/amd64",
-        "darwin/arm64",
-        "windows/amd64"
-      ]
+      "targets": ["linux/amd64", "darwin/amd64", "darwin/arm64", "windows/amd64"]
     }
   }
 }
@@ -224,8 +219,8 @@ After setup, you can use:
 - `/go-build` - Build Go project
 - `/go-test` - Run tests
 - `/go-lint` - Lint code
-- `/go-fmt` - Format code
-- `/go-deps` - Manage dependencies
+- `/go-format` - Format code
+- `/go-mod` - Manage Go modules
 
 ## Exit Codes
 
@@ -241,8 +236,8 @@ After setup, you can use:
 - `/go-build` - Build Go projects
 - `/go-test` - Run Go tests
 - `/go-lint` - Lint Go code
-- `/go-fmt` - Format Go code
-- `/go-deps` - Manage Go dependencies
+- `/go-format` - Format Go code
+- `/go-mod` - Manage Go modules
 - [Go Documentation](https://golang.org/doc/)
 - [Go Modules Reference](https://go.dev/ref/mod)
 - [golangci-lint Documentation](https://golangci-lint.run/)

@@ -127,12 +127,12 @@ Lint code with multiple linter support and auto-fix capabilities.
 /go-lint --timeout 10m
 ```
 
-### `/go-fmt`
+### `/go-format`
 
 Format code with import organization and simplification.
 
 ```bash
-/go-fmt [options] [paths...]
+/go-format [options] [paths...]
 ```
 
 **Options:**
@@ -146,17 +146,17 @@ Format code with import organization and simplification.
 **Examples:**
 
 ```bash
-/go-fmt --write
-/go-fmt --check
-/go-fmt --formatter goimports --write
+/go-format --write
+/go-format --check
+/go-format --formatter goimports --write
 ```
 
-### `/go-deps`
+### `/go-mod`
 
-Manage dependencies with security auditing and update management.
+Manage Go modules with security auditing and update management.
 
 ```bash
-/go-deps [action] [options]
+/go-mod [action] [options]
 ```
 
 **Actions:**
@@ -173,10 +173,10 @@ Manage dependencies with security auditing and update management.
 **Examples:**
 
 ```bash
-/go-deps tidy
-/go-deps security
-/go-deps update-all
-/go-deps why github.com/pkg/errors
+/go-mod tidy
+/go-mod security
+/go-mod update-all
+/go-mod why github.com/pkg/errors
 ```
 
 ## Project Types
@@ -295,12 +295,7 @@ project/
     "build": {
       "flags": [],
       "ldflags": [],
-      "targets": [
-        "linux/amd64",
-        "darwin/amd64",
-        "darwin/arm64",
-        "windows/amd64"
-      ]
+      "targets": ["linux/amd64", "darwin/amd64", "darwin/arm64", "windows/amd64"]
     }
   }
 }
@@ -435,7 +430,7 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 /go-build
 ### Dependency Auditing
 
 ```bash
-/go-deps security
+/go-mod security
 ```
 
 **Checks:**
@@ -495,7 +490,7 @@ jobs:
       - uses: actions/setup-go@v4
       - run: /go-test --coverage --race
       - run: /go-lint
-      - run: /go-fmt --check
+      - run: /go-format --check
 
   build:
     runs-on: ubuntu-latest
@@ -509,7 +504,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
-      - run: /go-deps security
+      - run: /go-mod security
 ```
 
 ### GitLab CI
@@ -526,7 +521,7 @@ go-test:
   script:
     - /go-test --coverage
     - /go-lint
-    - /go-fmt --check
+    - /go-format --check
 
 go-build:
   stage: build
@@ -541,7 +536,7 @@ go-security:
   stage: security
   image: golang:1.21
   script:
-    - /go-deps security
+    - /go-mod security
 ```
 
 ## Error Handling
@@ -608,13 +603,13 @@ WARNING: DATA RACE
 ### 3. Code Quality
 
 - Run `/go-lint --fix` regularly
-- Use `/go-fmt --check` in CI
+- Use `/go-format --check` in CI
 - Enable race detector in tests
 - Audit dependencies monthly
 
 ### 4. Security
 
-- Run `/go-deps security` in CI
+- Run `/go-mod security` in CI
 - Use `gosec` for code scanning
 - Keep dependencies updated
 - Review vulnerability reports
@@ -638,7 +633,7 @@ go mod init github.com/user/project
 go mod tidy
 
 # Verify migration
-/go-deps verify
+/go-mod verify
 ```
 
 ### From Dep to Go Modules
@@ -664,7 +659,7 @@ rm -rf vendor/
 go mod init
 
 # Let Go manage dependencies
-/go-deps tidy
+/go-mod tidy
 ```
 
 ## Examples
@@ -737,7 +732,7 @@ go env
 
 ### Adding New Tools
 
-1. Add tool detection to `languages/go/tool-detector.js`
+1. Add tool detection to `languages/golang/tool-detector.js`
 2. Update installation guides
 3. Add configuration options
 4. Update documentation
@@ -762,7 +757,7 @@ go env
 /go-lint
 
 # Check formatting
-/go-fmt --check
+/go-format --check
 ```
 
 ## Resources

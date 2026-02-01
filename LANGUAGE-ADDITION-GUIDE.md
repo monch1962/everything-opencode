@@ -827,7 +827,7 @@ node scripts/commands/{language}-test.js --help
 Study these existing implementations for reference:
 
 - **JavaScript/TypeScript**: `languages/javascript/`, `scripts/javascript/`
-- **Go**: `languages/go/`, `scripts/go/`
+- **Go**: `languages/golang/`, `scripts/golang/`
 - **Python**: `languages/python/`, `scripts/commands/python-*.js`
 - **Elixir**: `languages/elixir/`, `scripts/elixir/`
 - **PineScript**: `languages/pinescript/`, `scripts/pinescript/`

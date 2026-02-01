@@ -67,8 +67,8 @@ class DocumentationGenerator {
       },
       {
         name: 'Go Config Wizard',
-        mainFile: 'languages/go/config-wizard.js',
-        modulesDir: 'languages/go/config-wizard-modules/',
+        mainFile: 'languages/golang/config-wizard.js',
+        modulesDir: 'languages/golang/config-wizard-modules/',
         outputFile: 'API-GO-CONFIG-WIZARD.md',
       },
     ];

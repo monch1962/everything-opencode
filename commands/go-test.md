@@ -333,7 +333,7 @@ go tool cover -func=coverage.out
 
 - `/go-build` - Build code before testing
 - `/go-lint` - Lint code (catches issues before testing)
-- `/go-fmt` - Format code (consistent code style)
+- `/go-format` - Format code (consistent code style)
 - `/go-setup` - Configure testing environment
 
 ## Environment Variables

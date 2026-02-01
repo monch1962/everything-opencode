@@ -271,7 +271,7 @@ Based on our analysis, these files are good candidates for future refactoring:
 2. `scripts/lib/project-utils.js` (812 lines)
 3. `scripts/lib/logging-utils.js` (790 lines)
 4. `scripts/commands/python-command-runner.js` (780 lines)
-5. `languages/go/config-wizard.js` (767 lines)
+5. `languages/golang/config-wizard.js` (767 lines)
 6. `scripts/pinescript/optimizer.js` (745 lines)
 7. `scripts/lib/template-utils.js` (743 lines)
 

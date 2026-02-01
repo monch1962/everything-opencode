@@ -1,15 +1,15 @@
-# /go-fmt
+# /go-format
 
 Format Go code with Go-specific improvements.
 
 ## Description
 
-The `/go-fmt` command formats Go source code according to the Go standard formatting rules. It provides enhanced formatting with intelligent defaults, formatting checks, and integration with various Go formatters.
+The `/go-format` command formats Go source code according to the Go standard formatting rules. It provides enhanced formatting with intelligent defaults, formatting checks, and integration with various Go formatters.
 
 ## Usage
 
 ```bash
-/go-fmt [options] [paths...]
+/go-format [options] [paths...]
 ```
 
 ## Options
@@ -28,35 +28,35 @@ The `/go-fmt` command formats Go source code according to the Go standard format
 ## Examples
 
 ```bash
-# Format all Go files in current directory
-/go-fmt
+# Check formatting of all Go files
+/go-format
 
-# Format and write changes
-/go-fmt --write
+# Format all Go files (write changes)
+/go-format --write
 
 # Show formatting differences
-/go-fmt --diff
+/go-format --diff
 
-# Simplify code while formatting
-/go-fmt --simplify
+# Simplify and format code
+/go-format --simplify --write
 
-# List files that need formatting
-/go-fmt --list
+# List files needing formatting
+/go-format --list
 
-# Check formatting without making changes
-/go-fmt --check
+# Check formatting without modifying files
+/go-format --check
 
 # Format specific files
-/go-fmt main.go utils.go
+/go-format main.go utils.go
 
-# Format directory
-/go-fmt ./pkg/
+# Format specific directory
+/go-format ./pkg/
 
-# Use specific formatter
-/go-fmt --formatter goimports
+# Format with goimports (organizes imports)
+/go-format --formatter goimports
 
-# Verbose formatting
-/go-fmt --verbose
+# Verbose output
+/go-format --verbose
 ```
 
 ## Formatters
@@ -67,7 +67,7 @@ The standard Go formatter that formats Go programs according to the Go style gui
 
 ```bash
 # Use gofmt explicitly
-/go-fmt --formatter gofmt
+/go-format --formatter gofmt
 ```
 
 ### goimports
@@ -76,7 +76,7 @@ gofmt + automatic import management. Adds missing imports and removes unused imp
 
 ```bash
 # Use goimports for import management
-/go-fmt --formatter goimports
+/go-format --formatter goimports
 ```
 
 ### gofumpt
@@ -85,7 +85,7 @@ Stricter gofmt with additional formatting rules. Enforces a stricter format.
 
 ```bash
 # Use gofumpt for stricter formatting
-/go-fmt --formatter gofumpt
+/go-format --formatter gofumpt
 ```
 
 ## Formatting Rules
@@ -140,10 +140,10 @@ Most Go editors automatically format on save:
 # .git/hooks/pre-commit
 
 # Check Go formatting
-/go-fmt --check
+/go-format --check
 
 if [ $? -ne 0 ]; then
-  echo "Go files need formatting. Run: /go-fmt --write"
+  echo "Go files need formatting. Run: /go-format --write"
   exit 1
 fi
 ```
@@ -153,7 +153,7 @@ fi
 ```yaml
 # GitHub Actions example
 - name: Check Go Formatting
-  run: /go-fmt --check
+  run: /go-format --check
 ```
 
 ## Common Formatting Issues

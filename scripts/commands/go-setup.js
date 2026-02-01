@@ -1,182 +1,155 @@
 #!/usr/bin/env node
 /**
- * /go-setup command wrapper
+ * Go Setup Command
  *
- * Configure Go project for opencode integration with Go-specific improvements
+ * Interactive setup for Go projects
  */
 
-const GoConfigWizard = require('../../languages/go/config-wizard');
-const ConfigManager = require('../interactive/config-manager');
+const GoConfigWizard = require('../../languages/golang/config-wizard');
 
 async function main() {
-  const args = process.argv.slice(2);
-  const options = {};
-
-  // Parse command line arguments
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-
-    if (arg === '--quick' || arg === '-q') {
-      options.quick = true;
-    } else if (arg === '--reconfigure' || arg === '-r') {
-      options.reconfigure = true;
-    } else if (arg === '--project-type') {
-      options.projectType = args[++i];
-    } else if (arg === '--module-name') {
-      options.moduleName = args[++i];
-    } else if (arg === '--go-version') {
-      options.goVersion = args[++i];
-    } else if (arg === '--linter') {
-      options.linter = args[++i];
-    } else if (arg === '--formatter') {
-      options.formatter = args[++i];
-    } else if (arg === '--test-runner') {
-      options.testRunner = args[++i];
-    } else if (arg === '--no-prompt' || arg === '-y') {
-      options.noPrompt = true;
-    } else if (arg === '--verbose' || arg === '-v') {
-      options.verbose = true;
-    } else if (arg === '--dry-run') {
-      options.dryRun = true;
-    } else if (arg === '--help' || arg === '-h') {
-      showHelp();
-      process.exit(0);
-    } else if (arg.startsWith('--')) {
-      console.error(`Unknown option: ${arg}`);
-      showHelp();
-      process.exit(1);
-    } else {
-      // Assume it's a project path
-      options.projectPath = arg;
-    }
-  }
-
   try {
-    const projectPath = options.projectPath || process.cwd();
-
-    console.log(`🚀 Configuring Go project at: ${projectPath}`);
-    console.log('='.repeat(60));
-
-    // Check if project is already configured
-    const configManager = new ConfigManager(projectPath);
-    const existingConfig = configManager.loadConfig();
-
-    if (existingConfig?.go && !options.reconfigure) {
-      console.log('✅ Go project is already configured.');
-      console.log('   Use --reconfigure to reconfigure or update settings.');
-
-      // Show current configuration
-      console.log('\n📋 Current Go configuration:');
-      console.log(`   Module: ${existingConfig.go.module || 'Not set'}`);
-      console.log(`   Go version: ${existingConfig.go.version || 'Not set'}`);
-      console.log(
-        `   Project type: ${existingConfig.go.projectType || 'module'}`,
-      );
-      console.log(`   Linter: ${existingConfig.go.linting?.tool || 'Not set'}`);
-
-      process.exit(0);
-    }
-
-    // Run configuration wizard
+    const projectPath = process.cwd();
     const wizard = new GoConfigWizard(projectPath);
-    const config = await wizard.runWizard(options);
 
-    if (!config) {
-      console.error('❌ Configuration failed');
-      process.exit(1);
+    console.log('🚀 Go Project Setup\n');
+
+    // Check for command line arguments
+    const args = process.argv.slice(2);
+
+    let success = false;
+
+    if (args.includes('--quick') || args.includes('-q')) {
+      console.log('⚡ Running quick setup...\n');
+      success = await wizard.quickSetup();
+    } else {
+      // Run the configuration wizard
+      success = await wizard.run();
     }
 
-    // Update main project config
-    if (!options.dryRun) {
-      const fullConfig = existingConfig || {
-        $schema: 'https://json.schemastore.org/opencode-project-config.json',
-        project: projectPath,
-        timestamp: new Date().toISOString(),
-      };
+    if (success) {
+      console.log('\n✅ Go setup completed successfully!');
+      console.log('\n💡 Next steps:');
+      console.log('  1. Run /go-test to test your project');
+      console.log('  2. Run /go-lint to check code quality');
+      console.log('  3. Run /go-format to format your code');
+      console.log('  4. Run /go-security for security scanning (if configured)');
+      console.log('  5. Run /go-build to build your project');
+      console.log('  6. Run /go-run to run your Go program');
+      console.log('  7. Run /go-mod to manage Go modules');
+      console.log('  8. Run /go-clean to clean build artifacts');
 
-      fullConfig.go = config.go;
-      fullConfig.languages = fullConfig.languages || [];
-      if (!fullConfig.languages.includes('go')) {
-        fullConfig.languages.push('go');
-      }
-
-      configManager.saveConfig(fullConfig);
-
-      console.log('\n✅ Go project configuration saved successfully!');
-      console.log(`   Configuration file: ${configManager.configPath}`);
+      console.log('\n📚 Available Go commands:');
+      console.log('  • /go-setup     - Configure Go project (run this again)');
+      console.log('  • /go-test      - Run tests with configured test runner');
+      console.log('  • /go-lint      - Run linter (golangci-lint/staticcheck/revive)');
+      console.log('  • /go-format    - Format code (gofmt/goimports)');
+      console.log('  • /go-security  - Security scanning (gosec/govulncheck)');
+      console.log('  • /go-build     - Build project');
+      console.log('  • /go-run       - Run Go program');
+      console.log('  • /go-mod       - Manage Go modules');
+      console.log('  • /go-clean     - Clean build artifacts');
     } else {
-      console.log('\n✅ Dry run completed. Configuration would be:');
-      console.log(JSON.stringify(config, null, 2));
+      console.log('\n❌ Setup failed. Please check the errors above.');
+      process.exit(1);
     }
   } catch (error) {
-    console.error(`❌ Configuration failed: ${error.message}`);
-    if (options.verbose) {
-      console.error(error.stack);
-    }
+    console.error('\n❌ Setup failed:', error.message);
+    console.error(error.stack);
     process.exit(1);
   }
 }
 
 function showHelp() {
   console.log(`
-🚀 Go Project Setup
+🚀 Go Setup Command
 
-Usage: /go-setup [options] [project-path]
+Usage: /go-setup [options]
 
-Configure Go project for opencode integration with Go-specific improvements.
+Interactive setup for Go projects with tool detection and configuration.
 
 Options:
-  --quick, -q            Quick setup with defaults
-  --reconfigure, -r      Reconfigure existing project
-  --project-type TYPE    Project type: module, cli, web, library, workspace
-  --module-name NAME     Go module name (e.g., github.com/user/project)
-  --go-version VERSION   Go version constraint (e.g., 1.21)
-  --linter TOOL          Linter tool: golangci-lint, staticcheck, revive
-  --formatter TOOL       Formatter: gofmt, goimports
-  --test-runner TOOL     Test runner: go test, gotestsum
-  --no-prompt, -y        Skip interactive prompts
-  --verbose, -v          Verbose output
-  --dry-run              Show configuration without saving
-  --help, -h             Show this help message
+  --quick, -q          Quick setup with automatic detection
+  --reconfigure        Reconfigure existing Go project
+  --dry-run            Show configuration without saving
+  --help, -h           Show this help message
+
+Features:
+  • Project type detection (CLI, web service, library, etc.)
+  • Go tool detection (golangci-lint, gofmt, goimports, gosec, etc.)
+  • Interactive configuration wizard
+  • Quick setup with sensible defaults
+  • Configuration validation
+  • Next steps guidance
+
+Project types:
+  • CLI tool           - Command-line application
+  • Web service        - HTTP/REST API service
+  • Library           - Reusable Go package
+  • Microservice      - Small, focused service
+  • gRPC service      - gRPC-based service
+  • HTTP server       - Simple HTTP server
+  • Background worker - Long-running background job
+  • Data processing   - Data transformation/processing
+
+Detected tools:
+  • Linters: golangci-lint, staticcheck, revive
+  • Formatters: gofmt, goimports
+  • Test runners: go test, ginkgo
+  • Security scanners: gosec, govulncheck
+  • Build tools: Makefile, Taskfile, magefile
 
 Examples:
-  /go-setup                         # Configure current directory
-  /go-setup --quick                 # Quick setup with defaults
-  /go-setup --project-type cli      # Create CLI application
-  /go-setup --reconfigure           # Reconfigure existing project
-  /go-setup /path/to/project        # Configure specific directory
+  /go-setup            # Interactive setup wizard
+  /go-setup --quick    # Quick setup with automatic detection
+  /go-setup --reconfigure # Reconfigure existing project
+  /go-setup --dry-run  # Show configuration without saving
 
-Go-specific features:
-  • Automatic Go module detection and creation
-  • Go workspace support (Go 1.18+)
-  • Multiple linter integration (golangci-lint, staticcheck, revive)
-  • Smart dependency management with go mod
-  • Cross-compilation support
-  • Built-in race detector integration
-  • Coverage reporting with multiple formats
-  • Benchmark execution and reporting
-
-Environment detection:
-  • Go version and tool detection
-  • GOPATH vs Go modules detection
-  • Workspace mode detection
-  • Cross-platform tool installation guides
+Configuration:
+  • Saves to .opencode/project-config.json
+  • Includes project type, tool preferences, detected tools
+  • Used by all other Go commands
+  • Can be manually edited if needed
 
 Next steps after setup:
-  1. Write your Go code
-  2. Run tests: /go-test
-  3. Build project: /go-build
-  4. Format code: /go-fmt
-  5. Lint code: /go-lint
-  6. Manage dependencies: /go-deps
+  1. Run tests: /go-test
+  2. Check code quality: /go-lint
+  3. Format code: /go-format
+  4. Security scan: /go-security
+  5. Build project: /go-build
+  6. Run program: /go-run
+  7. Manage modules: /go-mod
+  8. Clean artifacts: /go-clean
+
+Environment variables:
+  GO111MODULE          - Go modules mode (auto, on, off)
+  GOPATH               - Go workspace path
+  GOROOT               - Go installation root
+
+Tips:
+  • Run quick setup first to get started quickly
+  • Use interactive setup for fine-grained control
+  • Reconfigure if you add new tools or change project type
+  • Check configuration file for advanced settings
+  • All Go commands use the same configuration
+
+Configuration File:
+  Saved to .opencode/project-config.json
+  Includes project type, tool configuration, detected tools
+  Used by other Go commands (/go-test, /go-lint, etc.)
   `);
 }
 
+// Check for help flag
+const args = process.argv.slice(2);
+if (args.includes('--help') || args.includes('-h')) {
+  showHelp();
+  process.exit(0);
+}
+
+// Run if called directly
 if (require.main === module) {
-  main().catch((error) => {
-    console.error(`Fatal error: ${error.message}`);
-    process.exit(1);
-  });
+  main();
 }
 
 module.exports = { main };
