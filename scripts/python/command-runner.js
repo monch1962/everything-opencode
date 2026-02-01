@@ -2,9 +2,11 @@
 /**
  * Python Command Runner
  *
- * Execute Python commands with project-specific improvements
+ * Execute Python commands with Python-specific improvements and error handling
+ * Following JavaScript/TypeScript pattern exactly
  */
 
+const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const ConfigManager = require('../interactive/config-manager');
@@ -13,7 +15,7 @@ const PlatformDetector = require('../lib/platform-detector');
 const { defaultErrorHandler } = require('../lib/error-handler');
 
 // Import shared utilities
-const { ConfigUtils, FileUtils, ProjectUtils, LoggingUtils } = require('../lib');
+const { ProjectUtils, LoggingUtils } = require('../lib');
 
 class PythonCommandRunner {
   constructor(projectPath = process.cwd()) {
@@ -27,7 +29,7 @@ class PythonCommandRunner {
   }
 
   /**
-   * Initialize command runner with Python setup
+   * Initialize command runner with Python-specific setup
    */
   async initialize() {
     // First, validate that we're in a Python project using ProjectUtils
@@ -55,786 +57,610 @@ class PythonCommandRunner {
       LoggingUtils.debug('Project detection failed:', error.message);
     }
 
-    // Load configuration using ConfigUtils
+    // Load configuration
     try {
-      this.config = ConfigUtils.loadConfig(this.projectPath);
-      if (!this.config) {
-        throw new Error('Project not configured. Run /python-setup first.');
-      }
+      this.config = await this.configManager.loadConfig();
+      this.pythonConfig = this.config?.python || {};
+    } catch (error) {
+      LoggingUtils.debug('Configuration load failed:', error.message);
+      this.config = {};
+      this.pythonConfig = {};
+    }
 
-      // Get Python configuration
-      this.pythonConfig = this.config.python;
-      if (!this.pythonConfig) {
-        throw new Error('Python configuration not found. Run /python-setup first.');
-      }
-
-      // Validate Python configuration schema
-      ConfigUtils.validateConfig(this.pythonConfig, 'python');
-
-      // Detect tools
+    // Detect Python tools
+    try {
       this.detectedTools = await this.toolDetector.detectTools();
-
-      return true;
+      LoggingUtils.debug('Python tools detected successfully');
     } catch (error) {
-      // Use LoggingUtils for better error display
-      LoggingUtils.error('Failed to initialize Python command runner:', error.message);
-      LoggingUtils.info('Run /python-setup to configure your Python project');
-      throw error;
+      LoggingUtils.warn('Python tool detection failed:', error.message);
+      this.detectedTools = {};
     }
+
+    return {
+      config: this.config,
+      pythonConfig: this.pythonConfig,
+      detectedTools: this.detectedTools,
+    };
   }
 
   /**
-   * Check if a specific tool is available
+   * Run Python tests
    */
-  checkTool(toolName, required = true) {
+  async runTests(options = {}) {
+    await this.initialize();
+
+    const testRunner = this.pythonConfig.testRunner || 'pytest';
+    const testCommand = this.buildTestCommand(testRunner, options);
+
+    LoggingUtils.info(`Running Python tests with ${testRunner}...`);
+
     try {
-      // Use ConfigUtils to check if tool is installed
-      const isInstalled = ConfigUtils.checkToolInstalled(this.pythonConfig, toolName, required);
-
-      if (!isInstalled && required) {
-        throw new Error(
-          `Required Python tool '${toolName}' is not installed. Run /python-setup to install it.`
-        );
-      }
-
-      return isInstalled;
-    } catch (error) {
-      // Use LoggingUtils for better error display
-      if (required) {
-        LoggingUtils.error(`Python tool '${toolName}' check failed:`, error.message);
-        LoggingUtils.info(`Run /python-setup to install '${toolName}'`);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Find Python files in the project
-   */
-  findPythonFiles(pattern = '**/*.py', excludePatterns = []) {
-    try {
-      return FileUtils.findFilesByPattern(this.projectPath, [pattern], {
-        exclude: excludePatterns,
-        language: 'python',
-      });
-    } catch (error) {
-      LoggingUtils.warn('Failed to find Python files:', error.message);
-      return [];
-    }
-  }
-
-  /**
-   * Get Python project metadata
-   */
-  getPythonProjectInfo() {
-    try {
-      const fs = require('fs');
-      const info = {
-        hasPyProjectToml: fs.existsSync(path.join(this.projectPath, 'pyproject.toml')),
-        hasRequirementsTxt: fs.existsSync(path.join(this.projectPath, 'requirements.txt')),
-        hasSetupPy: fs.existsSync(path.join(this.projectPath, 'setup.py')),
-        hasPipfile: fs.existsSync(path.join(this.projectPath, 'Pipfile')),
-        hasPipfileLock: fs.existsSync(path.join(this.projectPath, 'Pipfile.lock')),
-        hasPoetryLock: fs.existsSync(path.join(this.projectPath, 'poetry.lock')),
-        hasUvLock: fs.existsSync(path.join(this.projectPath, 'uv.lock')),
-        hasCondaYml: fs.existsSync(path.join(this.projectPath, 'environment.yml')),
-        hasVirtualEnv:
-          fs.existsSync(path.join(this.projectPath, '.venv')) ||
-          fs.existsSync(path.join(this.projectPath, 'venv')) ||
-          fs.existsSync(path.join(this.projectPath, 'env')),
-        hasDjangoSettings: fs.existsSync(path.join(this.projectPath, 'manage.py')),
-        hasFlaskApp:
-          fs.existsSync(path.join(this.projectPath, 'app.py')) ||
-          fs.existsSync(path.join(this.projectPath, 'wsgi.py')),
-        hasFastApiMain: fs.existsSync(path.join(this.projectPath, 'main.py')),
-        pythonFiles: this.findPythonFiles('**/*.py').length,
-      };
-
-      return info;
-    } catch (error) {
-      LoggingUtils.debug('Failed to get Python project info:', error.message);
-      return null;
-    }
-  }
-
-  /**
-   * Execute Python command with Python-specific improvements
-   */
-  async executePythonCommand(command, args = [], options = {}) {
-    return this._executePythonCommandWithErrorHandling(command, args, options);
-  }
-
-  /**
-   * Internal method with error handling
-   */
-  async _executePythonCommandWithErrorHandling(command, args = [], options = {}) {
-    try {
-      await this.initialize();
-
-      // Check if Python is available
-      this.checkTool('python', true);
-
-      const defaultOptions = {
+      await this.executeCommand(testCommand, {
         cwd: this.projectPath,
         stdio: 'inherit',
-        shell: true,
-        env: process.env,
-      };
-
-      const finalOptions = {
-        ...defaultOptions,
-        ...options,
-        env: options.env ? { ...defaultOptions.env, ...options.env } : defaultOptions.env,
-      };
-
-      LoggingUtils.info(`🚀 Executing: ${command} ${args.join(' ')}`);
-
-      return await new Promise((resolve, reject) => {
-        const pythonPath = this.platformDetector.getToolPath('python', {
-          required: true,
-        });
-
-        const cmd = `${pythonPath} ${command} ${args.join(' ')}`;
-        LoggingUtils.debug(`🔍 Executing: ${cmd}`);
-        LoggingUtils.debug(`🔍 CWD: ${finalOptions.cwd}`);
-        LoggingUtils.debug(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
-
-        const child = spawn(pythonPath, [command, ...args], finalOptions);
-
-        child.on('close', (code) => {
-          if (code === 0) {
-            resolve({ success: true, code: 0 });
-          } else {
-            reject(new Error(`${command} failed with exit code ${code}`));
-          }
-        });
-
-        child.on('error', (error) => {
-          LoggingUtils.debug(`🔍 Exec error: ${error.message}`);
-          reject(new Error(`Failed to execute ${command}: ${error.message}`));
-        });
       });
+      return true;
     } catch (error) {
-      return this._handlePythonError(error, { command, args, options });
+      LoggingUtils.error(`Test execution failed: ${error.message}`);
+      throw error;
     }
   }
 
   /**
-   * Handle Python errors with Python-specific suggestions
+   * Build test command based on runner and options
    */
-  _handlePythonError(error, context = {}) {
-    const errorInfo = defaultErrorHandler.handleError(error, context);
+  buildTestCommand(runner, options) {
+    const args = [];
 
-    // Log user-friendly error message using LoggingUtils
-    LoggingUtils.error(errorInfo.userMessage);
+    switch (runner) {
+      case 'pytest':
+        args.push('pytest');
+        if (options.file) args.push(options.file);
+        if (options.test) args.push('-k', options.test);
+        if (options.coverage) args.push('--cov');
+        if (options.verbose) args.push('-v');
+        if (options.quiet) args.push('-q');
+        if (options.failedFirst) args.push('--failed-first');
+        if (options.lastFailed) args.push('--last-failed');
+        if (options.noCapture) args.push('-s');
+        if (options.parallel) args.push('-n', 'auto');
+        if (options.html) args.push('--cov-report', 'html');
+        if (options.xml) args.push('--junitxml', 'test-results.xml');
+        break;
 
-    // Log recovery steps using LoggingUtils
-    if (errorInfo.recoverySteps && errorInfo.recoverySteps.length > 0) {
-      LoggingUtils.info('💡 Recovery steps:');
-      errorInfo.recoverySteps.forEach((step, i) => {
-        LoggingUtils.info(`  ${i + 1}. ${step}`);
+      case 'unittest':
+        args.push('python', '-m', 'unittest');
+        if (options.file) args.push(options.file);
+        if (options.test) args.push('-k', options.test);
+        if (options.verbose) args.push('-v');
+        if (options.quiet) args.push('-q');
+        break;
+
+      case 'nose':
+        args.push('nosetests');
+        if (options.file) args.push(options.file);
+        if (options.test) args.push('--test', options.test);
+        if (options.coverage) args.push('--with-coverage');
+        if (options.verbose) args.push('-v');
+        break;
+
+      default:
+        args.push('python', '-m', 'pytest');
+    }
+
+    return args;
+  }
+
+  /**
+   * Run Python linter
+   */
+  async runLint(options = {}) {
+    await this.initialize();
+
+    const linter = this.pythonConfig.linter || 'ruff';
+    const lintCommand = this.buildLintCommand(linter, options);
+
+    LoggingUtils.info(`Running Python linter (${linter})...`);
+
+    try {
+      await this.executeCommand(lintCommand, {
+        cwd: this.projectPath,
+        stdio: 'inherit',
       });
-    }
-
-    // Python-specific error suggestions
-    this._suggestPythonFix(error.message, context.command);
-
-    // Re-throw enhanced error
-    const enhancedError = new Error(errorInfo.userMessage);
-    enhancedError.recoverySteps = errorInfo.recoverySteps;
-    enhancedError.originalError = error;
-    throw enhancedError;
-  }
-
-  /**
-   * Suggest Python fixes based on error message
-   */
-  _suggestPythonFix(errorMessage, _command) {
-    LoggingUtils.info('\n💡 Python Error Suggestions:');
-
-    if (errorMessage.includes('ModuleNotFoundError') || errorMessage.includes('ImportError')) {
-      LoggingUtils.info('   • Install missing package: pip install <package-name>');
-      LoggingUtils.info('   • Check virtual environment activation');
-      LoggingUtils.info('   • Verify PYTHONPATH environment variable');
-    }
-
-    if (errorMessage.includes('PermissionError') || errorMessage.includes('EACCES')) {
-      LoggingUtils.info('   • Fix permissions: sudo chown -R $USER .venv');
-      LoggingUtils.info('   • Use virtual environment instead of system Python');
-      LoggingUtils.info('   • Check file permissions on Python files');
-    }
-
-    if (errorMessage.includes('SyntaxError') || errorMessage.includes('IndentationError')) {
-      LoggingUtils.info('   • Check Python version compatibility');
-      LoggingUtils.info('   • Verify indentation (4 spaces per level)');
-      LoggingUtils.info('   • Run black formatter: black .');
-    }
-
-    if (errorMessage.includes('AttributeError') || errorMessage.includes('TypeError')) {
-      LoggingUtils.info('   • Check object types and attributes');
-      LoggingUtils.info('   • Use type hints and mypy for type checking');
-      LoggingUtils.info('   • Review function signatures and return types');
-    }
-  }
-
-  /**
-   * Run tests
-   */
-  async test(args = [], options = {}) {
-    await this.initialize();
-
-    // Check for test framework
-    const projectInfo = this.getPythonProjectInfo();
-    let testCommand = 'python';
-    let testArgs = ['-m', 'pytest'];
-
-    // Detect test framework from config
-    if (this.pythonConfig.testRunner === 'pytest') {
-      testCommand = 'python';
-      testArgs = ['-m', 'pytest', ...args];
-    } else if (this.pythonConfig.testRunner === 'unittest') {
-      testCommand = 'python';
-      testArgs = ['-m', 'unittest', 'discover', ...args];
-    } else {
-      // Auto-detect
-      if (this.detectedTools?.pytest?.installed) {
-        testCommand = 'python';
-        testArgs = ['-m', 'pytest', ...args];
-      } else if (this.detectedTools?.unittest?.installed) {
-        testCommand = 'python';
-        testArgs = ['-m', 'unittest', 'discover', ...args];
-      } else {
-        throw new Error('No test runner configured or detected. Run /python-setup first.');
-      }
-    }
-
-    LoggingUtils.info(`🧪 Running tests with ${testArgs[1]}...`);
-
-    try {
-      const result = await this.executePythonCommand(testCommand, testArgs, options);
-
-      // Show test summary if available
-      this._showTestSummary(projectInfo);
-
-      return result;
+      return true;
     } catch (error) {
-      this._suggestTestFix(error.message);
+      LoggingUtils.error(`Lint execution failed: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Show test summary
+   * Build lint command based on linter and options
    */
-  _showTestSummary(_projectInfo) {
-    try {
-      // Try to read test results if available
-      const fs = require('fs');
-      const coveragePath = path.join(this.projectPath, 'htmlcov', 'index.html');
+  buildLintCommand(linter, options) {
+    const args = [];
 
-      if (fs.existsSync(coveragePath)) {
-        LoggingUtils.info('\n📊 Test coverage report available at: htmlcov/index.html');
-        LoggingUtils.info('   Run: coverage html to generate report');
-      }
-    } catch (error) {
-      // Silently fail - coverage is optional
+    switch (linter) {
+      case 'ruff':
+        args.push('ruff', 'check');
+        if (options.fix) args.push('--fix');
+        if (options.select) args.push('--select', options.select);
+        if (options.ignore) args.push('--ignore', options.ignore);
+        if (options.config) args.push('--config', options.config);
+        args.push('.');
+        break;
+
+      case 'flake8':
+        args.push('flake8');
+        if (options.config) args.push('--config', options.config);
+        args.push('.');
+        break;
+
+      case 'pylint':
+        args.push('pylint');
+        if (options.rcfile) args.push('--rcfile', options.rcfile);
+        args.push('.');
+        break;
+
+      default:
+        args.push('ruff', 'check', '.');
     }
+
+    return args;
   }
 
   /**
-   * Run linter
+   * Run Python formatter
    */
-  async lint(args = [], options = {}) {
+  async runFormat(options = {}) {
     await this.initialize();
 
-    // Check for linter from config
-    let lintCommand = 'python';
-    let lintArgs = [];
+    const formatter = this.pythonConfig.formatter || 'ruff';
+    const formatCommand = this.buildFormatCommand(formatter, options);
 
-    if (this.pythonConfig.linter === 'ruff') {
-      lintCommand = 'ruff';
-      lintArgs = ['check', '.', ...args];
-    } else if (this.pythonConfig.linter === 'flake8') {
-      lintCommand = 'flake8';
-      lintArgs = ['.', ...args];
-    } else if (this.pythonConfig.linter === 'pylint') {
-      lintCommand = 'pylint';
-      lintArgs = ['**/*.py', ...args];
-    } else {
-      // Auto-detect
-      if (this.detectedTools?.ruff?.installed) {
-        lintCommand = 'ruff';
-        lintArgs = ['check', '.', ...args];
-      } else if (this.detectedTools?.flake8?.installed) {
-        lintCommand = 'flake8';
-        lintArgs = ['.', ...args];
-      } else if (this.detectedTools?.pylint?.installed) {
-        lintCommand = 'pylint';
-        lintArgs = ['**/*.py', ...args];
-      } else {
-        throw new Error('No linter configured or detected. Run /python-setup first.');
-      }
-    }
-
-    LoggingUtils.info(`🔍 Running linter with ${lintCommand}...`);
+    LoggingUtils.info(`Running Python formatter (${formatter})...`);
 
     try {
-      const result = await this.executePythonCommand(lintCommand, lintArgs, options);
-
-      // Show lint summary
-      LoggingUtils.info('✅ Linting completed successfully');
-
-      return result;
+      await this.executeCommand(formatCommand, {
+        cwd: this.projectPath,
+        stdio: 'inherit',
+      });
+      return true;
     } catch (error) {
-      this._suggestLintFix(error.message);
+      LoggingUtils.error(`Format execution failed: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Format code
+   * Build format command based on formatter and options
    */
-  async format(args = [], options = {}) {
-    await this.initialize();
+  buildFormatCommand(formatter, options) {
+    const args = [];
 
-    // Check for formatter from config
-    let formatCommand = 'python';
-    let formatArgs = [];
+    switch (formatter) {
+      case 'ruff':
+        args.push('ruff', 'format');
+        if (options.check) args.push('--check');
+        if (options.diff) args.push('--diff');
+        if (options.config) args.push('--config', options.config);
+        args.push('.');
+        break;
 
-    if (this.pythonConfig.formatter === 'ruff') {
-      formatCommand = 'ruff';
-      formatArgs = ['format', '.', ...args];
-    } else if (this.pythonConfig.formatter === 'black') {
-      formatCommand = 'black';
-      formatArgs = ['.', ...args];
-    } else if (this.pythonConfig.formatter === 'autopep8') {
-      formatCommand = 'autopep8';
-      formatArgs = ['--in-place', '--recursive', '.', ...args];
-    } else {
-      // Auto-detect
-      if (this.detectedTools?.ruff?.installed) {
-        formatCommand = 'ruff';
-        formatArgs = ['format', '.', ...args];
-      } else if (this.detectedTools?.black?.installed) {
-        formatCommand = 'black';
-        formatArgs = ['.', ...args];
-      } else if (this.detectedTools?.autopep8?.installed) {
-        formatCommand = 'autopep8';
-        formatArgs = ['--in-place', '--recursive', '.', ...args];
-      } else {
-        throw new Error('No formatter configured or detected. Run /python-setup first.');
-      }
+      case 'black':
+        args.push('black');
+        if (options.check) args.push('--check');
+        if (options.diff) args.push('--diff');
+        if (options.config) args.push('--config', options.config);
+        args.push('.');
+        break;
+
+      case 'autopep8':
+        args.push('autopep8', '--in-place', '--recursive');
+        if (options.aggressive) args.push('--aggressive');
+        args.push('.');
+        break;
+
+      default:
+        args.push('ruff', 'format', '.');
     }
 
-    LoggingUtils.info(`🎨 Formatting code with ${formatCommand}...`);
+    return args;
+  }
+
+  /**
+   * Run Python type checker
+   */
+  async runTypeCheck(options = {}) {
+    await this.initialize();
+
+    const typeChecker = this.pythonConfig.typeChecker || 'pyright';
+    const typeCheckCommand = this.buildTypeCheckCommand(typeChecker, options);
+
+    LoggingUtils.info(`Running Python type checker (${typeChecker})...`);
 
     try {
-      const result = await this.executePythonCommand(formatCommand, formatArgs, options);
-
-      LoggingUtils.info('✅ Code formatting completed');
-
-      return result;
+      await this.executeCommand(typeCheckCommand, {
+        cwd: this.projectPath,
+        stdio: 'inherit',
+      });
+      return true;
     } catch (error) {
-      this._suggestFormatFix(error.message);
+      LoggingUtils.error(`Type check execution failed: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Type checking
+   * Build type check command based on checker and options
    */
-  async typecheck(args = [], options = {}) {
-    await this.initialize();
+  buildTypeCheckCommand(checker, options) {
+    const args = [];
 
-    // Check for type checker from config
-    let typecheckCommand = 'python';
-    let typecheckArgs = [];
+    switch (checker) {
+      case 'pyright':
+        args.push('pyright');
+        if (options.project) args.push('--project', options.project);
+        if (options.watch) args.push('--watch');
+        if (options.outputjson) args.push('--outputjson');
+        break;
 
-    if (this.pythonConfig.typeChecker === 'pyright') {
-      typecheckCommand = 'pyright';
-      typecheckArgs = ['.', ...args];
-    } else if (this.pythonConfig.typeChecker === 'mypy') {
-      typecheckCommand = 'mypy';
-      typecheckArgs = ['.', ...args];
-    } else {
-      // Auto-detect
-      if (this.detectedTools?.pyright?.installed) {
-        typecheckCommand = 'pyright';
-        typecheckArgs = ['.', ...args];
-      } else if (this.detectedTools?.mypy?.installed) {
-        typecheckCommand = 'mypy';
-        typecheckArgs = ['.', ...args];
-      } else {
-        throw new Error('No type checker configured or detected. Run /python-setup first.');
-      }
+      case 'mypy':
+        args.push('mypy');
+        if (options.config) args.push('--config-file', options.config);
+        if (options.package) args.push('--package', options.package);
+        if (options.module) args.push('--module', options.module);
+        args.push('.');
+        break;
+
+      default:
+        args.push('pyright');
     }
 
-    LoggingUtils.info(`🔍 Running type checker with ${typecheckCommand}...`);
+    return args;
+  }
+
+  /**
+   * Install Python dependencies
+   */
+  async installDeps(options = {}) {
+    await this.initialize();
+
+    const packageManager = this.pythonConfig.packageManager || 'pip';
+    const depsCommand = this.buildDepsCommand(packageManager, options);
+
+    LoggingUtils.info(`Installing Python dependencies with ${packageManager}...`);
 
     try {
-      const result = await this.executePythonCommand(typecheckCommand, typecheckArgs, options);
-
-      LoggingUtils.info('✅ Type checking completed successfully');
-
-      return result;
+      await this.executeCommand(depsCommand, {
+        cwd: this.projectPath,
+        stdio: 'inherit',
+      });
+      return true;
     } catch (error) {
-      this._suggestTypeCheckFix(error.message);
+      LoggingUtils.error(`Dependency installation failed: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Install dependencies
+   * Build dependency installation command
    */
-  async install(args = [], options = {}) {
-    await this.initialize();
+  buildDepsCommand(packageManager, options) {
+    const args = [];
 
-    // Check for dependency manager from config
-    let installCommand = 'pip';
-    let installArgs = ['install'];
+    switch (packageManager) {
+      case 'pip':
+        args.push('pip', 'install');
+        if (options.requirements) args.push('-r', options.requirements);
+        if (options.upgrade) args.push('--upgrade');
+        if (options.dev) args.push('--dev');
+        args.push('.');
+        break;
 
-    if (this.pythonConfig.dependencyManager === 'uv') {
-      installCommand = 'uv';
-      installArgs = ['pip', 'install', ...args];
-    } else if (this.pythonConfig.dependencyManager === 'poetry') {
-      installCommand = 'poetry';
-      installArgs = ['install', ...args];
-    } else if (this.pythonConfig.dependencyManager === 'pip') {
-      installCommand = 'pip';
-      installArgs = ['install', ...args];
-    } else if (this.pythonConfig.dependencyManager === 'conda') {
-      installCommand = 'conda';
-      installArgs = ['install', ...args];
-    } else {
-      // Auto-detect
-      if (this.detectedTools?.uv?.installed) {
-        installCommand = 'uv';
-        installArgs = ['pip', 'install', ...args];
-      } else if (this.detectedTools?.poetry?.installed) {
-        installCommand = 'poetry';
-        installArgs = ['install', ...args];
-      } else if (this.detectedTools?.pip?.installed) {
-        installCommand = 'pip';
-        installArgs = ['install', ...args];
-      } else {
-        throw new Error('No dependency manager configured or detected. Run /python-setup first.');
-      }
+      case 'poetry':
+        args.push('poetry', 'install');
+        if (options.dev) args.push('--dev');
+        if (options.noDev) args.push('--no-dev');
+        if (options.sync) args.push('--sync');
+        break;
+
+      case 'uv':
+        args.push('uv', 'pip', 'install');
+        if (options.requirements) args.push('-r', options.requirements);
+        if (options.upgrade) args.push('--upgrade');
+        args.push('.');
+        break;
+
+      default:
+        args.push('pip', 'install', '.');
     }
 
-    LoggingUtils.info(`📦 Installing dependencies with ${installCommand}...`);
-
-    try {
-      const result = await this.executePythonCommand(installCommand, installArgs, options);
-
-      LoggingUtils.info('✅ Dependencies installed successfully');
-
-      return result;
-    } catch (error) {
-      this._suggestInstallFix(error.message);
-      throw error;
-    }
+    return args;
   }
 
   /**
-   * Start development server
+   * Run Python security scanning
    */
-  async dev(args = [], options = {}) {
+  async runSecurityScan(options = {}) {
     await this.initialize();
 
-    const projectInfo = this.getPythonProjectInfo();
-    let devCommand = 'python';
-    let devArgs = [];
+    const securityTools = this.pythonConfig.securityTools || ['bandit', 'safety'];
+    const results = [];
 
-    // Detect framework
-    if (projectInfo.hasDjangoSettings) {
-      devCommand = 'python';
-      devArgs = ['manage.py', 'runserver', ...args];
-    } else if (projectInfo.hasFlaskApp) {
-      devCommand = 'python';
-      devArgs = ['-m', 'flask', 'run', ...args];
-    } else if (projectInfo.hasFastApiMain) {
-      devCommand = 'uvicorn';
-      devArgs = ['main:app', '--reload', ...args];
-    } else {
-      // Check config for project type
-      if (this.pythonConfig.projectType === 'django') {
-        devCommand = 'python';
-        devArgs = ['manage.py', 'runserver', ...args];
-      } else if (this.pythonConfig.projectType === 'flask') {
-        devCommand = 'python';
-        devArgs = ['-m', 'flask', 'run', ...args];
-      } else if (this.pythonConfig.projectType === 'fastapi') {
-        devCommand = 'uvicorn';
-        devArgs = ['main:app', '--reload', ...args];
-      } else {
-        throw new Error('No development server configuration found. Run /python-setup first.');
-      }
-    }
+    LoggingUtils.info('Running Python security scanning...');
 
-    LoggingUtils.info(`🚀 Starting development server with ${devCommand}...`);
-
-    try {
-      const result = await this.executePythonCommand(devCommand, devArgs, options);
-
-      LoggingUtils.info('✅ Development server started');
-
-      return result;
-    } catch (error) {
-      this._suggestDevFix(error.message);
-      throw error;
-    }
-  }
-
-  /**
-   * Clean build artifacts
-   */
-  async clean(options = {}) {
-    await this.initialize();
-
-    const fs = require('fs');
-    const paths = require('path');
-
-    const artifacts = [
-      '__pycache__',
-      '.pytest_cache',
-      '.mypy_cache',
-      '.ruff_cache',
-      '.coverage',
-      'htmlcov',
-      'dist',
-      'build',
-      '*.egg-info',
-      '*.pyc',
-      '*.pyo',
-      '*.pyd',
-      '.Python',
-      'pip-log.txt',
-      'pip-delete-this-directory.txt',
-    ];
-
-    let cleaned = 0;
-    let errors = 0;
-
-    LoggingUtils.info('🧹 Cleaning Python artifacts...');
-
-    for (const pattern of artifacts) {
+    for (const tool of securityTools) {
       try {
-        const glob = require('glob');
-        const files = glob.sync(pattern, {
+        LoggingUtils.info(`Running ${tool}...`);
+        const command = this.buildSecurityCommand(tool, options);
+        await this.executeCommand(command, {
           cwd: this.projectPath,
-          dot: true,
-          absolute: true,
+          stdio: 'inherit',
         });
-
-        for (const file of files) {
-          try {
-            const stat = fs.statSync(file);
-            if (stat.isDirectory()) {
-              fs.rmSync(file, { recursive: true, force: true });
-              LoggingUtils.debug(`Removed directory: ${paths.relative(this.projectPath, file)}`);
-            } else {
-              fs.unlinkSync(file);
-              LoggingUtils.debug(`Removed file: ${paths.relative(this.projectPath, file)}`);
-            }
-            cleaned++;
-          } catch (err) {
-            LoggingUtils.debug(`Failed to remove ${file}: ${err.message}`);
-            errors++;
-          }
-        }
-      } catch (err) {
-        LoggingUtils.debug(`Failed to glob ${pattern}: ${err.message}`);
-        errors++;
+        results.push({ tool, success: true });
+      } catch (error) {
+        LoggingUtils.warn(`${tool} failed: ${error.message}`);
+        results.push({ tool, success: false, error: error.message });
       }
     }
 
-    if (cleaned > 0) {
-      LoggingUtils.info(`✅ Cleaned ${cleaned} Python artifacts`);
-    } else {
-      LoggingUtils.info('✅ No Python artifacts to clean');
-    }
-
-    if (errors > 0) {
-      LoggingUtils.warn(`⚠️  Encountered ${errors} errors during cleanup`);
-    }
-
-    return { cleaned, errors };
+    return results;
   }
 
   /**
-   * Run custom Python script
+   * Build security scanning command
    */
-  async run(script, args = [], options = {}) {
+  buildSecurityCommand(tool, options) {
+    const args = [];
+
+    switch (tool) {
+      case 'bandit':
+        args.push('bandit', '-r', '.');
+        if (options.config) args.push('-c', options.config);
+        if (options.format) args.push('-f', options.format);
+        if (options.output) args.push('-o', options.output);
+        break;
+
+      case 'safety':
+        args.push('safety', 'check');
+        if (options.file) args.push('-r', options.file);
+        if (options.fullReport) args.push('--full-report');
+        if (options.json) args.push('--json');
+        break;
+
+      case 'pip-audit':
+        args.push('pip-audit');
+        if (options.requirements) args.push('-r', options.requirements);
+        if (options.format) args.push('-f', options.format);
+        if (options.output) args.push('-o', options.output);
+        break;
+
+      default:
+        args.push('bandit', '-r', '.');
+    }
+
+    return args;
+  }
+
+  /**
+   * Run Python script or application
+   */
+  async runScript(options = {}) {
     await this.initialize();
 
-    LoggingUtils.info(`▶️  Running Python script: ${script}`);
+    const script = options.script || 'main.py';
+    const runCommand = this.buildRunCommand(script, options);
+
+    LoggingUtils.info(`Running Python script: ${script}`);
 
     try {
-      const result = await this.executePythonCommand('python', [script, ...args], options);
-
-      LoggingUtils.info('✅ Script execution completed');
-
-      return result;
+      await this.executeCommand(runCommand, {
+        cwd: this.projectPath,
+        stdio: 'inherit',
+      });
+      return true;
     } catch (error) {
-      this._suggestRunFix(error.message, script);
+      LoggingUtils.error(`Script execution failed: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * Get project information
+   * Build run command
    */
-  async getProjectInfo() {
+  buildRunCommand(script, options) {
+    const args = ['python', script];
+
+    if (options.args) {
+      args.push(...options.args.split(' '));
+    }
+
+    return args;
+  }
+
+  /**
+   * Clean Python build artifacts
+   */
+  async cleanBuild(options = {}) {
+    await this.initialize();
+
+    const cleanCommand = this.buildCleanCommand(options);
+
+    LoggingUtils.info('Cleaning Python build artifacts...');
+
     try {
-      const pythonVersion = await this.executePythonCommand('python', ['--version'], {
-        stdio: 'pipe',
+      await this.executeCommand(cleanCommand, {
+        cwd: this.projectPath,
+        stdio: 'inherit',
       });
-      const pipVersion = await this.executePythonCommand('pip', ['--version'], {
-        stdio: 'pipe',
-      });
-
-      return {
-        pythonVersion: pythonVersion.stdout?.trim() || 'unknown',
-        pipVersion: pipVersion.stdout?.trim() || 'unknown',
-        pythonConfig: this.pythonConfig,
-      };
+      return true;
     } catch (error) {
-      return { error: error.message };
+      LoggingUtils.error(`Clean failed: ${error.message}`);
+      throw error;
     }
   }
 
   /**
-   * Suggest test fixes
+   * Build clean command
    */
-  _suggestTestFix(errorMessage) {
-    LoggingUtils.info('\n💡 Test Error Suggestions:');
+  buildCleanCommand(options) {
+    const args = [];
 
-    if (errorMessage.includes('not found') || errorMessage.includes('command')) {
-      LoggingUtils.info('   • Install pytest: pip install pytest');
-      LoggingUtils.info('   • Create test files in tests/ directory');
-      LoggingUtils.info('   • Run tests with: python -m pytest');
-    }
+    // Clean Python cache files
+    args.push('find', '.', '-type', 'd', '-name', '__pycache__', '-exec', 'rm', '-rf', '{}', '+');
 
-    if (errorMessage.includes('import') || errorMessage.includes('module')) {
-      LoggingUtils.info('   • Check import statements in test files');
-      LoggingUtils.info('   • Add __init__.py files to test directories');
-      LoggingUtils.info('   • Install test dependencies: pip install -r requirements-test.txt');
-    }
+    // Clean .pyc files
+    args.push('&&', 'find', '.', '-type', 'f', '-name', '*.pyc', '-delete');
+
+    // Clean .pyo files
+    args.push('&&', 'find', '.', '-type', 'f', '-name', '*.pyo', '-delete');
+
+    // Clean .pyd files
+    args.push('&&', 'find', '.', '-type', 'f', '-name', '*.pyd', '-delete');
+
+    // Clean build directories
+    args.push('&&', 'find', '.', '-type', 'd', '-name', 'build', '-exec', 'rm', '-rf', '{}', '+');
+
+    // Clean dist directories
+    args.push('&&', 'find', '.', '-type', 'd', '-name', 'dist', '-exec', 'rm', '-rf', '{}', '+');
+
+    // Clean egg-info directories
+    args.push(
+      '&&',
+      'find',
+      '.',
+      '-type',
+      'd',
+      '-name',
+      '*.egg-info',
+      '-exec',
+      'rm',
+      '-rf',
+      '{}',
+      '+'
+    );
+
+    // Clean coverage files
+    args.push('&&', 'find', '.', '-type', 'f', '-name', '.coverage', '-delete');
+    args.push('&&', 'find', '.', '-type', 'd', '-name', 'htmlcov', '-exec', 'rm', '-rf', '{}', '+');
+
+    return ['sh', '-c', args.join(' ')];
   }
 
   /**
-   * Suggest lint fixes
+   * Execute a command with proper error handling
    */
-  _suggestLintFix(errorMessage) {
-    LoggingUtils.info('\n💡 Linting Error Suggestions:');
+  async executeCommand(command, options = {}) {
+    return new Promise((resolve, reject) => {
+      const [cmd, ...args] = Array.isArray(command) ? command : command.split(' ');
 
-    if (errorMessage.includes('ruff') || errorMessage.includes('flake8')) {
-      LoggingUtils.info('   • Install ruff: pip install ruff');
-      LoggingUtils.info('   • Or install flake8: pip install flake8');
-      LoggingUtils.info('   • Create pyproject.toml or .flake8 configuration');
-    }
+      const child = spawn(cmd, args, {
+        cwd: options.cwd || this.projectPath,
+        stdio: options.stdio || 'pipe',
+        shell: options.shell || false,
+        env: { ...process.env, ...options.env },
+      });
 
-    if (errorMessage.includes('rule') || errorMessage.includes('violation')) {
-      LoggingUtils.info('   • Fix code style violations');
-      LoggingUtils.info('   • Disable specific rules with # noqa comments');
-      LoggingUtils.info('   • Update linter configuration');
-    }
+      let stdout = '';
+      let stderr = '';
+
+      if (child.stdout) {
+        child.stdout.on('data', (data) => {
+          stdout += data.toString();
+          if (options.stdio !== 'inherit') {
+            process.stdout.write(data);
+          }
+        });
+      }
+
+      if (child.stderr) {
+        child.stderr.on('data', (data) => {
+          stderr += data.toString();
+          if (options.stdio !== 'inherit') {
+            process.stderr.write(data);
+          }
+        });
+      }
+
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolve({ code, stdout, stderr });
+        } else {
+          const error = new Error(
+            `Command failed with exit code ${code}: ${cmd} ${args.join(' ')}`
+          );
+          error.code = code;
+          error.stdout = stdout;
+          error.stderr = stderr;
+          reject(error);
+        }
+      });
+
+      child.on('error', (error) => {
+        reject(error);
+      });
+    });
   }
 
   /**
-   * Suggest format fixes
+   * Get help for Python commands
    */
-  _suggestFormatFix(errorMessage) {
-    LoggingUtils.info('\n💡 Formatting Error Suggestions:');
+  getHelp() {
+    return `
+🐍 Python Commands Help
 
-    if (errorMessage.includes('black') || errorMessage.includes('ruff')) {
-      LoggingUtils.info('   • Install black: pip install black');
-      LoggingUtils.info('   • Or install ruff: pip install ruff');
-      LoggingUtils.info('   • Create pyproject.toml configuration');
-    }
+Available commands via PythonCommandRunner:
 
-    if (errorMessage.includes('syntax') || errorMessage.includes('parse')) {
-      LoggingUtils.info('   • Fix syntax errors before formatting');
-      LoggingUtils.info('   • Check Python version compatibility');
-      LoggingUtils.info('   • Use --check flag to see what would be changed');
-    }
-  }
+1. runTests(options) - Run Python tests
+   • testRunner: pytest, unittest, nose
+   • Options: file, test, coverage, verbose, quiet, etc.
 
-  /**
-   * Suggest type checking fixes
-   */
-  _suggestTypeCheckFix(errorMessage) {
-    LoggingUtils.info('\n💡 Type Checking Error Suggestions:');
+2. runLint(options) - Run Python linter
+   • linter: ruff, flake8, pylint
+   • Options: fix, select, ignore, config
 
-    if (errorMessage.includes('mypy') || errorMessage.includes('pyright')) {
-      LoggingUtils.info('   • Install mypy: pip install mypy');
-      LoggingUtils.info('   • Or install pyright: pip install pyright');
-      LoggingUtils.info('   • Create mypy.ini or pyrightconfig.json');
-    }
+3. runFormat(options) - Run Python formatter
+   • formatter: ruff, black, autopep8
+   • Options: check, diff, config
 
-    if (errorMessage.includes('type') || errorMessage.includes('annotation')) {
-      LoggingUtils.info('   • Add type hints to function signatures');
-      LoggingUtils.info('   • Define TypeVar for generic types');
-      LoggingUtils.info('   • Use typing module for complex types');
-    }
-  }
+4. runTypeCheck(options) - Run Python type checker
+   • typeChecker: pyright, mypy
+   • Options: project, watch, outputjson, config
 
-  /**
-   * Suggest install fixes
-   */
-  _suggestInstallFix(errorMessage) {
-    LoggingUtils.info('\n💡 Installation Error Suggestions:');
+5. installDeps(options) - Install Python dependencies
+   • packageManager: pip, poetry, uv
+   • Options: requirements, upgrade, dev, sync
 
-    if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
-      LoggingUtils.info('   • Check internet connection');
-      LoggingUtils.info('   • Use different PyPI mirror: pip install --index-url <url>');
-      LoggingUtils.info('   • Increase timeout: pip install --timeout 60');
-    }
+6. runSecurityScan(options) - Run Python security scanning
+   • securityTools: bandit, safety, pip-audit
+   • Options: config, format, output, file
 
-    if (errorMessage.includes('version') || errorMessage.includes('compatibility')) {
-      LoggingUtils.info('   • Check Python version compatibility');
-      LoggingUtils.info('   • Use version specifiers in requirements.txt');
-      LoggingUtils.info('   • Install specific version: pip install package==1.0.0');
-    }
-  }
+7. runScript(options) - Run Python script/application
+   • script: Python file to run (default: main.py)
+   • Options: args
 
-  /**
-   * Suggest dev server fixes
-   */
-  _suggestDevFix(errorMessage) {
-    LoggingUtils.info('\n💡 Development Server Error Suggestions:');
+8. cleanBuild(options) - Clean Python build artifacts
+   • Removes: __pycache__, *.pyc, build/, dist/, etc.
 
-    if (errorMessage.includes('port') || errorMessage.includes('EADDRINUSE')) {
-      LoggingUtils.info('   • Change port: python manage.py runserver 8001');
-      LoggingUtils.info('   • Kill process using port: lsof -ti:8000 | xargs kill');
-      LoggingUtils.info('   • Use different port in .env file');
-    }
+Configuration:
+  • Loads from .opencode/project-config.json
+  • Uses pythonConfig section for Python-specific settings
+  • Auto-detects tools and project type
 
-    if (errorMessage.includes('module') || errorMessage.includes('import')) {
-      LoggingUtils.info('   • Check Django/Flask/FastAPI installation');
-      LoggingUtils.info('   • Verify WSGI/ASGI application configuration');
-      LoggingUtils.info('   • Check virtual environment activation');
-    }
-  }
-
-  /**
-   * Suggest run fixes
-   */
-  _suggestRunFix(errorMessage, script) {
-    LoggingUtils.info('\n💡 Script Execution Error Suggestions:');
-
-    if (errorMessage.includes('not found') || errorMessage.includes('No such file')) {
-      LoggingUtils.info(`   • Check if ${script} exists in current directory`);
-      LoggingUtils.info('   • Use absolute path: python /path/to/script.py');
-      LoggingUtils.info('   • Check file permissions');
-    }
-
-    if (errorMessage.includes('permission') || errorMessage.includes('EACCES')) {
-      LoggingUtils.info('   • Make script executable: chmod +x script.py');
-      LoggingUtils.info('   • Use shebang: #!/usr/bin/env python3');
-      LoggingUtils.info('   • Run with python interpreter: python script.py');
-    }
+Example usage:
+  const runner = new PythonCommandRunner();
+  await runner.initialize();
+  await runner.runTests({ coverage: true, verbose: true });
+    `;
   }
 }
 
+// Export for use in command files
 module.exports = PythonCommandRunner;
+
+// If run directly, show help
+if (require.main === module) {
+  const runner = new PythonCommandRunner();
+  console.log(runner.getHelp());
+}

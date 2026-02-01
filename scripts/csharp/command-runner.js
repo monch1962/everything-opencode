@@ -773,6 +773,150 @@ class CSharpCommandRunner {
       return { error: error.message };
     }
   }
+
+  /**
+   * Run C#/.NET security scanning
+   */
+  async runSecurityScan(options = {}) {
+    await this.initialize();
+
+    const securityTools = this.csharpConfig.securityTools || [
+      'dotnet-list-package',
+      'security-code-scan',
+    ];
+    const results = [];
+
+    LoggingUtils.info('🔒 Running C#/.NET security scanning...');
+
+    for (const tool of securityTools) {
+      try {
+        LoggingUtils.info(`Running ${tool}...`);
+        const command = this.buildSecurityCommand(tool, options);
+        await this.executeCommand(command, {
+          cwd: this.projectPath,
+          stdio: 'inherit',
+        });
+        results.push({ tool, success: true });
+      } catch (error) {
+        LoggingUtils.warn(`${tool} failed: ${error.message}`);
+        results.push({ tool, success: false, error: error.message });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Build security scanning command
+   */
+  buildSecurityCommand(tool, options) {
+    const args = [];
+
+    switch (tool) {
+      case 'dotnet-list-package':
+        args.push('dotnet', 'list', 'package', '--vulnerable');
+        if (options.output) args.push('--output', options.output);
+        if (options.format) args.push('--format', options.format);
+        break;
+
+      case 'security-code-scan':
+        args.push('dotnet', 'format', 'analyzers');
+        if (options.diagnostics) args.push('--diagnostics', options.diagnostics);
+        if (options.severity) args.push('--severity', options.severity);
+        break;
+
+      case 'sonar-scanner':
+        args.push('dotnet', 'sonarscanner', 'begin');
+        if (options.key) args.push('/k:' + options.key);
+        if (options.name) args.push('/n:' + options.name);
+        if (options.version) args.push('/v:' + options.version);
+        args.push('&&', 'dotnet', 'build');
+        args.push('&&', 'dotnet', 'sonarscanner', 'end');
+        break;
+
+      case 'owasp-dependency-check':
+        args.push('dependency-check', '--scan', this.projectPath);
+        if (options.format) args.push('--format', options.format);
+        if (options.output) args.push('--out', options.output);
+        break;
+
+      default:
+        args.push('dotnet', 'list', 'package', '--vulnerable');
+    }
+
+    return args;
+  }
+
+  /**
+   * Manage C#/.NET dependencies
+   */
+  async manageDeps(action, packages = [], options = {}) {
+    await this.initialize();
+
+    LoggingUtils.info(`📦 Managing C#/.NET dependencies: ${action}`);
+
+    try {
+      switch (action) {
+        case 'add':
+          for (const pkg of packages) {
+            await this.executeDotnetCommand(
+              'add',
+              ['package', pkg, ...this.buildDepsArgs(options)],
+              options
+            );
+            LoggingUtils.info(`✅ Added package: ${pkg}`);
+          }
+          break;
+
+        case 'remove':
+          for (const pkg of packages) {
+            await this.executeDotnetCommand('remove', ['package', pkg], options);
+            LoggingUtils.info(`✅ Removed package: ${pkg}`);
+          }
+          break;
+
+        case 'update':
+          await this.executeDotnetCommand('update', options.all ? [] : packages, options);
+          LoggingUtils.info(`✅ Updated ${options.all ? 'all' : packages.length} packages`);
+          break;
+
+        case 'list':
+          const result = await this.executeDotnetCommand('list', ['package'], {
+            ...options,
+            stdio: 'pipe',
+          });
+          console.log(result.stdout);
+          break;
+
+        case 'outdated':
+          await this.executeDotnetCommand('outdated', [], options);
+          break;
+
+        default:
+          throw new Error(`Unknown dependency action: ${action}`);
+      }
+
+      return true;
+    } catch (error) {
+      LoggingUtils.error(`Dependency management failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Build dependency management arguments
+   */
+  buildDepsArgs(options) {
+    const args = [];
+
+    if (options.version) args.push('--version', options.version);
+    if (options.source) args.push('--source', options.source);
+    if (options.framework) args.push('--framework', options.framework);
+    if (options.prerelease) args.push('--prerelease');
+    if (options.noRestore) args.push('--no-restore');
+
+    return args;
+  }
 }
 
 module.exports = CSharpCommandRunner;

@@ -5,7 +5,7 @@
  * Run Python tests with configured test runner
  */
 
-const PythonCommandRunner = require('./python-command-runner');
+const PythonCommandRunner = require('../python/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);

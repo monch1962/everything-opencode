@@ -7,7 +7,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const PythonCommandRunner = require('./python-command-runner');
+const PythonCommandRunner = require('../python/command-runner');
 const { defaultErrorHandler } = require('../lib/error-handler');
 
 async function main() {
@@ -200,7 +200,7 @@ async function runSecurityAudit(runner, _options) {
             };
             results.vulnerabilities += report.vulnerabilities?.length || 0;
             console.log(
-              `   📈 Found ${report.vulnerabilities?.length || 0} security vulnerabilities`,
+              `   📈 Found ${report.vulnerabilities?.length || 0} security vulnerabilities`
             );
 
             // Show critical vulnerabilities
@@ -209,7 +209,7 @@ async function runSecurityAudit(runner, _options) {
               const high = report.vulnerabilities.filter((v) => v.severity === 'HIGH');
               if (critical.length > 0 || high.length > 0) {
                 console.log(
-                  `   ⚠️  Critical/High: ${critical.length} critical, ${high.length} high severity`,
+                  `   ⚠️  Critical/High: ${critical.length} critical, ${high.length} high severity`
                 );
               }
             }
@@ -319,7 +319,7 @@ async function runSecurityAudit(runner, _options) {
               p.name.includes('security') ||
               p.name.includes('auth') ||
               p.name.includes('crypto') ||
-              p.name.includes('ssl')),
+              p.name.includes('ssl'))
         );
         if (securityPackages.length > 0) {
           console.log(`   ⚠️  ${securityPackages.length} security-related packages need updates`);
@@ -355,7 +355,7 @@ async function runSecurityAudit(runner, _options) {
 
     if (results.vulnerabilities > 0) {
       console.log(
-        `\n⚠️  CRITICAL: ${results.vulnerabilities} security vulnerabilities found in packages!`,
+        `\n⚠️  CRITICAL: ${results.vulnerabilities} security vulnerabilities found in packages!`
       );
       console.log('   Recommended actions:');
       console.log("   1. Run 'pip-audit' to see specific vulnerabilities");

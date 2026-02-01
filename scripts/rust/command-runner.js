@@ -37,7 +37,7 @@ class RustCommandRunner {
 
       if (projectInfo.type !== 'rust' && projectInfo.confidence < 0.7) {
         LoggingUtils.warn(
-          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`,
+          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`
         );
         LoggingUtils.warn('This may not be a Rust project. Some features may not work correctly.');
       } else if (projectInfo.type === 'rust') {
@@ -634,6 +634,132 @@ class RustCommandRunner {
     } catch (error) {
       return { error: error.message };
     }
+  }
+
+  /**
+   * Run Rust security scanning
+   */
+  async runSecurityScan(options = {}) {
+    await this.initialize();
+
+    const securityTools = this.rustConfig.securityTools || ['cargo-audit', 'cargo-deny'];
+    const results = [];
+
+    LoggingUtils.info('🔒 Running Rust security scanning...');
+
+    for (const tool of securityTools) {
+      try {
+        LoggingUtils.info(`Running ${tool}...`);
+        const command = this.buildSecurityCommand(tool, options);
+        await this.executeCommand(command, {
+          cwd: this.projectPath,
+          stdio: 'inherit',
+        });
+        results.push({ tool, success: true });
+      } catch (error) {
+        LoggingUtils.warn(`${tool} failed: ${error.message}`);
+        results.push({ tool, success: false, error: error.message });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Build security scanning command
+   */
+  buildSecurityCommand(tool, options) {
+    const args = [];
+
+    switch (tool) {
+      case 'cargo-audit':
+        args.push('cargo', 'audit');
+        if (options.database) args.push('--db', options.database);
+        if (options.denyWarnings) args.push('--deny-warnings');
+        if (options.ignore) args.push('--ignore', options.ignore);
+        if (options.output) args.push('--output', options.output);
+        break;
+
+      case 'cargo-deny':
+        args.push('cargo', 'deny', 'check');
+        if (options.config) args.push('--config', options.config);
+        if (options.target) args.push('--target', options.target);
+        if (options.allTargets) args.push('--all-targets');
+        break;
+
+      case 'cargo-geiger':
+        args.push('cargo', 'geiger');
+        if (options.output) args.push('--output', options.output);
+        if (options.format) args.push('--format', options.format);
+        if (options.unsafeOnly) args.push('--unsafe-only');
+        break;
+
+      case 'cargo-crev':
+        args.push('cargo', 'crev', 'verify');
+        if (options.recursive) args.push('--recursive');
+        if (options.verbose) args.push('--verbose');
+        break;
+
+      default:
+        args.push('cargo', 'audit');
+    }
+
+    return args;
+  }
+
+  /**
+   * Execute a command with proper error handling
+   */
+  async executeCommand(command, options = {}) {
+    return new Promise((resolve, reject) => {
+      const [cmd, ...args] = Array.isArray(command) ? command : command.split(' ');
+
+      const child = spawn(cmd, args, {
+        cwd: options.cwd || this.projectPath,
+        stdio: options.stdio || 'pipe',
+        shell: options.shell || false,
+        env: { ...process.env, ...options.env },
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      if (child.stdout) {
+        child.stdout.on('data', (data) => {
+          stdout += data.toString();
+          if (options.stdio !== 'inherit') {
+            process.stdout.write(data);
+          }
+        });
+      }
+
+      if (child.stderr) {
+        child.stderr.on('data', (data) => {
+          stderr += data.toString();
+          if (options.stdio !== 'inherit') {
+            process.stderr.write(data);
+          }
+        });
+      }
+
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolve({ code, stdout, stderr });
+        } else {
+          const error = new Error(
+            `Command failed with exit code ${code}: ${cmd} ${args.join(' ')}`
+          );
+          error.code = code;
+          error.stdout = stdout;
+          error.stderr = stderr;
+          reject(error);
+        }
+      });
+
+      child.on('error', (error) => {
+        reject(error);
+      });
+    });
   }
 }
 

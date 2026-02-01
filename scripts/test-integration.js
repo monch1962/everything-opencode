@@ -69,12 +69,12 @@ try {
 // Test Python command runner
 console.log('   Testing Python command runner...');
 try {
-  const PythonCommandRunner = require('./commands/python-command-runner');
+  const PythonCommandRunner = require('./python/command-runner');
   new PythonCommandRunner();
   console.log('   ✅ Python command runner loaded');
 
   // Check if error handler is integrated
-  const source = fs.readFileSync(path.join(__dirname, 'commands/python-command-runner.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, 'python/command-runner.js'), 'utf8');
   if (source.includes('defaultErrorHandler')) {
     console.log('   ✅ Error handler integrated in Python command runner');
   } else {
@@ -82,6 +82,24 @@ try {
   }
 } catch (error) {
   console.error('   ❌ Python command runner test failed:', error.message);
+}
+
+// Test Rust command runner
+console.log('   Testing Rust command runner...');
+try {
+  const RustCommandRunner = require('./rust/command-runner');
+  new RustCommandRunner();
+  console.log('   ✅ Rust command runner loaded');
+
+  // Check if error handler is integrated
+  const source = fs.readFileSync(path.join(__dirname, 'rust/command-runner.js'), 'utf8');
+  if (source.includes('defaultErrorHandler')) {
+    console.log('   ✅ Error handler integrated in Rust command runner');
+  } else {
+    console.log('   ❌ Error handler not found in Rust command runner');
+  }
+} catch (error) {
+  console.error('   ❌ Rust command runner test failed:', error.message);
 }
 
 console.log('\n3. Testing Security Scanning Integration...');
@@ -137,15 +155,54 @@ try {
   console.error('   ❌ Elixir deps check failed:', error.message);
 }
 
+// Check C# deps security scanning
+console.log('   Checking C# deps security scanning...');
+try {
+  const source = fs.readFileSync(path.join(__dirname, 'commands/csharp-deps.js'), 'utf8');
+  if (
+    source.includes('securityScan') ||
+    source.includes('vulnerable') ||
+    source.includes('runSecurityScan')
+  ) {
+    console.log('   ✅ C# security scanning implemented');
+  } else {
+    console.log('   ❌ C# security scanning incomplete');
+  }
+} catch (error) {
+  console.error('   ❌ C# deps check failed:', error.message);
+}
+
+// Check Rust deps security scanning
+console.log('   Checking Rust deps security scanning...');
+try {
+  const source = fs.readFileSync(path.join(__dirname, 'commands/rust-security.js'), 'utf8');
+  if (
+    source.includes('runSecurityScan') ||
+    source.includes('cargo-audit') ||
+    source.includes('cargo-deny')
+  ) {
+    console.log('   ✅ Rust security scanning implemented');
+  } else {
+    console.log('   ❌ Rust security scanning incomplete');
+  }
+} catch (error) {
+  console.error('   ❌ Rust security check failed:', error.message);
+}
+
 console.log('\n4. Testing File Structure...');
 const requiredFiles = [
   'scripts/lib/error-handler.js',
   'scripts/golang/command-runner.js',
   'scripts/elixir/command-runner.js',
-  'scripts/commands/python-command-runner.js',
+  'scripts/csharp/command-runner.js',
+  'scripts/python/command-runner.js',
+  'scripts/rust/command-runner.js',
   'scripts/commands/go-mod.js',
   'scripts/commands/python-deps.js',
   'scripts/commands/elixir-deps.js',
+  'scripts/commands/csharp-deps.js',
+  'scripts/commands/csharp-security.js',
+  'scripts/commands/rust-security.js',
 ];
 
 let allFilesExist = true;
