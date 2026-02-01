@@ -32,7 +32,7 @@ class InteractiveSetup {
       if (this.configManager.isConfigured()) {
         const reconfigure = await this.prompts.confirm(
           'This project is already configured. Reconfigure?',
-          false,
+          false
         );
 
         if (!reconfigure) {
@@ -100,7 +100,7 @@ class InteractiveSetup {
 
       const manualSelect = await this.prompts.confirm(
         'Would you like to manually select a language?',
-        true,
+        true
       );
 
       if (manualSelect) {
@@ -118,7 +118,7 @@ class InteractiveSetup {
 
         return await this.prompts.selectWithDescriptions(
           'Select primary language:',
-          languageChoices,
+          languageChoices
         );
       }
 
@@ -150,7 +150,7 @@ class InteractiveSetup {
 
       const selected = await this.prompts.selectWithDescriptions(
         'Select primary language:',
-        languageChoices,
+        languageChoices
       );
 
       if (selected === 'manual') {
@@ -405,7 +405,7 @@ class InteractiveSetup {
     for (const [language, langConfig] of Object.entries(config)) {
       if (
         ['project', 'configuredAt', 'primaryLanguage', 'secondaryLanguages', '$schema'].includes(
-          language,
+          language
         )
       ) {
         continue;
@@ -442,7 +442,7 @@ class InteractiveSetup {
     const language = summary.primaryLanguage || 'python';
 
     if (language === 'python') {
-      const results = await this.pythonToolDetector.detectAll();
+      const results = await this.pythonToolDetector.detectTools();
       this.pythonToolDetector.printResults(results, true);
     } else {
       this.prompts.info(`Tool detection for ${language} coming soon!`);

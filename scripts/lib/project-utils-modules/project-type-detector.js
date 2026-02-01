@@ -548,7 +548,7 @@ class ProjectTypeDetector {
   }
 
   /**
-   * Detect .NET project
+   * Detect C#/.NET project
    */
   static detectDotNetProject(projectPath) {
     const files = [
@@ -559,25 +559,33 @@ class ProjectTypeDetector {
       'packages.config',
       'Properties',
       'wwwroot',
+      'Program.cs',
+      'Startup.cs',
+      'appsettings.json',
     ];
 
     let confidence = 0;
-    let framework = 'dotnet';
+    let framework = 'csharp';
 
-    // Check for project files
-    const projectFiles = fs
+    // Check for C# project files (prioritize .csproj)
+    const csprojFiles = fs.readdirSync(projectPath).filter((file) => file.endsWith('.csproj'));
+    if (csprojFiles.length > 0) {
+      confidence += csprojFiles.length * 25; // 25 points per C# project file
+      framework = 'csharp';
+    }
+
+    // Check for other .NET project files
+    const otherProjectFiles = fs
       .readdirSync(projectPath)
-      .filter(
-        (file) => file.endsWith('.csproj') || file.endsWith('.fsproj') || file.endsWith('.vbproj')
-      );
-    if (projectFiles.length > 0) {
-      confidence += projectFiles.length * 20; // 20 points per project file
+      .filter((file) => file.endsWith('.fsproj') || file.endsWith('.vbproj'));
+    if (otherProjectFiles.length > 0) {
+      confidence += otherProjectFiles.length * 15; // 15 points for other .NET projects
     }
 
     // Check for solution file
     const solutionFiles = fs.readdirSync(projectPath).filter((file) => file.endsWith('.sln'));
     if (solutionFiles.length > 0) {
-      confidence += 25;
+      confidence += 30;
     }
 
     // Check for C# files
@@ -586,13 +594,24 @@ class ProjectTypeDetector {
       confidence += Math.min(csFiles.length, 10) * 3; // Up to 30 points
     }
 
-    // Check for ASP.NET Core
+    // Check for ASP.NET Core specific files
+    if (
+      fs.existsSync(path.join(projectPath, 'Program.cs')) ||
+      fs.existsSync(path.join(projectPath, 'Startup.cs')) ||
+      fs.existsSync(path.join(projectPath, 'appsettings.json'))
+    ) {
+      confidence += 20;
+    }
+
+    // Check for ASP.NET Core in code
     const hasAspNetCore = csFiles.some((file) => {
       try {
         const content = readFile(path.join(projectPath, file));
         return (
           content.includes('Microsoft.AspNetCore') ||
-          content.includes('WebApplication.CreateBuilder')
+          content.includes('WebApplication.CreateBuilder') ||
+          content.includes('IApplicationBuilder') ||
+          content.includes('IServiceCollection')
         );
       } catch (e) {
         return false;
@@ -600,12 +619,48 @@ class ProjectTypeDetector {
     });
     if (hasAspNetCore) {
       framework = 'aspnet-core';
+      confidence += 25;
+    }
+
+    // Check for Blazor
+    const hasBlazor = csFiles.some((file) => {
+      try {
+        const content = readFile(path.join(projectPath, file));
+        return (
+          content.includes('Microsoft.AspNetCore.Components') ||
+          content.includes('Blazor') ||
+          content.includes('Router')
+        );
+      } catch (e) {
+        return false;
+      }
+    });
+    if (hasBlazor) {
+      framework = 'blazor';
+      confidence += 20;
+    }
+
+    // Check for WPF/WinForms
+    const hasWindowsDesktop = csprojFiles.some((file) => {
+      try {
+        const content = readFile(path.join(projectPath, file));
+        return (
+          content.includes('Microsoft.NET.Sdk.WindowsDesktop') ||
+          content.includes('UseWPF') ||
+          content.includes('UseWindowsForms')
+        );
+      } catch (e) {
+        return false;
+      }
+    });
+    if (hasWindowsDesktop) {
+      framework = 'wpf';
       confidence += 20;
     }
 
     return {
       detected: confidence >= 30,
-      type: 'dotnet',
+      type: 'csharp', // Changed from 'dotnet' to 'csharp' for consistency
       framework,
       confidence: Math.min(confidence, 100),
       files: files.filter((f) => {
@@ -615,8 +670,9 @@ class ProjectTypeDetector {
         }
         return fs.existsSync(path.join(projectPath, f));
       }),
-      projectFileCount: projectFiles.length,
+      projectFileCount: csprojFiles.length + otherProjectFiles.length,
       csFileCount: csFiles.length,
+      hasSolution: solutionFiles.length > 0,
     };
   }
 }

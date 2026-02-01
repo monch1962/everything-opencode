@@ -5,120 +5,94 @@
  * Configure Python project for opencode integration
  */
 
-const PythonCommandRunner = require('./python-command-runner');
+const PythonConfigWizard = require('../../languages/python/config-wizard');
 
 async function main() {
-  const args = process.argv.slice(2);
-  const options = {};
-
-  // Parse command line arguments
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-
-    if (arg === '--quick' || arg === '-q') {
-      options.quick = true;
-    } else if (arg === '--reconfigure' || arg === '-r') {
-      options.reconfigure = true;
-    } else if (arg === '--project-type') {
-      options.projectType = args[++i];
-    } else if (arg === '--manager') {
-      options.manager = args[++i];
-    } else if (arg === '--test-runner') {
-      options.testRunner = args[++i];
-    } else if (arg === '--linter') {
-      options.linter = args[++i];
-    } else if (arg === '--formatter') {
-      options.formatter = args[++i];
-    } else if (arg === '--type-checker') {
-      options.typeChecker = args[++i];
-    } else if (arg === '--no-prompt' || arg === '-y') {
-      options.noPrompt = true;
-    } else if (arg === '--verbose' || arg === '-v') {
-      options.verbose = true;
-    } else if (arg === '--config') {
-      options.config = args[++i];
-    } else if (arg === '--help' || arg === '-h') {
-      showHelp();
-      process.exit(0);
-    } else if (arg.startsWith('--')) {
-      console.error(`Unknown option: ${arg}`);
-      showHelp();
-      process.exit(1);
-    }
-  }
-
   try {
-    const runner = new PythonCommandRunner();
-    const success = await runner.runSetup(options);
+    const projectPath = process.cwd();
+    const wizard = new PythonConfigWizard(projectPath);
+
+    console.log('🐍 Python Project Setup\n');
+
+    // Check for command line arguments
+    const args = process.argv.slice(2);
+
+    let success = false;
+
+    if (args.includes('--quick') || args.includes('-q')) {
+      console.log('⚡ Running quick setup...\n');
+      success = await wizard.quickSetup();
+    } else {
+      // Run the configuration wizard
+      success = await wizard.run();
+    }
 
     if (success) {
-      console.log('\n✅ Python project setup completed successfully!');
-      console.log('\n🎯 Next steps:');
-      console.log('  • Run tests: /python-test');
-      console.log('  • Lint code: /python-lint');
-      console.log('  • Type check: /python-typecheck');
-      console.log('  • Manage dependencies: /python-deps');
-      console.log('  • Reconfigure: /python-setup');
+      console.log('\n✅ Python setup completed successfully!');
+      console.log('\n💡 Next steps:');
+      console.log('  1. Run /python-test to test your project');
+      console.log('  2. Run /python-lint to check code quality');
+      console.log('  3. Run /python-format to format your code');
+      console.log('  4. Run /python-typecheck for type checking (if configured)');
+      console.log('  5. Run /python-dev to start development server (for web projects)');
+      console.log('  6. Run /python-install to install dependencies');
+
+      console.log('\n📚 Available Python commands:');
+      console.log('  • /python-setup    - Configure Python project (run this again)');
+      console.log('  • /python-test     - Run tests with configured test runner');
+      console.log('  • /python-lint     - Run linter (ruff/flake8/pylint)');
+      console.log('  • /python-format   - Format code (ruff/black/autopep8)');
+      console.log('  • /python-typecheck - Type checking (pyright/mypy)');
+      console.log('  • /python-dev      - Start development server');
+      console.log('  • /python-install  - Install dependencies');
+      console.log('  • /python-clean    - Clean build artifacts');
+      console.log('  • /python-run      - Run Python script');
     } else {
-      console.log('\n⚠️  Setup completed with warnings or was cancelled');
+      console.log('\n❌ Setup failed. Please check the errors above.');
       process.exit(1);
     }
   } catch (error) {
-    console.error(`\n❌ Setup failed: ${error.message}`);
+    console.error('\n❌ Setup failed:', error.message);
+    console.error(error.stack);
     process.exit(1);
   }
 }
 
 function showHelp() {
   console.log(`
-/python-setup - Configure Python project for opencode
+🐍 Python Project Setup
 
 Usage:
-  /python-setup [options]
+  node scripts/commands/python-setup.js [options]
 
 Options:
-  --quick, -q            Quick setup with automatic detection
-  --reconfigure, -r      Force reconfiguration even if already configured
-  --project-type <type>  Specify project type (overrides detection)
-  --manager <name>       Specify dependency manager
-  --test-runner <name>   Specify test runner
-  --linter <name>        Specify linter
-  --formatter <name>     Specify formatter
-  --type-checker <name>  Specify type checker
-  --no-prompt, -y        Use defaults without prompting
-  --verbose, -v          Verbose output
-  --config <path>        Save configuration to specific path
-  --help, -h             Show this help
-
-Project Types:
-  fastapi          FastAPI web application
-  django           Django web framework
-  flask            Flask microframework
-  data-science     Data science/analysis project
-  machine-learning Machine learning project
-  cli              Command-line interface tool
-  library          Python library/package
+  --quick, -q    Quick setup with automatic detection
+  --help, -h     Show this help message
 
 Examples:
-  /python-setup                    # Interactive setup wizard
-  /python-setup --quick            # Quick automatic setup
-  /python-setup --reconfigure      # Force reconfiguration
-  /python-setup --project-type fastapi
-  /python-setup --manager uv --test-runner pytest --linter ruff
-  /python-setup --no-prompt        # Non-interactive with defaults
+  node scripts/commands/python-setup.js          # Run interactive wizard
+  node scripts/commands/python-setup.js --quick  # Quick automatic setup
 
 Setup Process:
-  1. Project detection (language, type, confidence)
-  2. Tool detection (Python, dependency managers, testing, linting)
-  3. Interactive configuration (project type, tools, options)
-  4. Configuration saving (.opencode/project-config.json)
-  5. Next steps and recommendations
+  1. Python project detection and validation
+  2. Project type detection (Django, Flask, FastAPI, etc.)
+  3. Tool detection (Python, pip, poetry, uv, pytest, etc.)
+  4. Interactive configuration (dependency manager, test runner, linter, formatter, type checker)
+  5. Configuration saving (.opencode/project-config.json)
+  6. Next steps and recommendations
 
 Configuration File:
   Saved to .opencode/project-config.json
   Includes project type, tool configuration, detected tools
   Used by other Python commands (/python-test, /python-lint, etc.)
   `);
+}
+
+// Check for help flag
+const args = process.argv.slice(2);
+if (args.includes('--help') || args.includes('-h')) {
+  showHelp();
+  process.exit(0);
 }
 
 // Run main function

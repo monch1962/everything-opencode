@@ -76,7 +76,7 @@ class PythonConfigWizard {
     }
 
     this.prompts.success(
-      `Detected Python project with ${Math.round(pythonResult.confidence * 100)}% confidence`,
+      `Detected Python project with ${Math.round(pythonResult.confidence * 100)}% confidence`
     );
 
     if (pythonResult.indicators.length > 0) {
@@ -129,35 +129,49 @@ class PythonConfigWizard {
     this.prompts.info('Detecting Python tools...');
 
     // Use the Python tool detector for consistent detection
-    const detectedTools = await this.toolDetector.detectAll();
+    const detectedTools = await this.toolDetector.detectTools();
 
     // Generate environment report
     const report = this.toolDetector.generateEnvironmentReport(detectedTools);
 
     // Show detection results
-    this.prompts.info(
-      `Detected ${report.summary.toolsDetected}/${report.summary.totalTools} Python tools`,
-    );
+    let installedCount = 0;
+    const installedTools = [];
 
-    // Show installed tools
-    if (report.summary.toolsDetected > 0) {
-      this.prompts.info('Installed tools:');
-      for (const [toolName, toolInfo] of Object.entries(detectedTools)) {
-        if (toolInfo.installed) {
-          const versionText = toolInfo.version ? `v${toolInfo.version}` : 'unknown version';
-          // Check if tool is recommended (some tools may not have this property)
-          const recommended = toolInfo.recommended ? ' ⭐' : '';
-          this.prompts.item(`${toolName}: ${versionText}${recommended}`);
-        }
+    for (const [toolName, toolInfo] of Object.entries(detectedTools)) {
+      if (toolInfo && toolInfo.installed) {
+        installedCount++;
+        installedTools.push({ name: toolName, info: toolInfo });
       }
     }
 
-    // Show recommendations if any
-    if (report.recommendations.length > 0) {
+    this.prompts.info(`Detected ${installedCount} Python tools`);
+
+    // Show installed tools
+    if (installedCount > 0) {
+      this.prompts.info('Installed tools:');
+      for (const { name, info } of installedTools) {
+        const versionText = info.version ? `v${info.version}` : 'unknown version';
+        console.log(`  • ${name}: ${versionText}`);
+      }
+    }
+
+    // Show recommendations based on what's missing
+    const recommendations = [];
+
+    if (!detectedTools.python?.installed && !detectedTools.python3?.installed) {
+      recommendations.push({ type: 'critical', message: 'Python is not installed' });
+    }
+
+    if (!detectedTools.pip?.installed && !detectedTools.pip3?.installed) {
+      recommendations.push({ type: 'high', message: 'pip is not installed' });
+    }
+
+    if (recommendations.length > 0) {
       this.prompts.info('Recommendations:');
-      report.recommendations.forEach((rec) => {
+      recommendations.forEach((rec) => {
         const icon = rec.type === 'critical' ? '❌' : rec.type === 'high' ? '⚠️' : '🔵';
-        this.prompts.item(`${icon} ${rec.message}`);
+        console.log(`  ${icon} ${rec.message}`);
       });
     }
 
@@ -216,7 +230,7 @@ class PythonConfigWizard {
 
     config.dependencyManager = await this.prompts.selectWithDescriptions(
       'Select dependency manager:',
-      depManagerChoices,
+      depManagerChoices
     );
 
     // 2. Test runner selection
@@ -242,7 +256,7 @@ class PythonConfigWizard {
 
     config.testRunner = await this.prompts.selectWithDescriptions(
       'Select testing framework:',
-      testRunnerChoices,
+      testRunnerChoices
     );
 
     // 3. Linter selection
@@ -303,7 +317,7 @@ class PythonConfigWizard {
 
     config.formatter = await this.prompts.selectWithDescriptions(
       'Select code formatter:',
-      formatterChoices,
+      formatterChoices
     );
 
     // 5. Type checker selection (for typed projects)
@@ -329,14 +343,14 @@ class PythonConfigWizard {
 
     config.typeChecker = await this.prompts.selectWithDescriptions(
       'Select type checker:',
-      typeCheckerChoices,
+      typeCheckerChoices
     );
 
     // 6. Project-specific options based on type
     if (projectType === 'fastapi') {
       const includeDocs = await this.prompts.confirm(
         'Include automatic API documentation (Swagger/ReDoc)?',
-        true,
+        true
       );
       config.fastapiOptions = { includeDocs };
     }
@@ -344,7 +358,7 @@ class PythonConfigWizard {
     if (projectType === 'data-science' || projectType === 'machine-learning') {
       const includeNotebooks = await this.prompts.confirm(
         'Include Jupyter notebook support?',
-        true,
+        true
       );
       config.dataScienceOptions = { includeNotebooks };
     }
@@ -353,7 +367,7 @@ class PythonConfigWizard {
       const cliFramework = await this.prompts.select(
         'Select CLI framework:',
         ['click', 'typer', 'argparse', 'none'],
-        0,
+        0
       );
       config.cliOptions = {
         framework: ['click', 'typer', 'argparse', 'none'][cliFramework],
@@ -419,7 +433,7 @@ class PythonConfigWizard {
       !detectedTools[config.dependencyManager]?.installed
     ) {
       recommendations.push(
-        `Install ${config.dependencyManager}: Recommended for dependency management`,
+        `Install ${config.dependencyManager}: Recommended for dependency management`
       );
     }
 
@@ -462,7 +476,7 @@ class PythonConfigWizard {
     // General recommendations
     recommendations.push('Create virtual environment: `python -m venv .venv`');
     recommendations.push(
-      'Activate virtual environment: `source .venv/bin/activate` (Linux/Mac) or `.venv\\Scripts\\activate` (Windows)',
+      'Activate virtual environment: `source .venv/bin/activate` (Linux/Mac) or `.venv\\Scripts\\activate` (Windows)'
     );
     recommendations.push('Initialize git: `git init` (if not already a git repository)');
 
