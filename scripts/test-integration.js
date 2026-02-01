@@ -51,15 +51,12 @@ try {
 // Test Elixir command runner
 console.log('   Testing Elixir command runner...');
 try {
-  const ElixirCommandRunner = require('./elixir/elixir-command-runner-refactored');
+  const ElixirCommandRunner = require('./elixir/command-runner');
   new ElixirCommandRunner();
   console.log('   ✅ Elixir command runner loaded');
 
   // Check if error handler is integrated
-  const source = fs.readFileSync(
-    path.join(__dirname, 'elixir/elixir-command-runner-refactored.js'),
-    'utf8'
-  );
+  const source = fs.readFileSync(path.join(__dirname, 'elixir/command-runner.js'), 'utf8');
   if (source.includes('defaultErrorHandler')) {
     console.log('   ✅ Error handler integrated in Elixir command runner');
   } else {

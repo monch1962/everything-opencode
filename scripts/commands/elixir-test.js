@@ -1,142 +1,129 @@
 #!/usr/bin/env node
 /**
- * /elixir-test command wrapper
+ * Elixir Test Command
  *
- * Run Elixir tests with ExUnit and Elixir-specific improvements
+ * Run Elixir tests with project-specific improvements
  */
 
-const ElixirCommandRunner = require('../elixir/elixir-command-runner-refactored');
+const ElixirCommandRunner = require('../elixir/command-runner');
 
 async function main() {
-  const args = process.argv.slice(2);
-  const options = {};
-
-  // Parse command line arguments
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-
-    if (arg === '--file' || arg === '-f') {
-      options.file = args[++i];
-    } else if (arg === '--directory' || arg === '-d') {
-      options.directory = args[++i];
-    } else if (arg === '--only') {
-      options.only = args[++i];
-    } else if (arg === '--exclude') {
-      options.exclude = args[++i];
-    } else if (arg === '--seed') {
-      options.seed = args[++i];
-    } else if (arg === '--coverage' || arg === '-c') {
-      options.coverage = true;
-    } else if (arg === '--trace' || arg === '-t') {
-      options.trace = true;
-    } else if (arg === '--max-failures') {
-      options.maxFailures = args[++i];
-    } else if (arg === '--timeout') {
-      options.timeout = args[++i];
-    } else if (arg === '--verbose' || arg === '-v') {
-      options.verbose = true;
-    } else if (arg === '--slowest') {
-      options.slowest = args[++i];
-    } else if (arg === '--help' || arg === '-h') {
-      showHelp();
-      process.exit(0);
-    } else if (arg.startsWith('--')) {
-      console.error(`Unknown option: ${arg}`);
-      showHelp();
-      process.exit(1);
-    } else {
-      // Assume it's a test file or pattern
-      options.file = arg;
-    }
-  }
-
   try {
-    const runner = new ElixirCommandRunner(process.cwd());
-    await runner.initialize();
+    const args = process.argv.slice(2);
+    const options = {};
+    let testPattern = null;
 
-    // Run tests
-    console.log('🧪 Running Elixir tests...');
-    const result = await runner.test(options);
+    // Parse command line arguments
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+
+      if (arg === '--cover') {
+        options.cover = true;
+      } else if (arg === '--trace') {
+        options.trace = true;
+      } else if (arg === '--max-failures') {
+        options.maxFailures = parseInt(args[++i], 10);
+      } else if (arg === '--seed') {
+        options.seed = parseInt(args[++i], 10);
+      } else if (arg === '--timeout') {
+        options.timeout = parseInt(args[++i], 10);
+      } else if (arg === '--verbose' || arg === '-v') {
+        options.verbose = true;
+      } else if (arg === '--env') {
+        options.env = args[++i];
+      } else if (arg === '--help' || arg === '-h') {
+        showHelp();
+        process.exit(0);
+      } else if (arg.startsWith('--')) {
+        console.error(`Unknown option: ${arg}`);
+        showHelp();
+        process.exit(1);
+      } else {
+        // Assume it's a test pattern
+        testPattern = arg;
+      }
+    }
+
+    const runner = new ElixirCommandRunner(process.cwd());
+
+    console.log('🧪 Running Elixir tests...\n');
+
+    const result = await runner.test(testPattern, options);
 
     if (result.success) {
       console.log('\n✅ All tests passed!');
     } else {
-      console.log(`\n❌ Tests failed with code ${result.code}`);
-      if (result.stderr) {
-        console.log(result.stderr);
-      }
-      process.exit(result.code || 1);
+      console.log('\n❌ Tests failed.');
+      process.exit(1);
     }
   } catch (error) {
-    console.error(`\n❌ Test execution failed: ${error.message}`);
+    console.error('\n❌ Test execution failed:', error.message);
     process.exit(1);
   }
 }
 
 function showHelp() {
   console.log(`
-🧪 Elixir Test
+🧪 Elixir Test Command
 
-Usage: /elixir-test [options] [test-file]
+Usage: /elixir-test [options] [test-pattern]
 
-Run Elixir tests with ExUnit and Elixir-specific improvements.
+Run Elixir tests with project-specific improvements.
 
 Options:
-  --file, -f FILE        Run specific test file
-  --directory, -d DIR    Run tests in specific directory
-  --only PATTERN         Run only tests matching pattern
-  --exclude PATTERN      Exclude tests matching pattern
-  --seed SEED            Set random seed for reproducible tests
-  --coverage, -c         Generate test coverage report
-  --trace, -t            Trace test execution
-  --max-failures N       Stop after N failures
-  --timeout MS           Set test timeout in milliseconds
-  --verbose, -v          Verbose output
-  --slowest N            Show N slowest tests
-  --help, -h             Show this help message
+  --cover                    Generate test coverage report
+  --trace                    Trace test execution
+  --max-failures N           Stop after N failures
+  --seed SEED                Random seed for test order
+  --timeout TIMEOUT          Test timeout in milliseconds
+  --verbose, -v              Verbose output
+  --env ENVIRONMENT          Set Mix environment (dev, test, prod)
+  --help, -h                 Show this help message
+
+Test Patterns:
+  • file_test.exs            # Run tests in specific file
+  • MyModuleTest             # Run tests for specific module
+  • test_my_function         # Run specific test function
+  • path/to/tests/           # Run tests in directory
+
+Features:
+  • Project-aware test execution
+  • Intelligent test filtering
+  • Coverage reporting with excoveralls
+  • Parallel test execution
+  • Test isolation
+  • Failure reporting with context
+  • Seed management for reproducible tests
+  • Timeout handling
 
 Examples:
   /elixir-test                          # Run all tests
-  /elixir-test --coverage               # Run tests with coverage
-  /elixir-test test/my_test.exs         # Run specific test file
-  /elixir-test --only "integration"     # Run only integration tests
+  /elixir-test --cover                  # Run tests with coverage
+  /elixir-test --trace                  # Trace test execution
+  /elixir-test MyModuleTest             # Run tests for specific module
+  /elixir-test test/my_module_test.exs  # Run tests in specific file
   /elixir-test --max-failures 3         # Stop after 3 failures
-  /elixir-test --slowest 10             # Show 10 slowest tests
+  /elixir-test --seed 12345             # Use specific random seed
+  /elixir-test --timeout 5000           # Set 5-second timeout per test
 
-Elixir-specific features:
-  • ExUnit integration with all features
-  • Test coverage with detailed reports
-  • Parallel test execution
-  • Test filtering and tagging
-  • Random seed for reproducible tests
-  • Slow test detection
-  • Failure limiting
-
-Test organization:
-  • Unit tests in test/ directory
-  • Integration tests with async: false
-  • Property-based testing with StreamData
-  • Test fixtures and setup/teardown
-  • Custom assertions and helpers
-
-Coverage reports:
-  • HTML coverage report in cover/ directory
-  • Line coverage percentage
-  • Missing coverage highlighting
-  • Coverage summary in console
-
-Common patterns:
-  • describe blocks for test organization
-  • setup and setup_all callbacks
-  • Custom tags for test categorization
-  • Shared examples with ExUnit.CaseTemplate
-  
+Notes:
+  • Tests run in the test environment by default
+  • Coverage reports are generated in cover/ directory
+  • Test results are cached for faster subsequent runs
+  • Phoenix projects include additional test helpers
+  • Property-based testing with StreamData is supported
+  • Browser testing with Wallaby/Hound is available for Phoenix
 `);
 }
 
-if (require.main === module) {
-  main().catch((error) => {
-    console.error(`Fatal error: ${error.message}`);
-    process.exit(1);
-  });
+// Handle help flag
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  showHelp();
+  process.exit(0);
 }
+
+// Run main function
+main().catch((error) => {
+  console.error('Unhandled error:', error);
+  process.exit(1);
+});

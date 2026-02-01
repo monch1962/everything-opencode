@@ -5,7 +5,7 @@
  * Format Elixir code with built-in formatter and Elixir-specific improvements
  */
 
-const ElixirCommandRunner = require('../elixir/elixir-command-runner-refactored');
+const ElixirCommandRunner = require('../elixir/command-runner');
 
 async function main() {
   const args = process.argv.slice(2);

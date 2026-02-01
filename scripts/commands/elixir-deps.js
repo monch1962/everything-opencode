@@ -5,7 +5,7 @@
  * Manage Elixir dependencies with Mix, Hex, and security scanning
  */
 
-const ElixirCommandRunner = require('../elixir/elixir-command-runner-refactored');
+const ElixirCommandRunner = require('../elixir/command-runner');
 const { defaultErrorHandler } = require('../lib/error-handler');
 
 async function main() {

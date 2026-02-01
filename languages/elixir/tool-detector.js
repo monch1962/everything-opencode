@@ -1,378 +1,699 @@
-#!/usr/bin/env node
 /**
  * Elixir Tool Detector
  *
- * Detects Elixir tools, versions, and provides installation guides
- * Includes Elixir-specific improvements for modern Elixir development
+ * Detect Elixir development tools with cross-platform support
+ * Following JavaScript/TypeScript pattern exactly
  */
 
-const { runCommand } = require('../../scripts/lib/utils');
+const { commandExists, runCommand } = require('../../scripts/lib/utils');
+const PlatformDetector = require('../../scripts/lib/platform-detector');
 
 class ElixirToolDetector {
   constructor() {
-    this.tools = this.initializeTools();
+    this.platformDetector = new PlatformDetector();
+    this.tools = [
+      'elixir', // Elixir runtime (required)
+      'mix', // Elixir build tool and dependency manager
+      'iex', // Interactive Elixir shell
+      'elixirc', // Elixir compiler
+      'erl', // Erlang runtime (required for Elixir)
+      'erlc', // Erlang compiler
+      'rebar3', // Erlang build tool
+      'hex', // Package manager for the Erlang ecosystem
+      'exunit', // Elixir's built-in test framework
+      'credo', // Static code analysis tool for Elixir
+      'dialyzer', // Static analysis tool for type checking
+      'sobelow', // Security-focused static analysis for Phoenix
+      'mix_audit', // Security audit for Mix dependencies
+      'ex_doc', // Documentation generation for Elixir projects
+      'excoveralls', // Coverage reporting for Elixir
+      'hound', // Browser automation and testing
+      'wallaby', // Concurrent browser testing
+      'phoenix', // Web framework for Elixir
+      'ecto', // Database wrapper and query builder
+      'absinthe', // GraphQL implementation for Elixir
+      'broadway', // Concurrent data processing pipelines
+      'livebook', // Interactive code notebooks
+      'nx', // Numerical computing library
+      'axon', // Neural network library
+      'oban', // Robust job processing
+      'ash', // Resource-oriented framework
+      'surface', // Server-side rendering component library
+      'slime', // Template engine
+      'swoosh', // Composable email library
+      'bamboo', // Testable email library
+      'tesla', // HTTP client library
+      'finch', // HTTP client with connection pooling
+      'mint', // Low-level HTTP client
+      'bandit', // Pure-Elixir HTTP server
+      'cowboy', // Small, fast, modern HTTP server
+      'plug', // Specification for composable modules
+      'corsica', // CORS plug for Elixir
+      'guardian', // Authentication library
+      'comeonin', // Password hashing library
+      'bcrypt_elixir', // bcrypt password hashing
+      'argon2_elixir', // Argon2 password hashing
+    ];
   }
 
   /**
-   * Initialize tool definitions with Elixir-specific improvements
-   */
-  initializeTools() {
-    return {
-      // Elixir runtime and compiler
-      elixir: {
-        command: 'elixir --version',
-        description: 'Elixir programming language runtime',
-        installGuide: {
-          macos: 'brew install elixir',
-          linux: 'sudo apt-get install elixir',
-          windows: 'Download from https://elixir-lang.org/install.html#windows',
-          docker: 'docker run --rm -it elixir:latest elixir --version',
-        },
-        priority: 10,
-        minVersion: '1.14',
-        recommendedVersion: '1.19',
-      },
-
-      // Mix build tool
-      mix: {
-        command: 'mix --version',
-        description: 'Elixir build tool and dependency manager',
-        installGuide: {
-          macos: 'Part of Elixir installation',
-          linux: 'Part of Elixir installation',
-          windows: 'Part of Elixir installation',
-        },
-        priority: 9,
-      },
-
-      // Hex package manager
-      hex: {
-        command: 'mix hex.info',
-        description: 'Package manager for the Erlang ecosystem',
-        installGuide: {
-          macos: 'mix local.hex --force',
-          linux: 'mix local.hex --force',
-          windows: 'mix local.hex --force',
-        },
-        priority: 9,
-        recommended: true,
-      },
-
-      // Testing framework
-      exunit: {
-        command: 'mix test --help',
-        description: "Elixir's built-in test framework",
-        installGuide: {
-          macos: 'Part of Elixir installation',
-          linux: 'Part of Elixir installation',
-          windows: 'Part of Elixir installation',
-        },
-        priority: 8,
-      },
-
-      // Code formatter
-      formatter: {
-        command: 'mix format --check-formatted .',
-        description: 'Elixir code formatter (built-in)',
-        installGuide: {
-          macos: 'Part of Elixir installation',
-          linux: 'Part of Elixir installation',
-          windows: 'Part of Elixir installation',
-        },
-        priority: 8,
-      },
-
-      // Static code analysis
-      credo: {
-        command: 'mix credo --version',
-        description: 'Static code analysis tool for Elixir',
-        installGuide: {
-          macos: 'mix archive.install hex credo --force',
-          linux: 'mix archive.install hex credo --force',
-          windows: 'mix archive.install hex credo --force',
-        },
-        priority: 8,
-        recommended: true,
-      },
-
-      // Dialyzer for type checking
-      dialyzer: {
-        command: 'mix dialyzer --version',
-        description: 'Static analysis tool that identifies software discrepancies',
-        installGuide: {
-          macos: 'Add {:dialyxir, "~> 1.4", only: [:dev], runtime: false} to mix.exs',
-          linux: 'Add {:dialyxir, "~> 1.4", only: [:dev], runtime: false} to mix.exs',
-          windows: 'Add {:dialyxir, "~> 1.4", only: [:dev], runtime: false} to mix.exs',
-        },
-        priority: 7,
-      },
-
-      // Phoenix framework (for web projects)
-      phoenix: {
-        command: 'mix phx.new --version',
-        description: 'Productive web framework for Elixir',
-        installGuide: {
-          macos: 'mix archive.install hex phx_new --force',
-          linux: 'mix archive.install hex phx_new --force',
-          windows: 'mix archive.install hex phx_new --force',
-        },
-        priority: 6,
-      },
-
-      // Ecto database wrapper
-      ecto: {
-        command: 'mix ecto --version',
-        description: 'Database wrapper and query generator for Elixir',
-        installGuide: {
-          macos: 'Add {:ecto_sql, "~> 3.0"} to mix.exs',
-          linux: 'Add {:ecto_sql, "~> 3.0"} to mix.exs',
-          windows: 'Add {:ecto_sql, "~> 3.0"} to mix.exs',
-        },
-        priority: 6,
-      },
-
-      // Livebook for interactive notebooks
-      livebook: {
-        command: 'livebook --version',
-        description: 'Interactive and collaborative code notebooks for Elixir',
-        installGuide: {
-          macos: 'mix escript.install hex livebook',
-          linux: 'mix escript.install hex livebook',
-          windows: 'mix escript.install hex livebook',
-        },
-        priority: 5,
-      },
-
-      // IEx enhanced console
-      iex: {
-        command: 'iex --version',
-        description: 'Interactive Elixir shell (built-in)',
-        installGuide: {
-          macos: 'Part of Elixir installation',
-          linux: 'Part of Elixir installation',
-          windows: 'Part of Elixir installation',
-        },
-        priority: 5,
-      },
-    };
-  }
-
-  /**
-   * Detect all Elixir tools with Elixir-specific improvements
+   * Detect all Elixir tools
    */
   async detectTools() {
-    const results = {};
-    const toolNames = Object.keys(this.tools);
+    const detectedTools = {};
 
-    for (const toolName of toolNames) {
-      const tool = this.tools[toolName];
-      try {
-        const result = runCommand(tool.command, {
-          cwd: process.cwd(),
-          timeout: 10000,
-        });
-
-        results[toolName] = {
-          installed: result.success,
-          version: this.extractVersion(result.output, '', toolName),
-          description: tool.description,
-          priority: tool.priority,
-          recommended: tool.recommended || false,
-          minVersion: tool.minVersion,
-          recommendedVersion: tool.recommendedVersion,
-        };
-      } catch (error) {
-        results[toolName] = {
-          installed: false,
-          version: null,
-          description: tool.description,
-          priority: tool.priority,
-          recommended: tool.recommended || false,
-          minVersion: tool.minVersion,
-          recommendedVersion: tool.recommendedVersion,
-        };
-      }
+    // Detect each tool
+    for (const tool of this.tools) {
+      detectedTools[tool] = await this.detectTool(tool);
     }
 
-    return results;
+    // Detect Elixir version and environment
+    const elixirInfo = await this.detectElixirInfo();
+    if (elixirInfo) {
+      detectedTools.elixirInfo = elixirInfo;
+    }
+
+    // Detect Erlang/OTP version
+    const erlangInfo = await this.detectErlangInfo();
+    if (erlangInfo) {
+      detectedTools.erlangInfo = erlangInfo;
+    }
+
+    // Detect Mix project
+    const mixProject = await this.detectMixProject();
+    if (mixProject) {
+      detectedTools.mixProject = mixProject;
+    }
+
+    // Detect Elixir frameworks
+    const frameworks = await this.detectFrameworks();
+    if (frameworks.length > 0) {
+      detectedTools.frameworks = frameworks;
+    }
+
+    // Detect build tools
+    const buildTools = await this.detectBuildTools();
+    if (buildTools.length > 0) {
+      detectedTools.buildTools = buildTools;
+    }
+
+    return detectedTools;
   }
 
   /**
-   * Extract version from command output with Elixir-specific parsing
+   * Detect a specific tool
    */
-  extractVersion(stdout, stderr, toolName) {
-    const output = stdout || stderr || '';
+  async detectTool(toolName) {
+    const toolInfo = {
+      installed: false,
+      version: null,
+      path: null,
+      details: {},
+    };
 
-    // Elixir version pattern: "Elixir 1.19.5 (compiled with Erlang/OTP 28)"
-    if (toolName === 'elixir') {
-      const match = output.match(/Elixir\s+([\d.]+)/);
-      return match ? match[1] : null;
-    }
-
-    // Mix version pattern: "Mix 1.19.5"
-    if (toolName === 'mix') {
-      const match = output.match(/Mix\s+([\d.]+)/);
-      return match ? match[1] : null;
-    }
-
-    // Hex version pattern: "Hex:    2.2.2" (from mix hex.info)
-    if (toolName === 'hex') {
-      const match = output.match(/Hex:\s+([\d.]+)/);
-      return match ? match[1] : null;
-    }
-
-    // Credo version pattern: "1.7.0"
-    if (toolName === 'credo') {
-      const match = output.match(/(\d+\.\d+\.\d+)/);
-      return match ? match[1] : null;
-    }
-
-    // Phoenix version pattern: "Phoenix installer v1.7.10"
-    if (toolName === 'phoenix') {
-      const match = output.match(/v(\d+\.\d+\.\d+)/);
-      return match ? match[1] : null;
-    }
-
-    // Generic version pattern - search across all lines
-    const lines = output.split('\n');
-    for (const line of lines) {
-      const match = line.match(/(\d+\.\d+(\.\d+)?)/);
-      if (match) {
-        return match[1];
+    try {
+      // Special handling for Elixir
+      if (toolName === 'elixir') {
+        return await this.detectElixir();
       }
+
+      // Special handling for Erlang
+      if (toolName === 'erl') {
+        return await this.detectErlang();
+      }
+
+      // Special handling for Mix
+      if (toolName === 'mix') {
+        return await this.detectMix();
+      }
+
+      // Special handling for Hex
+      if (toolName === 'hex') {
+        return await this.detectHex();
+      }
+
+      // Check if tool exists in PATH
+      const exists = commandExists(toolName);
+      if (!exists) {
+        // For Elixir-specific tools, check if they're available via Mix
+        if (this.isElixirTool(toolName)) {
+          return await this.detectElixirToolViaMix(toolName);
+        }
+        return toolInfo;
+      }
+
+      // Get version if possible
+      const version = await this.getToolVersion(toolName);
+      if (version) {
+        toolInfo.installed = true;
+        toolInfo.version = version;
+        toolInfo.path = await this.getToolPath(toolName);
+      }
+
+      // Add tool-specific details
+      toolInfo.details = await this.getToolDetails(toolName);
+    } catch (error) {
+      console.error(`Error detecting tool ${toolName}:`, error.message);
+    }
+
+    return toolInfo;
+  }
+
+  /**
+   * Detect Elixir installation
+   */
+  async detectElixir() {
+    const toolInfo = {
+      installed: false,
+      version: null,
+      path: null,
+      details: {},
+    };
+
+    try {
+      const exists = commandExists('elixir');
+      if (!exists) {
+        return toolInfo;
+      }
+
+      // Get Elixir version
+      const result = await runCommand('elixir --version');
+      if (result.success && result.stdout) {
+        const versionMatch = result.stdout.match(/Elixir (\d+\.\d+\.\d+)/);
+        if (versionMatch) {
+          toolInfo.installed = true;
+          toolInfo.version = versionMatch[1];
+          toolInfo.path = await this.getToolPath('elixir');
+
+          // Parse additional details from version output
+          const lines = result.stdout.split('\n');
+          toolInfo.details = {
+            elixirVersion: versionMatch[1],
+            otpVersion:
+              lines
+                .find((l) => l.includes('OTP'))
+                ?.split(' ')
+                .pop() || null,
+            compiledWith: lines.find((l) => l.includes('compiled with'))?.split(': ')[1] || null,
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error detecting Elixir:', error.message);
+    }
+
+    return toolInfo;
+  }
+
+  /**
+   * Detect Erlang installation
+   */
+  async detectErlang() {
+    const toolInfo = {
+      installed: false,
+      version: null,
+      path: null,
+      details: {},
+    };
+
+    try {
+      const exists = commandExists('erl');
+      if (!exists) {
+        return toolInfo;
+      }
+
+      // Get Erlang version
+      const result = await runCommand(
+        "erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell"
+      );
+      if (result.success && result.stdout) {
+        const version = result.stdout.trim().replace(/"/g, '');
+        toolInfo.installed = true;
+        toolInfo.version = version;
+        toolInfo.path = await this.getToolPath('erl');
+
+        // Get more detailed Erlang info
+        const detailsResult = await runCommand('erl -version 2>&1');
+        if (detailsResult.success && detailsResult.stdout) {
+          toolInfo.details = {
+            erlangVersion: version,
+            fullVersion: detailsResult.stdout.trim(),
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error detecting Erlang:', error.message);
+    }
+
+    return toolInfo;
+  }
+
+  /**
+   * Detect Mix installation
+   */
+  async detectMix() {
+    const toolInfo = {
+      installed: false,
+      version: null,
+      path: null,
+      details: {},
+    };
+
+    try {
+      const exists = commandExists('mix');
+      if (!exists) {
+        return toolInfo;
+      }
+
+      // Get Mix version (part of Elixir)
+      const elixirResult = await runCommand('elixir --version');
+      if (elixirResult.success && elixirResult.stdout) {
+        const versionMatch = elixirResult.stdout.match(/Elixir (\d+\.\d+\.\d+)/);
+        if (versionMatch) {
+          toolInfo.installed = true;
+          toolInfo.version = versionMatch[1];
+          toolInfo.path = await this.getToolPath('mix');
+          toolInfo.details = {
+            isMix: true,
+            elixirVersion: versionMatch[1],
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error detecting Mix:', error.message);
+    }
+
+    return toolInfo;
+  }
+
+  /**
+   * Detect Hex package manager
+   */
+  async detectHex() {
+    const toolInfo = {
+      installed: false,
+      version: null,
+      path: null,
+      details: {},
+    };
+
+    try {
+      // Check if Hex is installed via Mix
+      const result = await runCommand('mix hex.info 2>&1');
+      if (result.success && result.stdout && !result.stdout.includes('not found')) {
+        toolInfo.installed = true;
+
+        // Try to get Hex version
+        const versionResult = await runCommand('mix hex --version 2>&1');
+        if (versionResult.success && versionResult.stdout) {
+          const versionMatch = versionResult.stdout.match(/Hex:\s+(\d+\.\d+\.\d+)/);
+          if (versionMatch) {
+            toolInfo.version = versionMatch[1];
+          }
+        }
+
+        toolInfo.details = {
+          isHex: true,
+          registry: 'https://hex.pm',
+        };
+      }
+    } catch (error) {
+      console.error('Error detecting Hex:', error.message);
+    }
+
+    return toolInfo;
+  }
+
+  /**
+   * Detect Elixir tool via Mix (for tools installed as Mix archives)
+   */
+  async detectElixirToolViaMix(toolName) {
+    const toolInfo = {
+      installed: false,
+      version: null,
+      path: null,
+      details: {},
+    };
+
+    try {
+      // Map tool names to Mix archive names
+      const toolMap = {
+        credo: 'credo',
+        sobelow: 'sobelow',
+        ex_doc: 'ex_doc',
+        mix_audit: 'mix_audit',
+      };
+
+      const mixToolName = toolMap[toolName];
+      if (!mixToolName) {
+        return toolInfo;
+      }
+
+      // Check if tool is available via Mix
+      const result = await runCommand(`mix ${mixToolName} --help 2>&1`);
+      if (result.success && result.stdout && !result.stdout.includes('not found')) {
+        toolInfo.installed = true;
+        toolInfo.details = {
+          installedViaMix: true,
+          mixToolName: mixToolName,
+        };
+
+        // Try to get version
+        const versionResult = await runCommand(`mix ${mixToolName} --version 2>&1`);
+        if (versionResult.success && versionResult.stdout) {
+          const versionMatch = versionResult.stdout.match(/(\d+\.\d+\.\d+)/);
+          if (versionMatch) {
+            toolInfo.version = versionMatch[1];
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error detecting Elixir tool ${toolName} via Mix:`, error.message);
+    }
+
+    return toolInfo;
+  }
+
+  /**
+   * Check if a tool is an Elixir-specific tool
+   */
+  isElixirTool(toolName) {
+    const elixirTools = [
+      'credo',
+      'dialyzer',
+      'sobelow',
+      'ex_doc',
+      'excoveralls',
+      'hound',
+      'wallaby',
+      'mix_audit',
+    ];
+    return elixirTools.includes(toolName);
+  }
+
+  /**
+   * Get tool version
+   */
+  async getToolVersion(toolName) {
+    try {
+      // Different tools have different version commands
+      const versionCommands = {
+        rebar3: 'rebar3 version',
+        exunit: 'mix test --version 2>&1',
+        phoenix: 'mix phx.new --version 2>&1',
+        ecto: 'mix ecto --version 2>&1',
+      };
+
+      const command = versionCommands[toolName] || `${toolName} --version`;
+      const result = await runCommand(command);
+
+      if (result.success && result.stdout) {
+        // Extract version number from output
+        const versionMatch = result.stdout.match(/(\d+\.\d+\.\d+)/);
+        if (versionMatch) {
+          return versionMatch[1];
+        }
+      }
+    } catch (error) {
+      // Version detection failed
     }
     return null;
   }
 
   /**
-   * Generate environment report with Elixir-specific insights
+   * Get tool path
    */
-  generateEnvironmentReport(detectedTools) {
-    const report = {
-      summary: {
-        elixirInstalled: detectedTools.elixir?.installed || false,
-        mixInstalled: detectedTools.mix?.installed || false,
-        hexInstalled: detectedTools.hex?.installed || false,
-        toolsDetected: Object.values(detectedTools).filter((t) => t.installed).length,
-        recommendedTools: Object.values(detectedTools).filter((t) => t.recommended && t.installed)
-          .length,
-        totalTools: Object.keys(detectedTools).length,
-      },
-      tools: detectedTools,
-      recommendations: [],
-    };
+  async getToolPath(toolName) {
+    try {
+      const platform = this.platformDetector.detectPlatform();
 
-    // Generate recommendations
-    if (!detectedTools.elixir?.installed) {
-      report.recommendations.push({
-        type: 'critical',
-        message: 'Elixir is not installed',
-        tool: 'elixir',
-        installGuide: this.tools.elixir.installGuide,
-      });
-    }
-
-    if (detectedTools.elixir?.installed && !detectedTools.hex?.installed) {
-      report.recommendations.push({
-        type: 'high',
-        message: 'Hex package manager is recommended for Elixir development',
-        tool: 'hex',
-        installGuide: this.tools.hex.installGuide,
-      });
-    }
-
-    if (detectedTools.elixir?.installed && !detectedTools.credo?.installed) {
-      report.recommendations.push({
-        type: 'medium',
-        message: 'Credo is recommended for code quality analysis',
-        tool: 'credo',
-        installGuide: this.tools.credo.installGuide,
-      });
-    }
-
-    // Check version compatibility
-    if (detectedTools.elixir?.installed && detectedTools.elixir.version) {
-      const currentVersion = detectedTools.elixir.version;
-      const minVersion = this.tools.elixir.minVersion;
-      const recommendedVersion = this.tools.elixir.recommendedVersion;
-
-      if (this.compareVersions(currentVersion, minVersion) < 0) {
-        report.recommendations.push({
-          type: 'high',
-          message: `Elixir version ${currentVersion} is below minimum recommended ${minVersion}`,
-          tool: 'elixir',
-          action: 'Upgrade Elixir',
-        });
+      if (platform.os === 'windows') {
+        const result = await runCommand(`where ${toolName}`);
+        if (result.success && result.stdout) {
+          return result.stdout.trim().split('\n')[0];
+        }
+      } else {
+        const result = await runCommand(`which ${toolName}`);
+        if (result.success && result.stdout) {
+          return result.stdout.trim();
+        }
       }
-
-      if (this.compareVersions(currentVersion, recommendedVersion) < 0) {
-        report.recommendations.push({
-          type: 'medium',
-          message: `Consider upgrading to Elixir ${recommendedVersion} for latest features`,
-          tool: 'elixir',
-          action: 'Upgrade to recommended version',
-        });
-      }
+    } catch (error) {
+      // Path detection failed
     }
-
-    return report;
+    return null;
   }
 
   /**
-   * Compare version strings for Elixir-specific version checking
+   * Get tool-specific details
    */
-  compareVersions(v1, v2) {
-    const parts1 = v1.split('.').map(Number);
-    const parts2 = v2.split('.').map(Number);
+  async getToolDetails(toolName) {
+    const details = {};
 
-    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-      const part1 = parts1[i] || 0;
-      const part2 = parts2[i] || 0;
-      if (part1 !== part2) {
-        return part1 - part2;
+    // Add tool-specific details based on tool name
+    switch (toolName) {
+      case 'phoenix':
+        details.frameworkType = 'web';
+        details.description = 'Productive web framework';
+        break;
+      case 'ecto':
+        details.frameworkType = 'database';
+        details.description = 'Database wrapper and query builder';
+        break;
+      case 'absinthe':
+        details.frameworkType = 'graphql';
+        details.description = 'GraphQL implementation';
+        break;
+      case 'credo':
+        details.toolType = 'linter';
+        details.description = 'Static code analysis';
+        break;
+      case 'dialyzer':
+        details.toolType = 'type_checker';
+        details.description = 'Success typing analysis';
+        break;
+      case 'sobelow':
+        details.toolType = 'security';
+        details.description = 'Security-focused static analysis';
+        break;
+    }
+
+    return details;
+  }
+
+  /**
+   * Detect Elixir version and environment info
+   */
+  async detectElixirInfo() {
+    try {
+      const result = await runCommand('elixir --version');
+      if (result.success && result.stdout) {
+        const lines = result.stdout.split('\n');
+        const info = {
+          elixirVersion: lines.find((l) => l.includes('Elixir'))?.split(' ')[1] || null,
+          erlangVersion:
+            lines
+              .find((l) => l.includes('OTP'))
+              ?.split(' ')
+              .pop() || null,
+          compiledWith: lines.find((l) => l.includes('compiled with'))?.split(': ')[1] || null,
+        };
+        return info;
       }
+    } catch (error) {
+      console.error('Error detecting Elixir info:', error.message);
     }
-    return 0;
+    return null;
   }
 
   /**
-   * Get installation guide for a specific tool and platform
+   * Detect Erlang/OTP version
    */
-  getInstallationGuide(toolName, platform = process.platform) {
-    const tool = this.tools[toolName];
-    if (!tool) {
-      return null;
+  async detectErlangInfo() {
+    try {
+      const result = await runCommand(
+        'erl -eval \'io:format("~s~n", [erlang:system_info(otp_release)]), halt().\' -noshell'
+      );
+      if (result.success && result.stdout) {
+        const version = result.stdout.trim();
+        return {
+          otpVersion: version,
+          isErlangInstalled: true,
+        };
+      }
+    } catch (error) {
+      console.error('Error detecting Erlang info:', error.message);
     }
-
-    let osKey = 'linux';
-    if (platform === 'darwin') osKey = 'macos';
-    if (platform === 'win32') osKey = 'windows';
-
-    return tool.installGuide[osKey] || tool.installGuide.linux;
+    return null;
   }
 
   /**
-   * Check if a specific tool is available
+   * Detect Mix project information
    */
-  async checkTool(toolName) {
-    const tool = this.tools[toolName];
-    if (!tool) {
-      return { installed: false, version: null };
+  async detectMixProject() {
+    try {
+      // Check if we're in a Mix project directory
+      const result = await runCommand('mix run -e "IO.puts Mix.Project.get() != nil" 2>&1');
+      if (result.success && result.stdout && result.stdout.trim() === 'true') {
+        // Get project name and version
+        const projectResult = await runCommand(
+          'mix run -e "project = Mix.Project.get(); IO.puts project.project[:app]" 2>&1'
+        );
+        const versionResult = await runCommand(
+          'mix run -e "project = Mix.Project.get(); IO.puts project.project[:version]" 2>&1'
+        );
+
+        return {
+          isMixProject: true,
+          projectName: projectResult.success ? projectResult.stdout.trim() : null,
+          projectVersion: versionResult.success ? versionResult.stdout.trim() : null,
+        };
+      }
+    } catch (error) {
+      // Not a Mix project or error
     }
+    return null;
+  }
+
+  /**
+   * Detect Elixir frameworks
+   */
+  async detectFrameworks() {
+    const frameworks = [];
 
     try {
-      const result = runCommand(tool.command, {
-        cwd: process.cwd(),
-        timeout: 5000,
-      });
+      // Check for Phoenix
+      const phoenixResult = await runCommand('mix phx.new --version 2>&1');
+      if (phoenixResult.success && !phoenixResult.stdout.includes('not found')) {
+        frameworks.push({
+          name: 'phoenix',
+          type: 'web',
+          installed: true,
+        });
+      }
 
-      return {
-        installed: result.success,
-        version: this.extractVersion(result.output, '', toolName),
-      };
+      // Check for Nerves (embedded)
+      const nervesResult = await runCommand('mix nerves.new --version 2>&1');
+      if (nervesResult.success && !nervesResult.stdout.includes('not found')) {
+        frameworks.push({
+          name: 'nerves',
+          type: 'embedded',
+          installed: true,
+        });
+      }
+
+      // Check for Ash
+      const ashResult = await runCommand('mix ash.new --version 2>&1');
+      if (ashResult.success && !ashResult.stdout.includes('not found')) {
+        frameworks.push({
+          name: 'ash',
+          type: 'resource',
+          installed: true,
+        });
+      }
+
+      // Check for Surface
+      const surfaceResult = await runCommand('mix surface.new --version 2>&1');
+      if (surfaceResult.success && !surfaceResult.stdout.includes('not found')) {
+        frameworks.push({
+          name: 'surface',
+          type: 'ui',
+          installed: true,
+        });
+      }
     } catch (error) {
-      return { installed: false, version: null };
+      console.error('Error detecting frameworks:', error.message);
     }
+
+    return frameworks;
+  }
+
+  /**
+   * Detect build tools
+   */
+  async detectBuildTools() {
+    const buildTools = [];
+
+    try {
+      // Check for Rebar3
+      const rebarResult = await runCommand('rebar3 version 2>&1');
+      if (rebarResult.success && !rebarResult.stdout.includes('not found')) {
+        buildTools.push({
+          name: 'rebar3',
+          type: 'build',
+          installed: true,
+        });
+      }
+
+      // Check for Make
+      const makeResult = await runCommand('make --version 2>&1');
+      if (makeResult.success) {
+        buildTools.push({
+          name: 'make',
+          type: 'build',
+          installed: true,
+        });
+      }
+
+      // Check for Docker (commonly used with Elixir)
+      const dockerResult = await runCommand('docker --version 2>&1');
+      if (dockerResult.success) {
+        buildTools.push({
+          name: 'docker',
+          type: 'container',
+          installed: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error detecting build tools:', error.message);
+    }
+
+    return buildTools;
+  }
+
+  /**
+   * Generate installation guide for missing tools
+   */
+  generateInstallationGuide(toolName, platform = null) {
+    const guides = {
+      elixir: {
+        macos: 'brew install elixir',
+        linux: 'sudo apt-get install elixir',
+        windows: 'Download from https://elixir-lang.org/install.html#windows',
+        docker: 'docker run --rm -it elixir:latest',
+      },
+      hex: {
+        macos: 'mix local.hex --force',
+        linux: 'mix local.hex --force',
+        windows: 'mix local.hex --force',
+        all: 'Run: mix local.hex --force',
+      },
+      credo: {
+        all: 'mix archive.install hex credo --force',
+      },
+      sobelow: {
+        all: 'mix archive.install hex sobelow --force',
+      },
+      ex_doc: {
+        all: 'mix archive.install hex ex_doc --force',
+      },
+      mix_audit: {
+        all: 'mix archive.install hex mix_audit --force',
+      },
+    };
+
+    const toolGuide = guides[toolName];
+    if (!toolGuide) {
+      return `Installation guide not available for ${toolName}`;
+    }
+
+    if (!platform) {
+      platform = this.platformDetector.detectPlatform().os;
+    }
+
+    return (
+      toolGuide[platform] || toolGuide.all || toolGuide.macos || `See documentation for ${toolName}`
+    );
   }
 }
 

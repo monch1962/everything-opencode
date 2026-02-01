@@ -1,196 +1,130 @@
 #!/usr/bin/env node
 /**
- * /elixir-setup command wrapper
+ * Elixir Setup Command
  *
- * Configure Elixir project for opencode integration with Elixir-specific improvements
+ * Interactive setup for Elixir projects
  */
 
 const ElixirConfigWizard = require('../../languages/elixir/config-wizard');
-const ConfigManager = require('../interactive/config-manager');
 
 async function main() {
-  const args = process.argv.slice(2);
-  const options = {};
-
-  // Parse command line arguments
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-
-    if (arg === '--quick' || arg === '-q') {
-      options.quick = true;
-    } else if (arg === '--reconfigure' || arg === '-r') {
-      options.reconfigure = true;
-    } else if (arg === '--project-type') {
-      options.projectType = args[++i];
-    } else if (arg === '--app-name') {
-      options.appName = args[++i];
-    } else if (arg === '--elixir-version') {
-      options.elixirVersion = args[++i];
-    } else if (arg === '--otp-version') {
-      options.otpVersion = args[++i];
-    } else if (arg === '--linter') {
-      options.linter = args[++i];
-    } else if (arg === '--formatter') {
-      options.formatter = args[++i];
-    } else if (arg === '--test-runner') {
-      options.testRunner = args[++i];
-    } else if (arg === '--type-checker') {
-      options.typeChecker = args[++i];
-    } else if (arg === '--no-prompt' || arg === '-y') {
-      options.noPrompt = true;
-    } else if (arg === '--verbose' || arg === '-v') {
-      options.verbose = true;
-    } else if (arg === '--dry-run') {
-      options.dryRun = true;
-    } else if (arg === '--help' || arg === '-h') {
-      showHelp();
-      process.exit(0);
-    } else if (arg.startsWith('--')) {
-      console.error(`Unknown option: ${arg}`);
-      showHelp();
-      process.exit(1);
-    } else {
-      // Assume it's a project path
-      options.projectPath = arg;
-    }
-  }
-
   try {
-    const projectPath = options.projectPath || process.cwd();
+    const projectPath = process.cwd();
     const wizard = new ElixirConfigWizard(projectPath);
 
-    console.log(`🧪 Configuring Elixir project at: ${projectPath}`);
-    console.log('='.repeat(60));
+    console.log('🧪 Elixir Project Setup\n');
 
-    // Check for existing configuration
-    const configManager = new ConfigManager(projectPath);
-    const existingConfig = configManager.loadConfig();
+    // Check for command line arguments
+    const args = process.argv.slice(2);
 
-    if (existingConfig && existingConfig.elixir && !options.reconfigure) {
-      console.log('✅ Elixir project already configured.');
-      console.log('   Use --reconfigure to update configuration.');
-      return;
+    let success = false;
+
+    if (args.includes('--quick') || args.includes('-q')) {
+      console.log('⚡ Running quick setup...\n');
+      success = await wizard.quickSetup();
+    } else {
+      // Run the configuration wizard
+      success = await wizard.run();
     }
 
-    // Run configuration wizard
-    const config = await wizard.runWizard(options);
+    if (success) {
+      console.log('\n✅ Elixir setup completed successfully!');
+      console.log('\n💡 Next steps:');
+      console.log('  1. Run /elixir-test to test your project');
+      console.log('  2. Run /elixir-lint to check code quality');
+      console.log('  3. Run /elixir-format to format your code');
+      console.log('  4. Run /elixir-typecheck for type checking (if configured)');
+      console.log('  5. Run /elixir-security for security scanning (if configured)');
+      console.log('  6. Run /elixir-compile to compile your project');
+      console.log('  7. Run /elixir-run to run your Elixir application');
+      console.log('  8. Run /elixir-deps to manage dependencies');
+      console.log('  9. Run /elixir-clean to clean build artifacts');
 
-    if (config) {
-      // Save to main config
-      const fullConfig = {
-        ...(existingConfig || {}),
-        elixir: config,
-        language: 'elixir',
-        configuredAt: new Date().toISOString(),
-      };
-
-      configManager.saveConfig(fullConfig);
-
-      console.log('\n🎉 Elixir project configuration complete!');
-      console.log('='.repeat(60));
-
-      console.log('\n📋 Next steps:\n');
-      console.log('🔧 Available commands:');
-      console.log('  /elixir-setup    - Configure Elixir project');
-      console.log('  /elixir-compile  - Compile Elixir project');
-      console.log('  /elixir-test     - Run tests');
-      console.log('  /elixir-lint     - Lint code');
-      console.log('  /elixir-format   - Format code');
-      console.log('  /elixir-deps     - Manage dependencies');
-      console.log('  /elixir-typecheck - Type checking\n');
-
-      console.log('💡 Recommended actions:');
-      if (!config.environment.reportSummary.hexInstalled) {
-        console.log('  • Install Hex package manager: mix local.hex');
-      }
-      if (!config.environment.reportSummary.recommendedTools) {
-        console.log(
-          '  • Install Credo for code analysis: mix archive.install hex credo',
-        );
-      }
-
-      console.log('\n📚 Documentation:');
-      console.log('  • Elixir: https://elixir-lang.org/docs.html');
-      console.log('  • Mix: https://hexdocs.pm/mix/Mix.html');
-      console.log('  • Hex: https://hex.pm/docs');
-      console.log('  • Credo: https://hexdocs.pm/credo/overview.html');
-
-      console.log('\n✅ Elixir project configuration saved successfully!');
-      console.log(
-        `   Configuration file: ${projectPath}/.opencode/project-config.json`,
-      );
+      console.log('\n📚 Available Elixir commands:');
+      console.log('  • /elixir-setup     - Configure Elixir project (run this again)');
+      console.log('  • /elixir-test      - Run tests with ExUnit');
+      console.log('  • /elixir-lint      - Run linter (Credo)');
+      console.log('  • /elixir-format    - Format code (mix format)');
+      console.log('  • /elixir-typecheck - Type checking (Dialyzer)');
+      console.log('  • /elixir-security  - Security scanning (Sobelow, mix_audit)');
+      console.log('  • /elixir-compile   - Compile project');
+      console.log('  • /elixir-run       - Run Elixir application');
+      console.log('  • /elixir-deps      - Manage dependencies');
+      console.log('  • /elixir-clean     - Clean build artifacts');
+    } else {
+      console.log('\n❌ Setup failed. Please check the errors above.');
+      process.exit(1);
     }
   } catch (error) {
-    console.error(`\n❌ Configuration failed: ${error.message}`);
-    if (options.verbose) {
-      console.error(error.stack);
-    }
+    console.error('\n❌ Setup failed:', error.message);
+    console.error(error.stack);
     process.exit(1);
   }
 }
 
 function showHelp() {
   console.log(`
-🧪 Elixir Project Setup
+🧪 Elixir Setup Command
 
-Usage: /elixir-setup [options] [project-path]
+Usage: /elixir-setup [options]
 
-Configure Elixir project for opencode integration with Elixir-specific improvements.
+Interactive setup for Elixir projects with tool detection and configuration.
 
 Options:
-  --quick, -q            Quick setup with defaults
-  --reconfigure, -r      Reconfigure existing project
-  --project-type TYPE    Project type: application, phoenix, umbrella, library, otp
-  --app-name NAME        Application name (for new projects)
-  --elixir-version VER   Elixir version constraint (e.g., 1.19)
-  --otp-version VER      OTP version constraint (e.g., 26)
-  --linter TOOL          Linter tool: credo
-  --formatter TOOL       Formatter: formatter (built-in)
-  --test-runner TOOL     Test runner: exunit (built-in)
-  --type-checker TOOL    Type checker: dialyzer
-  --no-prompt, -y        Skip interactive prompts
-  --verbose, -v          Verbose output
-  --dry-run              Show configuration without saving
-  --help, -h             Show this help message
+  --quick, -q          Quick setup with automatic detection
+  --reconfigure        Reconfigure existing Elixir project
+  --dry-run            Show configuration without saving
+  --help, -h           Show this help message
+
+Features:
+  • Project type detection (Standard, Phoenix, Library, Umbrella, Nerves)
+  • Elixir tool detection (Mix, Hex, Credo, Sobelow, Dialyzer, etc.)
+  • Interactive configuration wizard
+  • Quick setup with sensible defaults
+  • Configuration validation
+  • Next steps guidance
+
+Project types:
+  • Standard          - Basic Elixir application
+  • Phoenix           - Full-stack web framework
+  • Library           - Reusable Elixir package
+  • Umbrella          - Multi-application project
+  • Nerves            - Embedded systems with Elixir
+  • LiveView          - Real-time Phoenix applications
+
+Detected tools:
+  • Build tools: Mix, Rebar3
+  • Package manager: Hex
+  • Linters: Credo, Dialyzer
+  • Formatters: mix format
+  • Test runners: ExUnit, Wallaby, Hound
+  • Security scanners: Sobelow, mix_audit
+  • Documentation: ex_doc
+  • Coverage: excoveralls
 
 Examples:
-  /elixir-setup                         # Configure current directory
-  /elixir-setup --quick                 # Quick setup with defaults
-  /elixir-setup --project-type phoenix  # Create Phoenix web application
-  /elixir-setup --reconfigure           # Reconfigure existing project
-  /elixir-setup /path/to/project        # Configure specific directory
+  /elixir-setup                 # Interactive setup
+  /elixir-setup --quick         # Quick setup with defaults
+  /elixir-setup --reconfigure   # Reconfigure existing project
 
-Elixir-specific features:
-  • Automatic Elixir and OTP version detection
-  • Phoenix framework support with LiveView
-  • Umbrella project configuration
-  • Built-in formatter with configurable line length
-  • Credo integration for static analysis
-  • Dialyzer integration for type checking
-  • Hex package management
-  • ExUnit testing with coverage
+Configuration files created:
+  • .opencode/elixir-config.json  # Project configuration
+  • .formatter.exs                # Code formatting rules
+  • .credo.exs                    # Linting configuration (if Credo enabled)
+  • mix.exs                       # Mix project file (if new project)
 
-Environment detection:
-  • Elixir and Erlang/OTP version detection
-  • Mix project detection and analysis
-  • Tool availability checking (Credo, Dialyzer, etc.)
-  • Cross-platform installation guides
-
-Next steps after setup:
-  1. Write your Elixir code
-  2. Run tests: /elixir-test
-  3. Compile project: /elixir-compile
-  4. Format code: /elixir-format
-  5. Lint code: /elixir-lint
-  6. Manage dependencies: /elixir-deps
-  7. Type checking: /elixir-typecheck
-  
+After setup, you can use all Elixir commands with Elixir-specific improvements.
 `);
 }
 
-if (require.main === module) {
-  main().catch((error) => {
-    console.error(`Fatal error: ${error.message}`);
-    process.exit(1);
-  });
+// Handle help flag
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  showHelp();
+  process.exit(0);
 }
+
+// Run main function
+main().catch((error) => {
+  console.error('Unhandled error:', error);
+  process.exit(1);
+});

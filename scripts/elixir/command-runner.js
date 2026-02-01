@@ -2,11 +2,11 @@
 /**
  * Elixir Command Runner
  *
- * Execute Elixir commands with Elixir-specific improvements and error handling
+ * Execute Elixir commands with project-specific improvements
  */
 
-const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 const ConfigManager = require('../interactive/config-manager');
 const ElixirToolDetector = require('../../languages/elixir/tool-detector');
 const PlatformDetector = require('../lib/platform-detector');
@@ -27,7 +27,7 @@ class ElixirCommandRunner {
   }
 
   /**
-   * Initialize command runner with Elixir-specific setup
+   * Initialize command runner with Elixir setup
    */
   async initialize() {
     // First, validate that we're in an Elixir project using ProjectUtils
@@ -36,14 +36,14 @@ class ElixirCommandRunner {
 
       if (projectInfo.type !== 'elixir' && projectInfo.confidence < 0.7) {
         LoggingUtils.warn(
-          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`,
+          `Project detection: ${projectInfo.type} (confidence: ${projectInfo.confidence})`
         );
         LoggingUtils.warn(
-          'This may not be an Elixir project. Some features may not work correctly.',
+          'This may not be an Elixir project. Some features may not work correctly.'
         );
       } else if (projectInfo.type === 'elixir') {
         LoggingUtils.debug(
-          `Detected Elixir project: ${projectInfo.framework || 'standard Elixir'}`,
+          `Detected Elixir project: ${projectInfo.framework || 'standard Elixir'}`
         );
       }
 
@@ -86,14 +86,14 @@ class ElixirCommandRunner {
   /**
    * Check if a specific tool is available
    */
-  hasTool(toolName, required = true) {
+  checkTool(toolName, required = true) {
     try {
       // Use ConfigUtils to check if tool is installed
       const isInstalled = ConfigUtils.checkToolInstalled(this.elixirConfig, toolName, required);
 
       if (!isInstalled && required) {
         throw new Error(
-          `Required Elixir tool '${toolName}' is not installed. Run /elixir-setup to install it.`,
+          `Required Elixir tool '${toolName}' is not installed. Run /elixir-setup to install it.`
         );
       }
 
@@ -102,648 +102,507 @@ class ElixirCommandRunner {
       // Use LoggingUtils for better error display
       if (required) {
         LoggingUtils.error(`Elixir tool '${toolName}' check failed:`, error.message);
-        LoggingUtils.info(`Run /elixir-setup to install '${toolName}'`);
+        throw error;
       }
+      return false;
+    }
+  }
+
+  /**
+   * Execute a Mix command with proper error handling
+   */
+  async runMixCommand(args, options = {}) {
+    const defaultOptions = {
+      cwd: this.projectPath,
+      stdio: 'inherit',
+      env: { ...process.env, MIX_ENV: options.env || 'dev' },
+      timeout: 300000, // 5 minutes default timeout
+    };
+
+    const finalOptions = { ...defaultOptions, ...options };
+
+    try {
+      LoggingUtils.info(`Running: mix ${args.join(' ')}`);
+
+      return await new Promise((resolve, reject) => {
+        const child = spawn('mix', args, finalOptions);
+
+        let stdout = '';
+        let stderr = '';
+
+        if (child.stdout) {
+          child.stdout.on('data', (data) => {
+            stdout += data.toString();
+            if (finalOptions.stdio === 'inherit') {
+              process.stdout.write(data);
+            }
+          });
+        }
+
+        if (child.stderr) {
+          child.stderr.on('data', (data) => {
+            stderr += data.toString();
+            if (finalOptions.stdio === 'inherit') {
+              process.stderr.write(data);
+            }
+          });
+        }
+
+        child.on('close', (code) => {
+          if (code === 0) {
+            resolve({ success: true, code: 0, stdout, stderr });
+          } else {
+            const error = new Error(`Mix command failed with exit code ${code}`);
+            error.code = code;
+            error.stdout = stdout;
+            error.stderr = stderr;
+            reject(error);
+          }
+        });
+
+        child.on('error', (error) => {
+          reject(error);
+        });
+
+        // Handle timeout
+        if (finalOptions.timeout) {
+          setTimeout(() => {
+            child.kill('SIGTERM');
+            reject(new Error(`Mix command timed out after ${finalOptions.timeout}ms`));
+          }, finalOptions.timeout);
+        }
+      });
+    } catch (error) {
+      // Use defaultErrorHandler for consistent error handling
+      defaultErrorHandler.handleError(error, {
+        command: `mix ${args.join(' ')}`,
+        tool: 'mix',
+        category: 'COMMAND_EXECUTION',
+      });
       throw error;
     }
   }
 
   /**
-   * Find Elixir files in the project
+   * Execute an Elixir script
    */
-  findElixirFiles(pattern = '**/*.{ex,exs}', excludePatterns = []) {
+  async runElixirScript(script, options = {}) {
+    const defaultOptions = {
+      cwd: this.projectPath,
+      stdio: 'inherit',
+      env: { ...process.env, MIX_ENV: options.env || 'dev' },
+    };
+
+    const finalOptions = { ...defaultOptions, ...options };
+
     try {
-      return FileUtils.findFilesByPattern(this.projectPath, [pattern], {
-        exclude: excludePatterns,
-        language: 'elixir',
-      });
-    } catch (error) {
-      LoggingUtils.warn('Failed to find Elixir files:', error.message);
-      return [];
-    }
-  }
-
-  /**
-   * Get Elixir project metadata
-   */
-  getElixirProjectInfo() {
-    try {
-      const info = {
-        hasMixExs: fs.existsSync(path.join(this.projectPath, 'mix.exs')),
-        hasMixLock: fs.existsSync(path.join(this.projectPath, 'mix.lock')),
-        hasConfig: fs.existsSync(path.join(this.projectPath, 'config')),
-        hasLib: fs.existsSync(path.join(this.projectPath, 'lib')),
-        hasTest: fs.existsSync(path.join(this.projectPath, 'test')),
-        elixirFiles: this.findElixirFiles().length,
-      };
-
-      return info;
-    } catch (error) {
-      LoggingUtils.debug('Failed to get Elixir project info:', error.message);
-      return null;
-    }
-  }
-
-  /**
-   * Execute Mix command with Elixir-specific improvements
-   */
-  async executeMixCommand(command, args = [], options = {}) {
-    return this._executeMixCommandWithErrorHandling(command, args, options);
-  }
-
-  /**
-   * Internal method with comprehensive error handling
-   */
-  async _executeMixCommandWithErrorHandling(command, args = [], options = {}) {
-    try {
-      // Ensure critical Elixir environment variables are set
-      const elixirEnv = {
-        ...process.env,
-        MIX_ENV: options.env || process.env.MIX_ENV || 'dev',
-        MIX_QUIET: '1',
-      };
-
-      // Set HOME if not set
-      if (!elixirEnv.HOME) {
-        elixirEnv.HOME = require('os').homedir();
-      }
-
-      const defaultOptions = {
-        cwd: this.projectPath,
-        stdio: 'inherit',
-        env: elixirEnv,
-        timeout: 300000, // 5 minutes for Elixir commands
-      };
-
-      const finalOptions = {
-        ...defaultOptions,
-        ...options,
-        // Merge environment objects instead of overwriting
-        env: options.env ? { ...defaultOptions.env, ...options.env } : defaultOptions.env,
-      };
-
-      LoggingUtils.info(`🚀 Executing: mix ${command} ${args.join(' ')}`);
+      LoggingUtils.info('Running Elixir script');
 
       return await new Promise((resolve, reject) => {
-        const { exec } = require('child_process');
+        const child = spawn('elixir', ['-e', script], finalOptions);
 
-        // Build the command string with dynamic path to mix
-        const mixPath = this.platformDetector.getToolPath('mix', {
-          required: true,
-          customLocations: [
-            // Additional Elixir installation locations
-            '/usr/local/bin/mix',
-            '/usr/bin/mix',
-            'C:\\Program Files\\Elixir\\bin\\mix.bat',
-          ],
+        let stdout = '';
+        let stderr = '';
+
+        if (child.stdout) {
+          child.stdout.on('data', (data) => {
+            stdout += data.toString();
+            if (finalOptions.stdio === 'inherit') {
+              process.stdout.write(data);
+            }
+          });
+        }
+
+        if (child.stderr) {
+          child.stderr.on('data', (data) => {
+            stderr += data.toString();
+            if (finalOptions.stdio === 'inherit') {
+              process.stderr.write(data);
+            }
+          });
+        }
+
+        child.on('close', (code) => {
+          if (code === 0) {
+            resolve({ success: true, code: 0, stdout, stderr });
+          } else {
+            const error = new Error(`Elixir script failed with exit code ${code}`);
+            error.code = code;
+            error.stdout = stdout;
+            error.stderr = stderr;
+            reject(error);
+          }
         });
 
-        const cmd = `${mixPath} ${command} ${args.join(' ')}`;
-        LoggingUtils.debug(`🔍 Executing: ${cmd}`);
-        LoggingUtils.debug(`🔍 CWD: ${finalOptions.cwd}`);
-        LoggingUtils.debug(`🔍 Platform: ${this.platformDetector.getPlatformName()}`);
-
-        exec(cmd, finalOptions, (error, stdout, stderr) => {
-          if (error) {
-            LoggingUtils.debug(`🔍 Exec error: ${error.message}`);
-            reject(new Error(`Failed to execute mix ${command}: ${error.message}`));
-          } else {
-            resolve({
-              success: error ? false : true,
-              code: error ? error.code : 0,
-              stdout,
-              stderr,
-            });
-          }
+        child.on('error', (error) => {
+          reject(error);
         });
       });
     } catch (error) {
-      // Enhance error with context
-      const context = {
+      defaultErrorHandler.handleError(error, {
+        command: 'elixir -e ...',
         tool: 'elixir',
-        command: `mix ${command} ${args.join(' ')}`,
-        platform: this.platformDetector.getPlatformName(),
-        cwd: this.projectPath,
-        options: options,
-      };
-
-      const errorInfo = defaultErrorHandler.handleError(error, context);
-
-      // Log user-friendly error message using LoggingUtils
-      LoggingUtils.error(errorInfo.userMessage);
-
-      // Log recovery steps using LoggingUtils
-      if (errorInfo.recoverySteps && errorInfo.recoverySteps.length > 0) {
-        LoggingUtils.info('💡 Recovery steps:');
-        errorInfo.recoverySteps.forEach((step, i) => {
-          LoggingUtils.info(`  ${i + 1}. ${step}`);
-        });
-      }
-
-      // Re-throw enhanced error
-      const enhancedError = new Error(errorInfo.userMessage);
-      enhancedError.originalError = error;
-      enhancedError.context = context;
-      enhancedError.errorInfo = errorInfo;
-      throw enhancedError;
+        category: 'SCRIPT_EXECUTION',
+      });
+      throw error;
     }
   }
 
   /**
-   * Compile Elixir project with Elixir-specific improvements
+   * Run IEx (Interactive Elixir) with project context
+   */
+  async runIEx(args = [], options = {}) {
+    const defaultOptions = {
+      cwd: this.projectPath,
+      stdio: 'inherit',
+      env: { ...process.env, MIX_ENV: options.env || 'dev' },
+    };
+
+    const finalOptions = { ...defaultOptions, ...options };
+    const iexArgs = ['-S', 'mix', ...args];
+
+    try {
+      LoggingUtils.info('Starting IEx (Interactive Elixir)');
+
+      return await new Promise((resolve, reject) => {
+        const child = spawn('iex', iexArgs, finalOptions);
+
+        child.on('close', (code) => {
+          if (code === 0 || code === 130) {
+            // 130 is SIGINT (Ctrl+C)
+            resolve({ success: true, code });
+          } else {
+            const error = new Error(`IEx session ended with exit code ${code}`);
+            error.code = code;
+            reject(error);
+          }
+        });
+
+        child.on('error', (error) => {
+          reject(error);
+        });
+      });
+    } catch (error) {
+      defaultErrorHandler.handleError(error, {
+        command: `iex ${iexArgs.join(' ')}`,
+        tool: 'iex',
+        category: 'INTERACTIVE_SESSION',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Compile Elixir project
    */
   async compile(options = {}) {
-    // Only initialize if not already initialized
-    if (!this.detectedTools) {
-      await this.initialize();
+    await this.initialize();
+
+    const args = ['compile'];
+
+    if (options.verbose) {
+      args.push('--verbose');
     }
 
-    const args = [];
-
-    // Add compilation flags from config
-    if (this.elixirConfig.compile?.flags) {
-      args.push(...this.elixirConfig.compile.flags);
-    }
-
-    // Add warnings as errors
     if (options.warningsAsErrors) {
       args.push('--warnings-as-errors');
     }
 
-    // Add force compilation
     if (options.force) {
       args.push('--force');
     }
 
-    // Add verbose output
-    if (options.verbose) {
-      args.push('--verbose');
-    }
-
-    // Add long compilation
-    if (options.longCompilation) {
-      args.push('--long-compilation');
-    }
-
-    // Add profile
-    if (options.profile) {
-      args.push('--profile');
-    }
-
-    try {
-      // Log compilation information
-      const projectInfo = this.getElixirProjectInfo();
-      if (projectInfo) {
-        LoggingUtils.debug(`Elixir files: ${projectInfo.elixirFiles}`);
-        LoggingUtils.debug(`Has mix.exs: ${projectInfo.hasMixExs}`);
-      }
-
-      const result = await this.executeMixCommand('compile', args, options);
-
-      // Elixir-specific: Show compilation information
-      if (result.success) {
-        await this.showCompilationInfo(options);
-      }
-
-      return result;
-    } catch (error) {
-      // Elixir-specific: Provide helpful compilation error suggestions
-      this.suggestCompilationFix(error.message);
-      throw error;
-    }
+    return await this.runMixCommand(args, options);
   }
 
   /**
-   * Run tests with ExUnit and Elixir-specific improvements
+   * Run tests
    */
-  async test(options = {}) {
-    // Only initialize if not already initialized
-    if (!this.detectedTools) {
-      await this.initialize();
+  async test(testPattern = null, options = {}) {
+    await this.initialize();
+
+    const args = ['test'];
+
+    if (testPattern) {
+      args.push(testPattern);
     }
 
-    const args = [];
-
-    // Add test file or directory
-    if (options.file) {
-      args.push(options.file);
-    } else if (options.directory) {
-      args.push(options.directory);
-    }
-
-    // Add test filtering
-    if (options.only) {
-      args.push('--only', options.only);
-    }
-
-    if (options.exclude) {
-      args.push('--exclude', options.exclude);
-    }
-
-    // Add seed for reproducible tests
-    if (options.seed) {
-      args.push('--seed', options.seed);
-    }
-
-    // Add coverage
-    if (options.coverage) {
+    if (options.cover) {
       args.push('--cover');
     }
 
-    // Add trace
     if (options.trace) {
       args.push('--trace');
     }
 
-    // Add max failures
     if (options.maxFailures) {
-      args.push('--max-failures', options.maxFailures);
+      args.push('--max-failures', options.maxFailures.toString());
     }
 
-    // Add timeout
+    if (options.seed) {
+      args.push('--seed', options.seed.toString());
+    }
+
     if (options.timeout) {
-      args.push('--timeout', options.timeout);
+      args.push('--timeout', options.timeout.toString());
     }
 
-    // Add verbose
-    if (options.verbose) {
-      args.push('--verbose');
-    }
-
-    // Add slowest tests
-    if (options.slowest) {
-      args.push('--slowest', options.slowest);
-    }
-
-    try {
-      const result = await this.executeMixCommand('test', args, options);
-
-      // Elixir-specific: Show test summary
-      if (result.success) {
-        await this.showTestSummary(options);
-      }
-
-      return result;
-    } catch (error) {
-      // Elixir-specific: Provide helpful test error suggestions
-      this.suggestTestFix(error.message);
-      throw error;
-    }
+    return await this.runMixCommand(args, options);
   }
 
   /**
-   * Format code with Elixir formatter
+   * Format code
    */
-  async format(options = {}) {
-    // Only initialize if not already initialized
-    if (!this.detectedTools) {
-      await this.initialize();
+  async format(paths = ['.'], options = {}) {
+    await this.initialize();
+
+    const args = ['format'];
+
+    if (paths && paths.length > 0) {
+      args.push(...paths);
     }
 
-    const args = [];
-
-    // Add check formatting
-    if (options.check) {
+    if (options.checkFormatted) {
       args.push('--check-formatted');
     }
 
-    // Add dry run
     if (options.dryRun) {
       args.push('--dry-run');
     }
 
-    // Add specific files
-    if (options.files) {
-      args.push(...options.files.split(','));
-    }
-
-    // Add verbose
-    if (options.verbose) {
-      args.push('--verbose');
-    }
-
-    try {
-      return await this.executeMixCommand('format', args, options);
-    } catch (error) {
-      // Elixir-specific: Provide helpful formatting suggestions
-      this.suggestFormatFix(error.message);
-      throw error;
-    }
+    return await this.runMixCommand(args, options);
   }
 
   /**
-   * Lint code with Credo
+   * Lint code
    */
-  async lint(options = {}) {
-    // Only initialize if not already initialized
-    if (!this.detectedTools) {
-      await this.initialize();
+  async lint(paths = ['.'], options = {}) {
+    await this.initialize();
+
+    // Check if Credo is available
+    const credoAvailable = this.checkTool('credo', false);
+
+    if (!credoAvailable) {
+      LoggingUtils.warn(
+        'Credo not found. Using basic linting with mix compile --warnings-as-errors'
+      );
+      return await this.compile({ warningsAsErrors: true, ...options });
     }
 
-    // Check if Credo is installed
-    this.hasTool('credo', true);
+    const args = ['credo'];
 
-    const args = [];
+    if (paths && paths.length > 0) {
+      args.push(...paths);
+    }
 
-    // Add strict mode
     if (options.strict) {
       args.push('--strict');
     }
 
-    // Add all warnings
     if (options.all) {
       args.push('--all');
     }
 
-    // Add all priorites
     if (options.allPriorities) {
       args.push('--all-priorities');
     }
 
-    // Add format
     if (options.format) {
       args.push('--format', options.format);
     }
 
-    // Add config file
-    if (options.config) {
-      args.push('--config', options.config);
-    }
-
-    // Add files
-    if (options.files) {
-      args.push(...options.files.split(','));
-    }
-
-    // Add verbose
-    if (options.verbose) {
-      args.push('--verbose');
-    }
-
-    try {
-      return await this.executeMixCommand('credo', args, options);
-    } catch (error) {
-      // Elixir-specific: Provide helpful linting suggestions
-      this.suggestLintFix(error.message);
-      throw error;
-    }
+    return await this.runMixCommand(args, options);
   }
 
   /**
-   * Type check with Dialyzer
+   * Type checking with Dialyzer
    */
   async typecheck(options = {}) {
-    // Only initialize if not already initialized
-    if (!this.detectedTools) {
-      await this.initialize();
+    await this.initialize();
+
+    // Check if Dialyzer is configured
+    const dialyzerAvailable = this.checkTool('dialyzer', false);
+
+    if (!dialyzerAvailable) {
+      throw new Error('Dialyzer not configured. Run /elixir-setup to configure type checking.');
     }
 
-    // Check if Dialyzer is available
-    this.hasTool('dialyzer', false);
+    const args = ['dialyzer'];
 
-    const args = [];
-
-    // Add ignore warnings
-    if (options.ignoreWarnings) {
-      args.push('--ignore-warnings');
+    if (options.ignoreExitStatus) {
+      args.push('--ignore-exit-status');
     }
 
-    // Add format
+    if (options.listUnknown) {
+      args.push('--list-unknown');
+    }
+
     if (options.format) {
       args.push('--format', options.format);
     }
 
-    // Add list unused
-    if (options.listUnused) {
-      args.push('--list-unused');
+    if (options.noCheck) {
+      args.push('--no-check');
     }
 
-    // Add verbose
-    if (options.verbose) {
-      args.push('--verbose');
-    }
-
-    try {
-      return await this.executeMixCommand('dialyzer', args, options);
-    } catch (error) {
-      // Elixir-specific: Provide helpful type checking suggestions
-      this.suggestTypeCheckFix(error.message);
-      throw error;
-    }
+    return await this.runMixCommand(args, options);
   }
 
   /**
-   * Manage dependencies
+   * Security scanning
    */
-  async deps(command, options = {}) {
-    // Only initialize if not already initialized
-    if (!this.detectedTools) {
-      await this.initialize();
+  async security(options = {}) {
+    await this.initialize();
+
+    const securityTools = [];
+    const results = [];
+
+    // Check for Sobelow
+    const sobelowAvailable = this.checkTool('sobelow', false);
+    if (sobelowAvailable) {
+      securityTools.push('sobelow');
     }
 
-    const args = [];
-
-    // For Mix, subcommands use dots: deps.get, deps.update, etc.
-    // So we need to handle this specially
-    let mixCommand = 'deps';
-
-    // Check if it's a subcommand that needs a dot
-    const subcommandsWithDot = ['get', 'update', 'clean', 'compile', 'unlock', 'tree'];
-    if (subcommandsWithDot.includes(command)) {
-      mixCommand = `deps.${command}`;
-    } else {
-      args.push(command);
+    // Check for mix_audit
+    const mixAuditAvailable = this.checkTool('mix_audit', false);
+    if (mixAuditAvailable) {
+      securityTools.push('mix_audit');
     }
 
-    // Add package name for get, update, tree
-    if (options.package) {
-      args.push(options.package);
+    if (securityTools.length === 0) {
+      throw new Error(
+        'No security tools configured. Run /elixir-setup to configure security scanning.'
+      );
     }
 
-    // Add only environment
+    LoggingUtils.info(`Running security scan with: ${securityTools.join(', ')}`);
+
+    // Run Sobelow if available
+    if (sobelowAvailable) {
+      try {
+        LoggingUtils.info('Running Sobelow security scan...');
+        const sobelowArgs = ['sobelow'];
+
+        if (options.format) {
+          sobelowArgs.push('--format', options.format);
+        }
+
+        if (options.verbose) {
+          sobelowArgs.push('--verbose');
+        }
+
+        if (options.quiet) {
+          sobelowArgs.push('--quiet');
+        }
+
+        if (options.exit) {
+          sobelowArgs.push('--exit');
+        }
+
+        const sobelowResult = await this.runMixCommand(sobelowArgs, { ...options, stdio: 'pipe' });
+        results.push({
+          tool: 'sobelow',
+          success: sobelowResult.code === 0,
+          output: sobelowResult.stdout,
+        });
+      } catch (error) {
+        results.push({
+          tool: 'sobelow',
+          success: false,
+          error: error.message,
+        });
+      }
+    }
+
+    // Run mix_audit if available
+    if (mixAuditAvailable) {
+      try {
+        LoggingUtils.info('Running mix_audit dependency scan...');
+        const auditArgs = ['audit'];
+
+        if (options.exitOnVuln) {
+          auditArgs.push('--exit-on-vuln');
+        }
+
+        const auditResult = await this.runMixCommand(auditArgs, { ...options, stdio: 'pipe' });
+        results.push({
+          tool: 'mix_audit',
+          success: auditResult.code === 0,
+          output: auditResult.stdout,
+        });
+      } catch (error) {
+        results.push({
+          tool: 'mix_audit',
+          success: false,
+          error: error.message,
+        });
+      }
+    }
+
+    return {
+      success: results.every((r) => r.success),
+      tools: securityTools,
+      results,
+    };
+  }
+
+  /**
+   * Dependency management
+   */
+  async deps(action = 'get', options = {}) {
+    await this.initialize();
+
+    const validActions = ['get', 'update', 'clean', 'compile', 'unlock', 'tree'];
+
+    if (!validActions.includes(action)) {
+      throw new Error(`Invalid action: ${action}. Valid actions: ${validActions.join(', ')}`);
+    }
+
+    const args = ['deps', action];
+
     if (options.only) {
       args.push('--only', options.only);
     }
 
-    // Add lock
-    if (options.lock) {
-      args.push('--lock');
+    if (options.env) {
+      args.push('--env', options.env);
     }
 
-    // Add unlock
-    if (options.unlock) {
-      args.push('--unlock');
+    if (options.target) {
+      args.push('--target', options.target);
     }
 
-    // Add check unlock
-    if (options.checkUnlock) {
-      args.push('--check-unlock');
-    }
-
-    // Add verbose
-    if (options.verbose) {
-      args.push('--verbose');
-    }
-
-    try {
-      return await this.executeMixCommand(mixCommand, args, options);
-    } catch (error) {
-      // Elixir-specific: Provide helpful dependency suggestions
-      this.suggestDepsFix(error.message);
-      throw error;
-    }
+    return await this.runMixCommand(args, options);
   }
 
   /**
-   * Show compilation information
+   * Run Elixir application
    */
-  async showCompilationInfo(options) {
-    try {
-      // Get Elixir version
-      const versionResult = await this.executeMixCommand('--version', [], {
-        stdio: 'pipe',
-      });
+  async run(appArgs = [], options = {}) {
+    await this.initialize();
 
-      // Get project info
-      const projectResult = await this.executeMixCommand(
-        'run',
-        ['-e', 'IO.puts("Project: #{Mix.Project.config()[:app]}")'],
-        {
-          stdio: 'pipe',
-        },
-      );
-
-      LoggingUtils.info('\n📊 Compilation Information:');
-      LoggingUtils.info('='.repeat(50));
-      LoggingUtils.info(`Elixir: ${versionResult.stdout.trim()}`);
-      LoggingUtils.info(`Project: ${projectResult.stdout.trim()}`);
-      LoggingUtils.info(`Environment: ${options.env || 'dev'}`);
-      LoggingUtils.info('='.repeat(50));
-    } catch (error) {
-      // Silently fail - this is just informational
-    }
-  }
-
-  /**
-   * Show test summary
-   */
-  async showTestSummary(options) {
-    console.log('\n✅ Tests completed successfully!');
-
-    if (options.coverage) {
-      console.log('📊 Coverage report generated in cover/ directory');
-    }
-  }
-
-  /**
-   * Suggest compilation fixes
-   */
-  suggestCompilationFix(errorMessage) {
-    LoggingUtils.info('\n💡 Compilation Error Suggestions:');
-
-    if (errorMessage.includes('Dependency')) {
-      LoggingUtils.info("   • Run 'mix deps.get' to fetch dependencies");
-      LoggingUtils.info('   • Check mix.exs for correct dependency versions');
+    // First compile to ensure everything is up to date
+    if (options.compile !== false) {
+      await this.compile({ ...options, stdio: 'pipe' });
     }
 
-    if (errorMessage.includes('undefined function')) {
-      LoggingUtils.info('   • Check function name and arity');
-      LoggingUtils.info('   • Ensure module is compiled and available');
-      LoggingUtils.info('   • Check imports and aliases');
+    const args = ['run'];
+
+    if (appArgs && appArgs.length > 0) {
+      args.push('--');
+      args.push(...appArgs);
     }
 
-    if (errorMessage.includes('module not found')) {
-      LoggingUtils.info('   • Check module name spelling');
-      LoggingUtils.info('   • Ensure file exists in lib/ directory');
-      LoggingUtils.info('   • Check file extension (.ex vs .exs)');
-    }
-  }
-
-  /**
-   * Suggest test fixes
-   */
-  suggestTestFix(errorMessage) {
-    LoggingUtils.info('\n💡 Test Error Suggestions:');
-
-    if (errorMessage.includes('assert')) {
-      LoggingUtils.info('   • Check assertion values match expected');
-      LoggingUtils.info('   • Use assert_in_delta for floating point comparisons');
-      LoggingUtils.info('   • Check test setup and teardown');
-    }
-
-    if (errorMessage.includes('timeout')) {
-      LoggingUtils.info('   • Increase timeout with --timeout option');
-      LoggingUtils.info('   • Check for infinite loops or long-running operations');
-      LoggingUtils.info('   • Consider using async: false for integration tests');
-    }
-  }
-
-  /**
-   * Suggest formatting fixes
-   */
-  suggestFormatFix(errorMessage) {
-    LoggingUtils.info('\n💡 Formatting Error Suggestions:');
-
-    if (errorMessage.includes('not formatted')) {
-      LoggingUtils.info("   • Run 'mix format' to fix formatting");
-      LoggingUtils.info('   • Check .formatter.exs configuration');
-      LoggingUtils.info('   • Ensure line length is within limits');
-    }
-  }
-
-  /**
-   * Suggest linting fixes
-   */
-  suggestLintFix(errorMessage) {
-    LoggingUtils.info('\n💡 Linting Error Suggestions:');
-
-    if (errorMessage.includes('Credo')) {
-      LoggingUtils.info('   • Install Credo: mix archive.install hex credo');
-      LoggingUtils.info('   • Check .credo.exs configuration');
-      LoggingUtils.info("   • Run 'mix credo --strict' for detailed analysis");
-    }
-  }
-
-  /**
-   * Suggest type checking fixes
-   */
-  suggestTypeCheckFix(errorMessage) {
-    LoggingUtils.info('\n💡 Type Checking Error Suggestions:');
-
-    if (errorMessage.includes('Dialyzer')) {
-      LoggingUtils.info('   • Add dialyxir to mix.exs: {:dialyxir, "~> 1.4", only: [:dev]}');
-      LoggingUtils.info("   • Run 'mix dialyzer --plt' to build PLT");
-      LoggingUtils.info('   • Check type specifications with @spec');
-    }
-  }
-
-  /**
-   * Suggest dependency fixes
-   */
-  suggestDepsFix(errorMessage) {
-    LoggingUtils.info('\n💡 Dependency Error Suggestions:');
-
-    if (errorMessage.includes('Hex')) {
-      LoggingUtils.info('   • Install Hex: mix local.hex');
-      LoggingUtils.info('   • Check internet connection for Hex.pm');
-      LoggingUtils.info('   • Verify package name and version in mix.exs');
-    }
-
-    if (errorMessage.includes('lock')) {
-      LoggingUtils.info("   • Run 'mix deps.unlock --all' to clear lock");
-      LoggingUtils.info("   • Run 'mix deps.get' to refetch dependencies");
-    }
+    return await this.runMixCommand(args, options);
   }
 
   /**
    * Clean build artifacts
    */
   async clean(options = {}) {
-    const args = [];
+    await this.initialize();
 
-    if (options.all) {
-      args.push('--all');
-    }
+    const args = ['clean'];
 
     if (options.deps) {
       args.push('--deps');
@@ -753,46 +612,87 @@ class ElixirCommandRunner {
       args.push('--build');
     }
 
-    if (options.release) {
-      args.push('--release');
+    if (options.all) {
+      args.push('--all');
     }
 
-    if (options.logs) {
-      args.push('--logs');
-    }
-
-    return await this.executeMixCommand('clean', args, options);
-  }
-
-  /**
-   * Run custom Mix task
-   */
-  async run(task, args = [], options = {}) {
-    const allArgs = [task, ...args];
-    return await this.executeMixCommand('run', allArgs, options);
+    return await this.runMixCommand(args, options);
   }
 
   /**
    * Get project information
    */
-  async getProjectInfo() {
-    try {
-      const version = await this.executeMixCommand('--version', [], {
-        stdio: 'pipe',
-      });
-      const deps = await this.executeMixCommand('deps', [], { stdio: 'pipe' });
-      const compile = await this.executeMixCommand('compile', [], {
-        stdio: 'pipe',
-      });
+  async info() {
+    await this.initialize();
 
-      return {
-        version: version.stdout.trim(),
-        dependencies: deps.stdout,
-        compilation: compile.stdout,
-      };
-    } catch (error) {
-      return { error: error.message };
+    const info = {
+      project: {
+        path: this.projectPath,
+        config: this.elixirConfig,
+      },
+      tools: this.detectedTools,
+      environment: {
+        elixir: this.detectedTools.elixirInfo,
+        erlang: this.detectedTools.erlangInfo,
+        mixProject: this.detectedTools.mixProject,
+      },
+    };
+
+    return info;
+  }
+
+  /**
+   * Create new Elixir project
+   */
+  async createProject(projectType, projectName, options = {}) {
+    const args = ['new', projectName];
+
+    if (projectType === 'phoenix') {
+      args[0] = 'phx.new';
+
+      if (options.noEcto) {
+        args.push('--no-ecto');
+      }
+
+      if (options.noHtml) {
+        args.push('--no-html');
+      }
+
+      if (options.noWebpack) {
+        args.push('--no-webpack');
+      }
+
+      if (options.database) {
+        args.push('--database', options.database);
+      }
+
+      if (options.binaryId) {
+        args.push('--binary-id');
+      }
+
+      if (options.umbrella) {
+        args.push('--umbrella');
+      }
+
+      if (options.live) {
+        args.push('--live');
+      }
+    } else if (projectType === 'umbrella') {
+      args.push('--umbrella');
+    } else if (projectType === 'app') {
+      args.push('--app');
+    } else if (projectType === 'lib') {
+      args.push('--lib');
     }
+
+    if (options.module) {
+      args.push('--module', options.module);
+    }
+
+    return await this.runMixCommand(args, {
+      ...options,
+      cwd: path.dirname(path.join(this.projectPath, projectName)),
+    });
   }
 }
 
